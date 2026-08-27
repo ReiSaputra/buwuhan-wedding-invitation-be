@@ -1,4 +1,4 @@
-﻿import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import request from "supertest";
 import express from "express";
 import jwt from "jsonwebtoken";
@@ -16,7 +16,7 @@ beforeAll(() => {
   vi.spyOn(InvitationRepository, "findManyByOwner");
   vi.spyOn(InvitationRepository, "create");
   vi.spyOn(InvitationRepository, "update");
-  vi.spyOn(InvitationRepository, "setPublishStatus");
+  vi.spyOn(InvitationRepository, "updateStatus");
   vi.spyOn(InvitationRepository, "deleteById");
   vi.spyOn(InvitationRepository, "addGalleryPhoto");
   vi.spyOn(InvitationRepository, "findGalleryPhotoById");
@@ -73,8 +73,12 @@ const mockInvitation = {
   id: "inv-123",
   title: "Pernikahan Ayu & Budi",
   slug: "ayu-dan-budi",
-  isPublished: true,
+  status: "ACTIVE" as const,
   publishedAt: new Date(),
+  eventDate: new Date("2026-10-10T00:00:00.000Z"),
+  eventTime: "07:00 WIB",
+  venue: "Grand Ballroom Hotel Indonesia",
+  address: "Jl. MH Thamrin No. 1, Jakarta Pusat",
   additionalInfo: {},
   templateId: null,
   template: null,
@@ -94,7 +98,7 @@ beforeEach(() => {
 });
 
 describe("invitation test: CRUD & Public", () => {
-  it("berhasil membuat undangan baru (201)", async () => {
+  it("berhasil membuat undangan baru dengan field event (201)", async () => {
     (InvitationRepository.findBySlug as Mock).mockResolvedValue(null);
     (InvitationRepository.create as Mock).mockResolvedValue(mockInvitation);
 
@@ -104,6 +108,10 @@ describe("invitation test: CRUD & Public", () => {
       .send({
         title: "Pernikahan Ayu & Budi",
         slug: "ayu-dan-budi",
+        eventDate: "2026-10-10T00:00:00.000Z",
+        eventTime: "07:00 WIB",
+        venue: "Grand Ballroom Hotel Indonesia",
+        address: "Jl. MH Thamrin No. 1, Jakarta Pusat",
         couples: [
           { type: "BRIDE", name: "Ayu", fatherName: "Bambang", motherName: "Siti" },
           { type: "GROOM", name: "Budi", fatherName: "Joko", motherName: "Sri" },
@@ -113,6 +121,8 @@ describe("invitation test: CRUD & Public", () => {
     expect(res.status).toBe(201);
     expect(res.body.message).toBe("Undangan berhasil dibuat");
     expect(res.body.data.id).toBe(mockInvitation.id);
+    expect(res.body.data.status).toBe("ACTIVE");
+    expect(res.body.data.venue).toBe("Grand Ballroom Hotel Indonesia");
   });
 
   it("berhasil melihat daftar undangan milik sendiri (200)", async () => {
@@ -124,6 +134,7 @@ describe("invitation test: CRUD & Public", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].status).toBe("ACTIVE");
   });
 
   it("berhasil melihat detail undangan sendiri lengkap dengan galeri dan cerita (200)", async () => {
@@ -140,29 +151,56 @@ describe("invitation test: CRUD & Public", () => {
     expect(res.body.data.loveStories[0].title).toBe(mockStory.title);
   });
 
-  it("berhasil melihat undangan publik via slug (200)", async () => {
+  it("berhasil melihat undangan publik via slug jika status ACTIVE (200)", async () => {
     (InvitationRepository.findBySlug as Mock).mockResolvedValue(mockInvitation);
 
     const res = await request(app).get(`/v1/api/public/invitations/${mockInvitation.slug}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data.slug).toBe(mockInvitation.slug);
+    expect(res.body.data.status).toBe("ACTIVE");
     expect(res.body.data.galleryPhotos).toHaveLength(1);
   });
 
-  it("berhasil update status publish undangan (200)", async () => {
-    (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
-    (InvitationRepository.setPublishStatus as Mock).mockResolvedValue({
+  it("berhasil melihat undangan publik via slug jika status COMPLETED (200)", async () => {
+    (InvitationRepository.findBySlug as Mock).mockResolvedValue({
       ...mockInvitation,
-      isPublished: true,
+      status: "COMPLETED",
+    });
+
+    const res = await request(app).get(`/v1/api/public/invitations/${mockInvitation.slug}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe("COMPLETED");
+  });
+
+  it("menolak akses undangan publik jika status DRAFT (404)", async () => {
+    (InvitationRepository.findBySlug as Mock).mockResolvedValue({
+      ...mockInvitation,
+      status: "DRAFT",
+    });
+
+    const res = await request(app).get(`/v1/api/public/invitations/${mockInvitation.slug}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe("Undangan tidak ditemukan");
+  });
+
+  it("berhasil update status undangan (200)", async () => {
+    (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (InvitationRepository.updateStatus as Mock).mockResolvedValue({
+      ...mockInvitation,
+      status: "ACTIVE",
     });
 
     const res = await request(app)
-      .patch(`/v1/api/invitations/${mockInvitation.id}/publish`)
+      .patch(`/v1/api/invitations/${mockInvitation.id}/status`)
       .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({ isPublished: true });
+      .send({ status: "ACTIVE" });
 
     expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Status undangan berhasil diperbarui");
+    expect(res.body.data.status).toBe("ACTIVE");
   });
 
   it("berhasil menghapus undangan (200)", async () => {

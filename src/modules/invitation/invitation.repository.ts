@@ -1,9 +1,10 @@
-﻿import { prisma } from "../../lib/prisma";
+import { prisma } from "../../lib/prisma";
 import { Prisma } from "../../generated/prisma/client";
 import type {
   AddGalleryPhotoReq,
   AddLoveStoryReq,
   CreateInvitationReq,
+  InvitationStatusType,
   UpdateGalleryPhotoReq,
   UpdateInvitationReq,
   UpdateLoveStoryReq,
@@ -50,7 +51,11 @@ export class InvitationRepository {
           title: request.title,
           slug: request.slug,
           ownerId,
-          isPublished: false,
+          status: "DRAFT",
+          eventDate: request.eventDate ? new Date(request.eventDate) : null,
+          eventTime: request.eventTime ?? null,
+          venue: request.venue ?? null,
+          address: request.address ?? null,
           templateId: request.templateId ?? null,
           additionalInfo: request.additionalInfo ?? {},
           couples: {
@@ -83,6 +88,12 @@ export class InvitationRepository {
 
         if (request.title !== undefined) data.title = request.title;
         if (request.slug !== undefined) data.slug = request.slug;
+        if (request.eventDate !== undefined) {
+          data.eventDate = request.eventDate ? new Date(request.eventDate) : null;
+        }
+        if (request.eventTime !== undefined) data.eventTime = request.eventTime;
+        if (request.venue !== undefined) data.venue = request.venue;
+        if (request.address !== undefined) data.address = request.address;
         if (request.additionalInfo !== undefined) data.additionalInfo = request.additionalInfo;
         if (request.templateId !== undefined) data.templateId = request.templateId;
         if (request.couples !== undefined) {
@@ -110,13 +121,15 @@ export class InvitationRepository {
     }
   }
 
-  static async setPublishStatus(id: string, isPublished: boolean) {
+  static async updateStatus(id: string, status: InvitationStatusType, publishedAt?: Date | null) {
+    const data: Prisma.InvitationUncheckedUpdateInput = { status };
+    if (publishedAt !== undefined) {
+      data.publishedAt = publishedAt;
+    }
+
     return await prisma.invitation.update({
       where: { id },
-      data: {
-        isPublished,
-        publishedAt: isPublished ? new Date() : null,
-      },
+      data,
       include: includeRelations,
     });
   }

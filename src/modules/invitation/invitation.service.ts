@@ -1,4 +1,4 @@
-﻿import type { PlanTier } from "../../generated/prisma/client";
+import type { PlanTier } from "../../generated/prisma/client";
 import { InvitationRepository } from "./invitation.repository";
 import { TemplateRepository } from "../template/template.repository";
 import { isTierSufficient } from "../template/template.types";
@@ -9,8 +9,8 @@ import {
   getInvitationResponse,
   listInvitationResponse,
   loveStoryResponse,
-  publishInvitationResponse,
   updateInvitationResponse,
+  updateInvitationStatusResponse,
   type AddGalleryPhotoReq,
   type AddLoveStoryReq,
   type CreateInvitationReq,
@@ -20,11 +20,11 @@ import {
   type GetInvitationRes,
   type ListInvitationRes,
   type LoveStoryRes,
-  type PublishInvitationReq,
-  type PublishInvitationRes,
   type UpdateGalleryPhotoReq,
   type UpdateInvitationReq,
   type UpdateInvitationRes,
+  type UpdateInvitationStatusReq,
+  type UpdateInvitationStatusRes,
   type UpdateLoveStoryReq,
 } from "./invitation.types";
 
@@ -72,7 +72,7 @@ export class InvitationService {
   static async getPublicBySlug(slug: string): Promise<GetInvitationRes> {
     const invitation = await InvitationRepository.findBySlug(slug);
 
-    if (!invitation || !invitation.isPublished) {
+    if (!invitation || (invitation.status !== "ACTIVE" && invitation.status !== "COMPLETED")) {
       throw new NotFoundError("Undangan tidak ditemukan");
     }
 
@@ -98,14 +98,19 @@ export class InvitationService {
     return updateInvitationResponse(updated);
   }
 
-  static async setPublishStatus(id: string, ownerId: string, request: PublishInvitationReq): Promise<PublishInvitationRes> {
+  static async updateStatus(id: string, ownerId: string, request: UpdateInvitationStatusReq): Promise<UpdateInvitationStatusRes> {
     const existing = await InvitationRepository.findByIdAndOwner(id, ownerId);
 
     if (!existing) throw new NotFoundError("Undangan tidak ditemukan");
 
-    const updated = await InvitationRepository.setPublishStatus(id, request.isPublished);
+    let publishedAt: Date | undefined = undefined;
+    if (request.status === "ACTIVE" && !existing.publishedAt) {
+      publishedAt = new Date();
+    }
 
-    return publishInvitationResponse(updated);
+    const updated = await InvitationRepository.updateStatus(id, request.status, publishedAt);
+
+    return updateInvitationStatusResponse(updated);
   }
 
   static async remove(id: string, ownerId: string): Promise<DeleteInvitationRes> {

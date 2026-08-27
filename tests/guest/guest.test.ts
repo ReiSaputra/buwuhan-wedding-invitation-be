@@ -1,4 +1,4 @@
-﻿import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import request from "supertest";
 import express from "express";
 import jwt from "jsonwebtoken";
@@ -48,8 +48,12 @@ const mockInvitation = {
   id: "inv-123",
   title: "Pernikahan Ayu & Budi",
   slug: "ayu-dan-budi",
-  isPublished: true,
+  status: "ACTIVE" as const,
   publishedAt: new Date(),
+  eventDate: null,
+  eventTime: null,
+  venue: null,
+  address: null,
   additionalInfo: {},
   templateId: null,
   ownerId: mockUser.id,
@@ -88,17 +92,14 @@ describe("guest test: create guest", () => {
     (GuestRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
     (GuestRepository.create as Mock).mockResolvedValue(mockGuest);
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/guests`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({
-        name: "Rizky Ramadhan",
-        category: "Teman",
-        phone: "081234567890",
-        email: "rizky@example.com",
-        notes: "Meja 4",
-        paxCount: 2,
-      });
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/guests`).set("Authorization", `Bearer ${validAuthToken}`).send({
+      name: "Rizky Ramadhan",
+      category: "Teman",
+      phone: "081234567890",
+      email: "rizky@example.com",
+      notes: "Meja 4",
+      paxCount: 2,
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.message).toBe("Guest created successfully");
@@ -109,12 +110,9 @@ describe("guest test: create guest", () => {
   });
 
   it("menolak tambah tamu jika nama kosong (400)", async () => {
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/guests`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({
-        name: "",
-      });
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/guests`).set("Authorization", `Bearer ${validAuthToken}`).send({
+      name: "",
+    });
 
     expect(res.status).toBe(400);
     expect(GuestRepository.create).not.toHaveBeenCalled();
@@ -123,23 +121,18 @@ describe("guest test: create guest", () => {
   it("menolak tambah tamu jika undangan bukan milik user atau tidak ada (404)", async () => {
     (GuestRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/inv-bukan-milik/guests`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({
-        name: "Tamu Liar",
-      });
+    const res = await request(app).post(`/v1/api/invitations/inv-bukan-milik/guests`).set("Authorization", `Bearer ${validAuthToken}`).send({
+      name: "Tamu Liar",
+    });
 
     expect(res.status).toBe(404);
     expect(res.body.message).toBe("Undangan tidak ditemukan");
   });
 
   it("menolak tambah tamu jika tidak ada token autentikasi (401)", async () => {
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/guests`)
-      .send({
-        name: "Tamu Tanpa Auth",
-      });
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/guests`).send({
+      name: "Tamu Tanpa Auth",
+    });
 
     expect(res.status).toBe(401);
   });
@@ -166,12 +159,9 @@ describe("guest test: bulk create guests", () => {
   });
 
   it("menolak bulk create jika array guests kosong (400)", async () => {
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/guests/bulk`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({
-        guests: [],
-      });
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/guests/bulk`).set("Authorization", `Bearer ${validAuthToken}`).send({
+      guests: [],
+    });
 
     expect(res.status).toBe(400);
   });
@@ -182,9 +172,7 @@ describe("guest test: list & detail guest", () => {
     (GuestRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
     (GuestRepository.findManyByInvitationId as Mock).mockResolvedValue([mockGuest]);
 
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitation.id}/guests?category=Teman&search=Rizky`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/guests?category=Teman&search=Rizky`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(1);
@@ -195,9 +183,7 @@ describe("guest test: list & detail guest", () => {
     (GuestRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
     (GuestRepository.findByIdAndInvitationId as Mock).mockResolvedValue(mockGuest);
 
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitation.id}/guests/${mockGuest.id}`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/guests/${mockGuest.id}`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data.name).toBe(mockGuest.name);
@@ -207,9 +193,7 @@ describe("guest test: list & detail guest", () => {
     (GuestRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
     (GuestRepository.findByIdAndInvitationId as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitation.id}/guests/id-palsu`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/guests/id-palsu`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(404);
     expect(res.body.message).toBe("Data tamu tidak ditemukan");
@@ -222,12 +206,9 @@ describe("guest test: update & delete guest", () => {
     (GuestRepository.findByIdAndInvitationId as Mock).mockResolvedValue(mockGuest);
     (GuestRepository.update as Mock).mockResolvedValue({ ...mockGuest, name: "Rizky Ramadhan SE" });
 
-    const res = await request(app)
-      .patch(`/v1/api/invitations/${mockInvitation.id}/guests/${mockGuest.id}`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({
-        name: "Rizky Ramadhan SE",
-      });
+    const res = await request(app).patch(`/v1/api/invitations/${mockInvitation.id}/guests/${mockGuest.id}`).set("Authorization", `Bearer ${validAuthToken}`).send({
+      name: "Rizky Ramadhan SE",
+    });
 
     expect(res.status).toBe(200);
     expect(res.body.data.name).toBe("Rizky Ramadhan SE");
@@ -238,9 +219,7 @@ describe("guest test: update & delete guest", () => {
     (GuestRepository.findByIdAndInvitationId as Mock).mockResolvedValue(mockGuest);
     (GuestRepository.delete as Mock).mockResolvedValue(mockGuest);
 
-    const res = await request(app)
-      .delete(`/v1/api/invitations/${mockInvitation.id}/guests/${mockGuest.id}`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).delete(`/v1/api/invitations/${mockInvitation.id}/guests/${mockGuest.id}`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Guest deleted successfully");
@@ -258,13 +237,10 @@ describe("guest test: check-in & check-out", () => {
       paxActual: 2,
     });
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/guests/check-in`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({
-        qrCode: mockGuest.qrCode,
-        paxActual: 2,
-      });
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/guests/check-in`).set("Authorization", `Bearer ${validAuthToken}`).send({
+      qrCode: mockGuest.qrCode,
+      paxActual: 2,
+    });
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Guest checked in successfully");
@@ -285,12 +261,9 @@ describe("guest test: check-in & check-out", () => {
       checkedOutAt: new Date(),
     });
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/guests/check-out`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({
-        qrCode: mockGuest.qrCode,
-      });
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/guests/check-out`).set("Authorization", `Bearer ${validAuthToken}`).send({
+      qrCode: mockGuest.qrCode,
+    });
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Guest checked out successfully");
@@ -300,12 +273,9 @@ describe("guest test: check-in & check-out", () => {
     (GuestRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
     (GuestRepository.findByQrCodeAndInvitationId as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/guests/check-in`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({
-        qrCode: "QR_TIDAK_ADA",
-      });
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/guests/check-in`).set("Authorization", `Bearer ${validAuthToken}`).send({
+      qrCode: "QR_TIDAK_ADA",
+    });
 
     expect(res.status).toBe(404);
     expect(res.body.message).toBe("Data tamu dengan kode tersebut tidak ditemukan");
@@ -327,9 +297,7 @@ describe("guest test: statistics & public qr verify", () => {
       },
     });
 
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitation.id}/guests/stats`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/guests/stats`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data.totalGuests).toBe(50);
@@ -352,7 +320,7 @@ describe("guest test: statistics & public qr verify", () => {
   it("menolak verifikasi QR code jika slug tidak cocok / tidak published (404)", async () => {
     (GuestRepository.findByQrCode as Mock).mockResolvedValue({
       ...mockGuest,
-      invitation: { ...mockInvitation, slug: "slug-lain", isPublished: false },
+      invitation: { ...mockInvitation, slug: "slug-lain", status: "DRAFT" as const },
     });
 
     const res = await request(app).get(`/v1/api/public/invitations/slug-salah/guests/verify/${mockGuest.qrCode}`);

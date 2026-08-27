@@ -1,4 +1,4 @@
-﻿import type { NextFunction, Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import { InvitationService } from "./invitation.service";
 import type {
@@ -11,11 +11,11 @@ import type {
   GetInvitationRes,
   ListInvitationRes,
   LoveStoryRes,
-  PublishInvitationReq,
-  PublishInvitationRes,
   UpdateGalleryPhotoReq,
   UpdateInvitationReq,
   UpdateInvitationRes,
+  UpdateInvitationStatusReq,
+  UpdateInvitationStatusRes,
   UpdateLoveStoryReq,
 } from "./invitation.types";
 
@@ -67,10 +67,10 @@ export class InvitationController {
     }
   }
 
-  static async publish(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async updateStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const request: PublishInvitationReq = req.body as PublishInvitationReq;
-      const response: PublishInvitationRes = await InvitationService.setPublishStatus(req.params.id as string, req.user!.id, request);
+      const request: UpdateInvitationStatusReq = req.body as UpdateInvitationStatusReq;
+      const response: UpdateInvitationStatusRes = await InvitationService.updateStatus(req.params.id as string, req.user!.id, request);
       res.status(200).json(response);
     } catch (error) {
       next(error);

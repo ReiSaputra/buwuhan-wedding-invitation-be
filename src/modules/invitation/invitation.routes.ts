@@ -1,15 +1,7 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 
 import { InvitationController } from "./invitation.controller";
-import {
-  addGalleryPhotoSchema,
-  addLoveStorySchema,
-  createInvitationSchema,
-  publishInvitationSchema,
-  updateGalleryPhotoSchema,
-  updateInvitationSchema,
-  updateLoveStorySchema,
-} from "./invitation.schema";
+import { addGalleryPhotoSchema, addLoveStorySchema, createInvitationSchema, updateGalleryPhotoSchema, updateInvitationSchema, updateInvitationStatusSchema, updateLoveStorySchema } from "./invitation.schema";
 import { validate } from "../../middlewares/validate.middleware";
 import { requireAuth } from "../../middlewares/auth.middleware";
 
@@ -23,7 +15,7 @@ invitationRouter.post("/invitations", requireAuth, validate(createInvitationSche
 invitationRouter.get("/invitations", requireAuth, InvitationController.listMine);
 invitationRouter.get("/invitations/:id", requireAuth, InvitationController.getOwned);
 invitationRouter.patch("/invitations/:id", requireAuth, validate(updateInvitationSchema), InvitationController.update);
-invitationRouter.patch("/invitations/:id/publish", requireAuth, validate(publishInvitationSchema), InvitationController.publish);
+invitationRouter.patch("/invitations/:id/status", requireAuth, validate(updateInvitationStatusSchema), InvitationController.updateStatus);
 invitationRouter.delete("/invitations/:id", requireAuth, InvitationController.remove);
 
 // Galeri Foto

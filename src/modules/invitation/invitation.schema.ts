@@ -1,4 +1,4 @@
-﻿import * as z from "zod";
+import * as z from "zod";
 
 const slugSchema = z
   .string()
@@ -25,6 +25,10 @@ export const createInvitationSchema = z.object({
   couples: z.array(coupleSchema).length(2, "Harus ada tepat 2 data mempelai (bride & groom)").refine(refineCouplesPair, {
     message: "Tipe mempelai harus terdiri dari BRIDE dan GROOM, tidak boleh duplikat",
   }),
+  eventDate: z.coerce.date().optional().nullable(),
+  eventTime: z.string().trim().max(100).optional().nullable(),
+  venue: z.string().trim().max(255).optional().nullable(),
+  address: z.string().trim().max(1000).optional().nullable(),
   additionalInfo: z.record(z.string(), z.unknown()).optional(),
   templateId: z.string().trim().min(1).optional(),
 });
@@ -40,6 +44,10 @@ export const updateInvitationSchema = z
         message: "Tipe mempelai harus terdiri dari BRIDE dan GROOM, tidak boleh duplikat",
       })
       .optional(),
+    eventDate: z.coerce.date().optional().nullable(),
+    eventTime: z.string().trim().max(100).optional().nullable(),
+    venue: z.string().trim().max(255).optional().nullable(),
+    address: z.string().trim().max(1000).optional().nullable(),
     additionalInfo: z.record(z.string(), z.unknown()).optional(),
     templateId: z.string().trim().min(1).optional(),
   })
@@ -47,8 +55,8 @@ export const updateInvitationSchema = z
     message: "Minimal satu field harus diisi untuk update",
   });
 
-export const publishInvitationSchema = z.object({
-  isPublished: z.boolean(),
+export const updateInvitationStatusSchema = z.object({
+  status: z.enum(["DRAFT", "ACTIVE", "COMPLETED"]),
 });
 
 // ── Galeri Foto ──────────────────────────────────────────────────────
@@ -93,7 +101,7 @@ export const updateLoveStorySchema = z
 
 export type CreateInvitationInput = z.infer<typeof createInvitationSchema>;
 export type UpdateInvitationInput = z.infer<typeof updateInvitationSchema>;
-export type PublishInvitationInput = z.infer<typeof publishInvitationSchema>;
+export type UpdateInvitationStatusInput = z.infer<typeof updateInvitationStatusSchema>;
 export type AddGalleryPhotoInput = z.infer<typeof addGalleryPhotoSchema>;
 export type UpdateGalleryPhotoInput = z.infer<typeof updateGalleryPhotoSchema>;
 export type AddLoveStoryInput = z.infer<typeof addLoveStorySchema>;

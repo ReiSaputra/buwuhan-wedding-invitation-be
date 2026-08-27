@@ -1,4 +1,4 @@
-﻿// Taruh file ini di: src/modules/invitation/invitation.docs.ts
+// Taruh file ini di: src/modules/invitation/invitation.docs.ts
 //
 // File ini murni JSDoc comment block (@openapi) yang di-scan otomatis oleh
 // swagger-jsdoc lewat glob di src/config/swagger.config.ts.
@@ -46,12 +46,27 @@
  *           description: Harus tepat 2 data mempelai (satu BRIDE dan satu GROOM).
  *           items:
  *             $ref: '#/components/schemas/CoupleInput'
+ *         eventDate:
+ *           type: string
+ *           format: date-time
+ *           description: Tanggal acara pernikahan.
+ *           example: "2026-10-10T00:00:00.000Z"
+ *         eventTime:
+ *           type: string
+ *           description: Jam / waktu pelaksanaan acara.
+ *           example: "07:00 WIB"
+ *         venue:
+ *           type: string
+ *           description: Nama tempat / gedung acara.
+ *           example: "Grand Ballroom Hotel Indonesia"
+ *         address:
+ *           type: string
+ *           description: Alamat lengkap tempat acara.
+ *           example: "Jl. MH Thamrin No. 1, Jakarta Pusat"
  *         additionalInfo:
  *           type: object
- *           description: Data JSON bebas untuk informasi tambahan seperti lokasi acara, live streaming, rekening bank, dsb.
+ *           description: Data JSON bebas untuk informasi tambahan seperti live streaming, rekening bank, dsb.
  *           example:
- *             eventDate: "2026-10-10"
- *             venue: "Grand Ballroom Hotel Indonesia"
  *             googleMapsUrl: "https://maps.google.com/?q=-6.195,106.823"
  *         templateId:
  *           type: string
@@ -73,23 +88,36 @@
  *           description: Jika disertakan, akan menggantikan seluruh pasangan mempelai sebelumnya.
  *           items:
  *             $ref: '#/components/schemas/CoupleInput'
+ *         eventDate:
+ *           type: string
+ *           format: date-time
+ *           example: "2026-10-12T00:00:00.000Z"
+ *         eventTime:
+ *           type: string
+ *           example: "08:00 WIB"
+ *         venue:
+ *           type: string
+ *           example: "Gedung Serbaguna Puri"
+ *         address:
+ *           type: string
+ *           example: "Jl. Pajajaran No. 10, Bogor"
  *         additionalInfo:
  *           type: object
  *           example:
- *             eventDate: "2026-10-12"
- *             venue: "Gedung Serbaguna Puri"
+ *             googleMapsUrl: "https://maps.google.com/?q=-6.195,106.823"
  *         templateId:
  *           type: string
  *           example: "cly3k9h2p0000v8og3f1a7x22"
  *
- *     PublishInvitationRequestBody:
+ *     UpdateInvitationStatusRequestBody:
  *       type: object
- *       required: [isPublished]
+ *       required: [status]
  *       properties:
- *         isPublished:
- *           type: boolean
- *           description: true untuk mempublikasikan agar bisa diakses tamu secara publik, false untuk mengarsipkan/draft.
- *           example: true
+ *         status:
+ *           type: string
+ *           enum: [DRAFT, ACTIVE, COMPLETED]
+ *           description: Status undangan (DRAFT = belum tayang, ACTIVE = aktif dipublikasikan, COMPLETED = acara selesai).
+ *           example: "ACTIVE"
  *
  *     GalleryPhotoItem:
  *       type: object
@@ -236,20 +264,37 @@
  *         slug:
  *           type: string
  *           example: "ayu-dan-budi"
- *         isPublished:
- *           type: boolean
- *           example: true
+ *         status:
+ *           type: string
+ *           enum: [DRAFT, ACTIVE, COMPLETED]
+ *           example: "ACTIVE"
  *         publishedAt:
  *           type: string
  *           format: date-time
  *           nullable: true
  *           example: "2026-08-27T10:00:00.000Z"
+ *         eventDate:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *           example: "2026-10-10T00:00:00.000Z"
+ *         eventTime:
+ *           type: string
+ *           nullable: true
+ *           example: "07:00 WIB"
+ *         venue:
+ *           type: string
+ *           nullable: true
+ *           example: "Grand Ballroom Hotel Indonesia"
+ *         address:
+ *           type: string
+ *           nullable: true
+ *           example: "Jl. MH Thamrin No. 1, Jakarta Pusat"
  *         additionalInfo:
  *           type: object
  *           nullable: true
  *           example:
- *             eventDate: "2026-10-10"
- *             venue: "Grand Ballroom Hotel Indonesia"
+ *             googleMapsUrl: "https://maps.google.com/?q=-6.195,106.823"
  *         couples:
  *           type: array
  *           items:
@@ -328,7 +373,7 @@
  *                 id: "cly3k8a1b0000v8og3f1a1111"
  *                 title: "Pernikahan Ayu & Budi"
  *                 slug: "ayu-dan-budi"
- *                 isPublished: false
+ *                 status: "DRAFT"
  *                 publishedAt: null
  *                 additionalInfo: { eventDate: "2026-10-10", venue: "Hotel Indonesia" }
  *                 couples:
@@ -407,7 +452,7 @@
  *                 - id: "cly3k8a1b0000v8og3f1a1111"
  *                   title: "Pernikahan Ayu & Budi"
  *                   slug: "ayu-dan-budi"
- *                   isPublished: true
+ *                   status: "ACTIVE"
  *                   publishedAt: "2026-08-27T10:00:00.000Z"
  *                   additionalInfo: {}
  *                   couples:
@@ -463,7 +508,7 @@
  *                 id: "cly3k8a1b0000v8og3f1a1111"
  *                 title: "Pernikahan Ayu & Budi"
  *                 slug: "ayu-dan-budi"
- *                 isPublished: true
+ *                 status: "ACTIVE"
  *                 publishedAt: "2026-08-27T10:00:00.000Z"
  *                 additionalInfo: {}
  *                 couples:
@@ -568,11 +613,11 @@
  *             schema:
  *               $ref: '#/components/schemas/ErrorEnvelope'
  *
- * /invitations/{id}/publish:
+ * /invitations/{id}/status:
  *   patch:
  *     tags: [Invitation]
- *     summary: Publikasikan atau arsipkan undangan
- *     description: Mengubah status publikasi undangan. Jika true, undangan dapat dibuka oleh tamu publik lewat link.
+ *     summary: Perbarui status undangan (DRAFT, ACTIVE, COMPLETED)
+ *     description: Mengubah status undangan. Jika diubah ke ACTIVE dan belum memiliki publishedAt, publishedAt akan otomatis diisi tanggal saat ini. Undangan dengan status ACTIVE dan COMPLETED dapat diakses publik.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -587,10 +632,10 @@
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/PublishInvitationRequestBody'
+ *             $ref: '#/components/schemas/UpdateInvitationStatusRequestBody'
  *     responses:
  *       200:
- *         description: Status publish berhasil diubah.
+ *         description: Status undangan berhasil diperbarui.
  *         content:
  *           application/json:
  *             schema:
@@ -601,14 +646,18 @@
  *                     data:
  *                       $ref: '#/components/schemas/InvitationData'
  *             example:
- *               message: "Undangan berhasil dipublikasikan"
+ *               message: "Status undangan berhasil diperbarui"
  *               status: 200
  *               data:
  *                 id: "cly3k8a1b0000v8og3f1a1111"
  *                 title: "Pernikahan Ayu & Budi"
  *                 slug: "ayu-dan-budi"
- *                 isPublished: true
+ *                 status: "ACTIVE"
  *                 publishedAt: "2026-08-27T10:00:00.000Z"
+ *                 eventDate: "2026-10-10T00:00:00.000Z"
+ *                 eventTime: "07:00 WIB"
+ *                 venue: "Grand Ballroom Hotel Indonesia"
+ *                 address: "Jl. MH Thamrin No. 1, Jakarta Pusat"
  *                 additionalInfo: {}
  *                 couples: []
  *                 template: null
@@ -625,7 +674,7 @@
  *   get:
  *     tags: [Invitation]
  *     summary: Lihat undangan publik (untuk Web Undangan Tamu)
- *     description: "Endpoint publik tanpa token. Hanya undangan yang isPublished: true yang dapat diakses."
+ *     description: "Endpoint publik tanpa token. Hanya undangan dengan status ACTIVE atau COMPLETED yang dapat diakses."
  *     security: []
  *     parameters:
  *       - in: path
@@ -654,7 +703,7 @@
  *                 id: "cly3k8a1b0000v8og3f1a1111"
  *                 title: "Pernikahan Ayu & Budi"
  *                 slug: "ayu-dan-budi"
- *                 isPublished: true
+ *                 status: "ACTIVE"
  *                 publishedAt: "2026-08-27T10:00:00.000Z"
  *                 additionalInfo: { venue: "Puri Begawan", eventDate: "2026-10-10" }
  *                 couples:

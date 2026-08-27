@@ -1,4 +1,4 @@
-﻿import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import request from "supertest";
 import express from "express";
 import jwt from "jsonwebtoken";
@@ -44,8 +44,12 @@ const mockInvitation = {
   id: "inv-123",
   title: "Pernikahan Ayu & Budi",
   slug: "ayu-dan-budi",
-  isPublished: true,
+  status: "ACTIVE" as const,
   publishedAt: new Date(),
+  eventDate: null,
+  eventTime: null,
+  venue: null,
+  address: null,
   additionalInfo: {},
   templateId: null,
   ownerId: mockUser.id,
@@ -97,14 +101,12 @@ describe("rsvp test: submit RSVP (Public)", () => {
     (RSVPRepository.findGuestByQrCode as Mock).mockResolvedValue(mockGuest);
     (RSVPRepository.upsertRSVP as Mock).mockResolvedValue(mockRSVP);
 
-    const res = await request(app)
-      .post(`/v1/api/public/invitations/${mockInvitation.slug}/rsvp`)
-      .send({
-        qrCode: mockGuest.qrCode,
-        status: "CONFIRMED",
-        reservation: 2,
-        message: "Selamat yaa Ayu & Budi!",
-      });
+    const res = await request(app).post(`/v1/api/public/invitations/${mockInvitation.slug}/rsvp`).send({
+      qrCode: mockGuest.qrCode,
+      status: "CONFIRMED",
+      reservation: 2,
+      message: "Selamat yaa Ayu & Budi!",
+    });
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("RSVP submitted successfully");
@@ -123,14 +125,12 @@ describe("rsvp test: submit RSVP (Public)", () => {
       message: "Maaf belum bisa hadir, selamat ya!",
     });
 
-    const res = await request(app)
-      .post(`/v1/api/public/invitations/${mockInvitation.slug}/rsvp`)
-      .send({
-        qrCode: mockGuest.qrCode,
-        status: "DECLINED",
-        reservation: 3, // dikirim 3 tapi service otomatis jadikan 0
-        message: "Maaf belum bisa hadir, selamat ya!",
-      });
+    const res = await request(app).post(`/v1/api/public/invitations/${mockInvitation.slug}/rsvp`).send({
+      qrCode: mockGuest.qrCode,
+      status: "DECLINED",
+      reservation: 3, // dikirim 3 tapi service otomatis jadikan 0
+      message: "Maaf belum bisa hadir, selamat ya!",
+    });
 
     expect(res.status).toBe(200);
     expect(res.body.data.status).toBe("DECLINED");
@@ -151,36 +151,30 @@ describe("rsvp test: submit RSVP (Public)", () => {
       guest: { ...mockGuest, id: "guest-new", name: "Tamu Publik" },
     });
 
-    const res = await request(app)
-      .post(`/v1/api/public/invitations/${mockInvitation.slug}/rsvp`)
-      .send({
-        name: "Tamu Publik",
-        status: "CONFIRMED",
-        reservation: 1,
-        message: "Selamat yaa!",
-      });
+    const res = await request(app).post(`/v1/api/public/invitations/${mockInvitation.slug}/rsvp`).send({
+      name: "Tamu Publik",
+      status: "CONFIRMED",
+      reservation: 1,
+      message: "Selamat yaa!",
+    });
 
     expect(res.status).toBe(200);
     expect(RSVPRepository.createGuestForPublic).toHaveBeenCalled();
   });
 
   it("menolak submit RSVP jika tidak menyertakan qrCode maupun name (400)", async () => {
-    const res = await request(app)
-      .post(`/v1/api/public/invitations/${mockInvitation.slug}/rsvp`)
-      .send({
-        status: "CONFIRMED",
-      });
+    const res = await request(app).post(`/v1/api/public/invitations/${mockInvitation.slug}/rsvp`).send({
+      status: "CONFIRMED",
+    });
 
     expect(res.status).toBe(400);
   });
 
   it("menolak submit RSVP jika status bukan CONFIRMED atau DECLINED (400)", async () => {
-    const res = await request(app)
-      .post(`/v1/api/public/invitations/${mockInvitation.slug}/rsvp`)
-      .send({
-        name: "Tamu",
-        status: "MAYBE",
-      });
+    const res = await request(app).post(`/v1/api/public/invitations/${mockInvitation.slug}/rsvp`).send({
+      name: "Tamu",
+      status: "MAYBE",
+    });
 
     expect(res.status).toBe(400);
   });
@@ -188,12 +182,10 @@ describe("rsvp test: submit RSVP (Public)", () => {
   it("menolak submit RSVP jika undangan tidak ditemukan atau belum dipublish (404)", async () => {
     (RSVPRepository.findPublishedInvitationBySlug as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .post(`/v1/api/public/invitations/slug-tidak-ada/rsvp`)
-      .send({
-        name: "Tamu",
-        status: "CONFIRMED",
-      });
+    const res = await request(app).post(`/v1/api/public/invitations/slug-tidak-ada/rsvp`).send({
+      name: "Tamu",
+      status: "CONFIRMED",
+    });
 
     expect(res.status).toBe(404);
   });
@@ -227,9 +219,7 @@ describe("rsvp test: host dashboard list & stats", () => {
     (RSVPRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
     (RSVPRepository.findManyByInvitationId as Mock).mockResolvedValue([mockRSVP]);
 
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitation.id}/rsvps?status=CONFIRMED`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/rsvps?status=CONFIRMED`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(1);
@@ -247,9 +237,7 @@ describe("rsvp test: host dashboard list & stats", () => {
       totalPaxConfirmed: 135,
     });
 
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitation.id}/rsvps/stats`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/rsvps/stats`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data.totalConfirmed).toBe(70);
@@ -259,9 +247,7 @@ describe("rsvp test: host dashboard list & stats", () => {
   it("menolak list RSVP jika undangan bukan milik requester (404)", async () => {
     (RSVPRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .get(`/v1/api/invitations/inv-bukan-milik/rsvps`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/inv-bukan-milik/rsvps`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(404);
   });
@@ -279,9 +265,7 @@ describe("rsvp test: delete RSVP", () => {
     (RSVPRepository.findByIdAndInvitationId as Mock).mockResolvedValue(mockRSVP);
     (RSVPRepository.delete as Mock).mockResolvedValue(mockRSVP);
 
-    const res = await request(app)
-      .delete(`/v1/api/invitations/${mockInvitation.id}/rsvps/${mockRSVP.id}`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).delete(`/v1/api/invitations/${mockInvitation.id}/rsvps/${mockRSVP.id}`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("RSVP deleted successfully");
@@ -291,9 +275,7 @@ describe("rsvp test: delete RSVP", () => {
     (RSVPRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
     (RSVPRepository.findByIdAndInvitationId as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .delete(`/v1/api/invitations/${mockInvitation.id}/rsvps/rsvp-palsu`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).delete(`/v1/api/invitations/${mockInvitation.id}/rsvps/rsvp-palsu`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(404);
   });

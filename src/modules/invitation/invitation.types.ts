@@ -1,4 +1,4 @@
-﻿import type { Couple, GalleryPhoto, Invitation, LoveStory, Prisma, Template } from "../../generated/prisma/client";
+import type { Couple, GalleryPhoto, Invitation, InvitationStatus, LoveStory, Prisma, Template } from "../../generated/prisma/client";
 
 export type InvitationWithRelations = Invitation & {
   couples: Couple[];
@@ -8,6 +8,7 @@ export type InvitationWithRelations = Invitation & {
 };
 
 export type CoupleType = "BRIDE" | "GROOM";
+export type InvitationStatusType = "DRAFT" | "ACTIVE" | "COMPLETED";
 
 export interface CoupleInput {
   type: CoupleType;
@@ -20,6 +21,10 @@ export interface CreateInvitationReq {
   title: string;
   slug: string;
   couples: CoupleInput[];
+  eventDate?: Date | string | undefined;
+  eventTime?: string | undefined;
+  venue?: string | undefined;
+  address?: string | undefined;
   additionalInfo?: Prisma.InputJsonValue | undefined;
   templateId?: string | undefined;
 }
@@ -28,12 +33,16 @@ export interface UpdateInvitationReq {
   title?: string | undefined;
   slug?: string | undefined;
   couples?: CoupleInput[] | undefined;
+  eventDate?: Date | string | null | undefined;
+  eventTime?: string | null | undefined;
+  venue?: string | null | undefined;
+  address?: string | null | undefined;
   additionalInfo?: Prisma.InputJsonValue | undefined;
   templateId?: string | undefined;
 }
 
-export interface PublishInvitationReq {
-  isPublished: boolean;
+export interface UpdateInvitationStatusReq {
+  status: InvitationStatusType;
 }
 
 export interface AddGalleryPhotoReq {
@@ -86,8 +95,12 @@ export interface InvitationData {
   id: string;
   title: string;
   slug: string;
-  isPublished: boolean;
+  status: InvitationStatusType;
   publishedAt: Date | null;
+  eventDate: Date | null;
+  eventTime: string | null;
+  venue: string | null;
+  address: string | null;
   additionalInfo: unknown;
   couples: {
     type: string;
@@ -128,7 +141,7 @@ export interface UpdateInvitationRes {
   data: InvitationData;
 }
 
-export interface PublishInvitationRes {
+export interface UpdateInvitationStatusRes {
   message: string;
   status: number;
   data: InvitationData;
@@ -156,8 +169,12 @@ export function toInvitationData(invitation: InvitationWithRelations): Invitatio
     id: invitation.id,
     title: invitation.title,
     slug: invitation.slug,
-    isPublished: invitation.isPublished,
+    status: invitation.status as InvitationStatusType,
     publishedAt: invitation.publishedAt,
+    eventDate: invitation.eventDate,
+    eventTime: invitation.eventTime,
+    venue: invitation.venue,
+    address: invitation.address,
     additionalInfo: invitation.additionalInfo,
     couples: (invitation.couples ?? []).map((c) => ({
       type: c.type,
@@ -223,9 +240,9 @@ export function updateInvitationResponse(invitation: InvitationWithRelations): U
   };
 }
 
-export function publishInvitationResponse(invitation: InvitationWithRelations): PublishInvitationRes {
+export function updateInvitationStatusResponse(invitation: InvitationWithRelations): UpdateInvitationStatusRes {
   return {
-    message: invitation.isPublished ? "Undangan berhasil dipublikasikan" : "Undangan berhasil diarsipkan",
+    message: "Status undangan berhasil diperbarui",
     status: 200,
     data: toInvitationData(invitation),
   };

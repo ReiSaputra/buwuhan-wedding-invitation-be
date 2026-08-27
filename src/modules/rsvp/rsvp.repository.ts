@@ -7,7 +7,7 @@ export class RSVPRepository {
     return await prisma.invitation.findFirst({
       where: {
         slug,
-        isPublished: true,
+        status: { in: ["ACTIVE", "COMPLETED"] },
       },
       include: {
         couples: true,

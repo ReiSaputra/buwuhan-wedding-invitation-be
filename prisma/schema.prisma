@@ -58,13 +58,23 @@ model Template {
   @@map("templates")
 }
 
+enum InvitationStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+}
+
 model Invitation {
   id String @id @default(cuid())
 
   title          String
-  slug           String    @unique
-  isPublished    Boolean
+  slug           String           @unique
+  status         InvitationStatus @default(DRAFT)
   publishedAt    DateTime?
+  eventDate      DateTime?
+  eventTime      String?
+  venue          String?
+  address        String?
   additionalInfo Json
 
   templateId String?

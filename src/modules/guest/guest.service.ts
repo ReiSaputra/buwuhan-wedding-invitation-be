@@ -1,4 +1,4 @@
-﻿import crypto from "crypto";
+import crypto from "crypto";
 
 import { GuestRepository } from "./guest.repository";
 import {
@@ -203,7 +203,7 @@ export class GuestService {
   static async getPublicByQrCode(slug: string, qrCode: string): Promise<GetGuestRes> {
     const guest = await GuestRepository.findByQrCode(qrCode);
 
-    if (!guest || !guest.invitation || guest.invitation.slug !== slug || !guest.invitation.isPublished) {
+    if (!guest || !guest.invitation || guest.invitation.slug !== slug || guest.invitation.status === "DRAFT") {
       throw new NotFoundError("Undangan atau data tamu tidak ditemukan");
     }
 

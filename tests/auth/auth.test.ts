@@ -28,6 +28,7 @@ import { errorHandler } from "../../src/middlewares/error.middleware";
 // file ini numbrung kena limit register/login/refresh-token.
 beforeAll(() => {
   vi.spyOn(AuthRepository, "findUserByEmail");
+  vi.spyOn(AuthRepository, "findUserById");
   vi.spyOn(AuthRepository, "createUser");
   vi.spyOn(AuthRepository, "createSession");
   vi.spyOn(AuthRepository, "findSessionByRefreshToken");
@@ -44,7 +45,7 @@ function buildTestApp() {
   const app = express();
   app.use(express.json());
   app.use(cookieParser());
-  app.use("/v1", authRouter);
+  app.use("/v1/api", authRouter);
   app.use(errorHandler);
   return app;
 }
@@ -62,7 +63,8 @@ const mockUserRecord = {
   fullName: testUser.fullName,
   email: testUser.email,
   passwordHash: "hashed-password",
-  role: "USER",
+  role: "USER" as const,
+  planTier: "FREE" as const,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -91,7 +93,7 @@ describe("auth test: signUp", () => {
     (AuthRepository.findUserByEmail as Mock).mockResolvedValue(null);
     (AuthRepository.createUser as Mock).mockResolvedValue(mockUserRecord);
 
-    const res = await request(app).post("/v1/auth/register").send(testUser);
+    const res = await request(app).post("/v1/api/auth/register").send(testUser);
 
     expect(res.status).toBe(201);
     expect(res.body).toEqual({
@@ -109,7 +111,7 @@ describe("auth test: signUp", () => {
   it("menolak signUp jika email sudah terdaftar (409)", async () => {
     (AuthRepository.findUserByEmail as Mock).mockResolvedValue(mockUserRecord);
 
-    const res = await request(app).post("/v1/auth/register").send(testUser);
+    const res = await request(app).post("/v1/api/auth/register").send(testUser);
 
     expect(res.status).toBe(409);
     expect(res.body).toEqual({ success: false, message: "Email sudah terdaftar" });
@@ -118,7 +120,7 @@ describe("auth test: signUp", () => {
 
   it("menolak signUp jika format email tidak valid (400)", async () => {
     const res = await request(app)
-      .post("/v1/auth/register")
+      .post("/v1/api/auth/register")
       .send({ ...testUser, email: "bukan-email" });
 
     expect(res.status).toBe(400);
@@ -128,7 +130,7 @@ describe("auth test: signUp", () => {
 
   it("menolak signUp jika password lemah / kurang dari 8 karakter (400)", async () => {
     const res = await request(app)
-      .post("/v1/auth/register")
+      .post("/v1/api/auth/register")
       .send({ ...testUser, password: "abc123" });
 
     expect(res.status).toBe(400);
@@ -138,7 +140,7 @@ describe("auth test: signUp", () => {
 
   it("menolak signUp jika password tidak mengandung angka (400)", async () => {
     const res = await request(app)
-      .post("/v1/auth/register")
+      .post("/v1/api/auth/register")
       .send({ ...testUser, password: "passwordsaja" });
 
     expect(res.status).toBe(400);
@@ -146,7 +148,7 @@ describe("auth test: signUp", () => {
   });
 
   it("menolak signUp jika field wajib tidak diisi (400)", async () => {
-    const res = await request(app).post("/v1/auth/register").send({ email: testUser.email });
+    const res = await request(app).post("/v1/api/auth/register").send({ email: testUser.email });
 
     expect(res.status).toBe(400);
     expect(AuthRepository.createUser).not.toHaveBeenCalled();
@@ -159,7 +161,7 @@ describe("auth test: signIn", () => {
     (bcrypt.compare as unknown as Mock).mockResolvedValue(true);
     (AuthRepository.createSession as Mock).mockResolvedValue({ id: "session-id" });
 
-    const res = await request(app).post("/v1/auth/login").send({ email: testUser.email, password: testUser.password });
+    const res = await request(app).post("/v1/api/auth/login").send({ email: testUser.email, password: testUser.password });
 
     expect(res.status).toBe(200);
     // refreshToken TIDAK boleh ada di body -- hanya di cookie
@@ -177,17 +179,19 @@ describe("auth test: signIn", () => {
     const createSessionArgs = (AuthRepository.createSession as Mock).mock.calls[0][0];
     const cookie = findRefreshTokenCookie(res);
 
+    console.info(cookie);
+
     expect(cookie).toBeDefined();
     expect(cookie).toContain(`refreshToken=${createSessionArgs.refreshToken}`);
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("SameSite=Strict");
-    expect(cookie).toContain("Path=/v1/auth");
+    expect(cookie).toContain("Path=/v1/api/auth");
   });
 
   it("menolak signIn jika email tidak terdaftar (401)", async () => {
     (AuthRepository.findUserByEmail as Mock).mockResolvedValue(null);
 
-    const res = await request(app).post("/v1/auth/login").send({ email: "tidakada@example.com", password: testUser.password });
+    const res = await request(app).post("/v1/api/auth/login").send({ email: "tidakada@example.com", password: testUser.password });
 
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ success: false, message: "Email atau password salah" });
@@ -198,7 +202,7 @@ describe("auth test: signIn", () => {
     (AuthRepository.findUserByEmail as Mock).mockResolvedValue(mockUserRecord);
     (bcrypt.compare as unknown as Mock).mockResolvedValue(false);
 
-    const res = await request(app).post("/v1/auth/login").send({ email: testUser.email, password: "PasswordSalah123!" });
+    const res = await request(app).post("/v1/api/auth/login").send({ email: testUser.email, password: "PasswordSalah123!" });
 
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ success: false, message: "Email atau password salah" });
@@ -215,10 +219,13 @@ describe("auth test: refreshToken", () => {
 
   it("berhasil rotate token dengan refresh token yang valid (200)", async () => {
     (AuthRepository.findSessionByRefreshToken as Mock).mockResolvedValue(validSession);
+    // findUserById dipanggil service untuk ambil role & planTier terbaru sebelum
+    // sign access token baru -- WAJIB di-mock agar tidak return undefined
+    (AuthRepository.findUserById as Mock).mockResolvedValue(mockUserRecord);
     (AuthRepository.revokeSessionById as Mock).mockResolvedValue(undefined);
     (AuthRepository.createSession as Mock).mockResolvedValue({ id: "new-session-id" });
 
-    const res = await request(app).post("/v1/auth/refresh-token").set("Cookie", "refreshToken=old-valid-token");
+    const res = await request(app).post("/v1/api/auth/refresh-token").set("Cookie", "refreshToken=old-valid-token");
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
@@ -227,6 +234,7 @@ describe("auth test: refreshToken", () => {
       data: { accessToken: "fake-jwt-token" },
     });
     expect(AuthRepository.revokeSessionById).toHaveBeenCalledWith(validSession.id);
+    expect(AuthRepository.findUserById).toHaveBeenCalledWith(validSession.userId);
 
     const cookie = findRefreshTokenCookie(res);
     expect(cookie).toBeDefined();
@@ -234,7 +242,7 @@ describe("auth test: refreshToken", () => {
   });
 
   it("menolak refresh jika tidak ada cookie refresh token (401)", async () => {
-    const res = await request(app).post("/v1/auth/refresh-token");
+    const res = await request(app).post("/v1/api/auth/refresh-token");
 
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ success: false, message: "Refresh token tidak ditemukan" });
@@ -247,7 +255,7 @@ describe("auth test: refreshToken", () => {
       revokedAt: new Date(),
     });
 
-    const res = await request(app).post("/v1/auth/refresh-token").set("Cookie", "refreshToken=revoked-token");
+    const res = await request(app).post("/v1/api/auth/refresh-token").set("Cookie", "refreshToken=revoked-token");
 
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ success: false, message: "Refresh token tidak valid" });
@@ -260,7 +268,7 @@ describe("auth test: refreshToken", () => {
       expiresAt: new Date(Date.now() - 1000), // sudah lewat
     });
 
-    const res = await request(app).post("/v1/auth/refresh-token").set("Cookie", "refreshToken=expired-token");
+    const res = await request(app).post("/v1/api/auth/refresh-token").set("Cookie", "refreshToken=expired-token");
 
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ success: false, message: "Refresh token tidak valid" });
@@ -269,7 +277,19 @@ describe("auth test: refreshToken", () => {
   it("menolak refresh jika token tidak dikenal (401)", async () => {
     (AuthRepository.findSessionByRefreshToken as Mock).mockResolvedValue(null);
 
-    const res = await request(app).post("/v1/auth/refresh-token").set("Cookie", "refreshToken=tidak-dikenal");
+    const res = await request(app).post("/v1/api/auth/refresh-token").set("Cookie", "refreshToken=tidak-dikenal");
+
+    expect(res.status).toBe(401);
+    expect(res.body).toEqual({ success: false, message: "Refresh token tidak valid" });
+  });
+
+  it("menolak refresh jika user sudah dihapus tapi session masih ada (401)", async () => {
+    // Skenario: admin hapus user, tapi session lama masih tersimpan di DB
+    (AuthRepository.findSessionByRefreshToken as Mock).mockResolvedValue(validSession);
+    (AuthRepository.findUserById as Mock).mockResolvedValue(null); // user tidak ada lagi
+    (AuthRepository.revokeSessionById as Mock).mockResolvedValue(undefined);
+
+    const res = await request(app).post("/v1/api/auth/refresh-token").set("Cookie", "refreshToken=orphaned-token");
 
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ success: false, message: "Refresh token tidak valid" });
@@ -280,7 +300,7 @@ describe("auth test: logout", () => {
   it("berhasil logout dan revoke session, clear cookie (200)", async () => {
     (AuthRepository.revokeSessionByRefreshToken as Mock).mockResolvedValue({ count: 1 });
 
-    const res = await request(app).post("/v1/auth/logout").set("Cookie", "refreshToken=some-token");
+    const res = await request(app).post("/v1/api/auth/logout").set("Cookie", "refreshToken=some-token");
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ message: "Logged out successfully", status: 200 });
@@ -295,7 +315,7 @@ describe("auth test: logout", () => {
   it("tetap 200 walau tidak ada cookie refresh token", async () => {
     (AuthRepository.revokeSessionByRefreshToken as Mock).mockResolvedValue({ count: 0 });
 
-    const res = await request(app).post("/v1/auth/logout");
+    const res = await request(app).post("/v1/api/auth/logout");
 
     expect(res.status).toBe(200);
     expect(AuthRepository.revokeSessionByRefreshToken).toHaveBeenCalledWith("");

@@ -1,0 +1,205 @@
+﻿import { prisma } from "../../lib/prisma";
+import { Prisma } from "../../generated/prisma/client";
+import type {
+  AddGalleryPhotoReq,
+  AddLoveStoryReq,
+  CreateInvitationReq,
+  UpdateGalleryPhotoReq,
+  UpdateInvitationReq,
+  UpdateLoveStoryReq,
+} from "./invitation.types";
+
+const includeRelations = {
+  couples: true,
+  template: true,
+  galleryPhotos: {
+    orderBy: { order: "asc" as const },
+  },
+  loveStories: {
+    orderBy: { order: "asc" as const },
+  },
+} as const;
+
+export class InvitationRepository {
+  static async findBySlug(slug: string) {
+    return await prisma.invitation.findUnique({
+      where: { slug },
+      include: includeRelations,
+    });
+  }
+
+  static async findByIdAndOwner(id: string, ownerId: string) {
+    return await prisma.invitation.findFirst({
+      where: { id, ownerId },
+      include: includeRelations,
+    });
+  }
+
+  static async findManyByOwner(ownerId: string) {
+    return await prisma.invitation.findMany({
+      where: { ownerId },
+      include: includeRelations,
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  static async create(ownerId: string, request: CreateInvitationReq) {
+    try {
+      return await prisma.invitation.create({
+        data: {
+          title: request.title,
+          slug: request.slug,
+          ownerId,
+          isPublished: false,
+          templateId: request.templateId ?? null,
+          additionalInfo: request.additionalInfo ?? {},
+          couples: {
+            create: request.couples.map((c) => ({
+              type: c.type,
+              name: c.name,
+              fatherName: c.fatherName,
+              motherName: c.motherName,
+            })),
+          },
+        },
+        include: includeRelations,
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new Error("Slug sudah digunakan");
+      }
+      throw error;
+    }
+  }
+
+  static async update(id: string, request: UpdateInvitationReq) {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        if (request.couples) {
+          await tx.couple.deleteMany({ where: { invitationId: id } });
+        }
+
+        const data: Prisma.InvitationUncheckedUpdateInput = {};
+
+        if (request.title !== undefined) data.title = request.title;
+        if (request.slug !== undefined) data.slug = request.slug;
+        if (request.additionalInfo !== undefined) data.additionalInfo = request.additionalInfo;
+        if (request.templateId !== undefined) data.templateId = request.templateId;
+        if (request.couples !== undefined) {
+          data.couples = {
+            create: request.couples.map((c) => ({
+              type: c.type,
+              name: c.name,
+              fatherName: c.fatherName,
+              motherName: c.motherName,
+            })),
+          };
+        }
+
+        return await tx.invitation.update({
+          where: { id },
+          data,
+          include: includeRelations,
+        });
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new Error("Slug sudah digunakan");
+      }
+      throw error;
+    }
+  }
+
+  static async setPublishStatus(id: string, isPublished: boolean) {
+    return await prisma.invitation.update({
+      where: { id },
+      data: {
+        isPublished,
+        publishedAt: isPublished ? new Date() : null,
+      },
+      include: includeRelations,
+    });
+  }
+
+  static async deleteById(id: string) {
+    return await prisma.invitation.delete({ where: { id } });
+  }
+
+  // ── Galeri Foto ──────────────────────────────────────────────────────
+
+  static async addGalleryPhoto(invitationId: string, request: AddGalleryPhotoReq) {
+    return await prisma.galleryPhoto.create({
+      data: {
+        invitationId,
+        imageUrl: request.imageUrl,
+        caption: request.caption ?? null,
+        order: request.order ?? 0,
+      },
+    });
+  }
+
+  static async findGalleryPhotoById(id: string, invitationId: string) {
+    return await prisma.galleryPhoto.findFirst({
+      where: { id, invitationId },
+    });
+  }
+
+  static async updateGalleryPhoto(id: string, request: UpdateGalleryPhotoReq) {
+    const data: Prisma.GalleryPhotoUpdateInput = {};
+    if (request.imageUrl !== undefined) data.imageUrl = request.imageUrl;
+    if (request.caption !== undefined) data.caption = request.caption;
+    if (request.order !== undefined) data.order = request.order;
+
+    return await prisma.galleryPhoto.update({
+      where: { id },
+      data,
+    });
+  }
+
+  static async deleteGalleryPhoto(id: string) {
+    return await prisma.galleryPhoto.delete({
+      where: { id },
+    });
+  }
+
+  // ── Kisah Cinta (Love Story) ─────────────────────────────────────────
+
+  static async addLoveStory(invitationId: string, request: AddLoveStoryReq) {
+    return await prisma.loveStory.create({
+      data: {
+        invitationId,
+        yearOrDate: request.yearOrDate,
+        title: request.title,
+        story: request.story,
+        imageUrl: request.imageUrl ?? null,
+        order: request.order ?? 0,
+      },
+    });
+  }
+
+  static async findLoveStoryById(id: string, invitationId: string) {
+    return await prisma.loveStory.findFirst({
+      where: { id, invitationId },
+    });
+  }
+
+  static async updateLoveStory(id: string, request: UpdateLoveStoryReq) {
+    const data: Prisma.LoveStoryUpdateInput = {};
+    if (request.yearOrDate !== undefined) data.yearOrDate = request.yearOrDate;
+    if (request.title !== undefined) data.title = request.title;
+    if (request.story !== undefined) data.story = request.story;
+    if (request.imageUrl !== undefined) data.imageUrl = request.imageUrl;
+    if (request.order !== undefined) data.order = request.order;
+
+    return await prisma.loveStory.update({
+      where: { id },
+      data,
+    });
+  }
+
+  static async deleteLoveStory(id: string) {
+    return await prisma.loveStory.delete({
+      where: { id },
+    });
+  }
+}

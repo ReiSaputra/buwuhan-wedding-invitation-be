@@ -3,7 +3,7 @@ import type { Response, Request } from "express";
 // Nama cookie & path di-scope ke /v1/auth saja, supaya cookie ini tidak
 // ikut terkirim di request ke endpoint lain yang tidak butuh refresh token.
 const REFRESH_TOKEN_COOKIE = "refreshToken";
-const COOKIE_PATH = "/v1/auth";
+const COOKIE_PATH = "/v1/api/auth";
 const REFRESH_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 hari, samakan dengan REFRESH_TOKEN_TTL_DAYS di service
 
 export function setRefreshTokenCookie(res: Response, refreshToken: string): void {

@@ -16,7 +16,7 @@ const swaggerDefinition: swaggerJsdoc.OAS3Definition = {
   },
   servers: [
     {
-      url: "http://localhost:3000/v1",
+      url: "http://localhost:3000/v1/api",
       description: "Local development",
     },
     // Tambahkan server staging/production di sini kalau sudah ada,

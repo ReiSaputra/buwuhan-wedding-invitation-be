@@ -14,6 +14,13 @@ datasource db {
 
 enum PlatformRole {
   USER
+  ADMIN
+}
+
+enum PlanTier {
+  FREE
+  PRO
+  MAX
 }
 
 model User {
@@ -23,14 +30,32 @@ model User {
   email        String       @unique @db.Citext
   passwordHash String
   role         PlatformRole @default(USER)
+  planTier     PlanTier     @default(FREE)
+
+  invitations Invitation[]
+  sessions    Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Template {
+  id String @id @default(cuid())
+
+  name            String
+  slug            String   @unique
+  tier            PlanTier
+  previewImageUrl String
+  isActive        Boolean  @default(true)
 
   invitations Invitation[]
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  sessions  Session[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@map("users")
+  @@map("templates")
 }
 
 model Invitation {
@@ -42,13 +67,17 @@ model Invitation {
   publishedAt    DateTime?
   additionalInfo Json
 
+  templateId String?
+  template   Template? @relation(fields: [templateId], references: [id])
+
   ownerId String
   owner   User   @relation(fields: [ownerId], references: [id])
 
-  coupleId String
-  couple   Couple @relation(fields: [coupleId], references: [id])
-
-  guests Guest[]
+  couples       Couple[]
+  guests        Guest[]
+  rsvps         RSVP[]
+  galleryPhotos GalleryPhoto[]
+  loveStories   LoveStory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -69,7 +98,8 @@ model Couple {
   fatherName String
   motherName String
 
-  invitations Invitation[]
+  invitationId String
+  invitation   Invitation @relation(fields: [invitationId], references: [id])
 
   @@map("bride_and_grooms")
 }
@@ -77,18 +107,27 @@ model Couple {
 model Guest {
   id String @id @default(cuid())
 
-  name   String
-  phone  String
-  email  String
-  qrCode String @unique
+  name         String
+  category     String?
+  phone        String?
+  email        String?
+  notes        String?
+  qrCode       String    @unique
+  paxCount     Int       @default(1)
+  paxActual    Int?
+  isAttended   Boolean   @default(false)
+  checkedInAt  DateTime?
+  checkedOutAt DateTime?
 
   invitationId String
-  invitation   Invitation @relation(fields: [invitationId], references: [id])
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  rsvps     RSVP[]
 
+  rsvps RSVP[]
+
+  @@index([invitationId])
   @@map("guests")
 }
 
@@ -101,14 +140,20 @@ model RSVP {
   id String @id @default(cuid())
 
   status      RSVPStatus
-  reservation Int
+  reservation Int        @default(1)
+  message     String?
 
   guestId String
-  guest   Guest  @relation(fields: [guestId], references: [id])
+  guest   Guest  @relation(fields: [guestId], references: [id], onDelete: Cascade)
+
+  invitationId String
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([invitationId, guestId])
+  @@index([invitationId])
   @@map("rsvps")
 }
 
@@ -129,4 +174,38 @@ model Session {
   updatedAt DateTime @updatedAt
 
   @@map("sessions")
+}
+
+model GalleryPhoto {
+  id       String  @id @default(cuid())
+  imageUrl String
+  caption  String?
+  order    Int     @default(0)
+
+  invitationId String
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([invitationId])
+  @@map("gallery_photos")
+}
+
+model LoveStory {
+  id         String  @id @default(cuid())
+  yearOrDate String
+  title      String
+  story      String
+  imageUrl   String?
+  order      Int     @default(0)
+
+  invitationId String
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([invitationId])
+  @@map("love_stories")
 }

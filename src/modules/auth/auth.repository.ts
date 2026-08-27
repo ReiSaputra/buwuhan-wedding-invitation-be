@@ -1,3 +1,8 @@
+// Taruh file ini di: src/modules/auth/auth.repository.ts
+// PERUBAHAN dari versi sebelumnya: tambah findUserById() -- dibutuhkan
+// refreshToken() di auth.service.ts buat ambil role user terbaru pas
+// rotate token (lihat auth.service.ts).
+
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 
@@ -5,9 +10,6 @@ import { prisma } from "../../lib/prisma";
 import type { RequestMeta, SignUpReq } from "./auth.types";
 import { Prisma } from "../../generated/prisma/client";
 
-// Refresh token sudah random & high-entropy (crypto.randomBytes), jadi cukup
-// di-hash pakai SHA-256 (cepat) -- tidak perlu bcrypt (yang sengaja lambat,
-// dan lebih cocok untuk password yang low-entropy/manusiawi).
 function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
@@ -15,6 +17,12 @@ function hashToken(token: string): string {
 export class AuthRepository {
   static async findUserByEmail(email: string) {
     return await prisma.user.findUnique({ where: { email } });
+  }
+
+  // BARU -- dipakai saat refresh token untuk ambil role user terkini
+  // (session cuma nyimpen userId, bukan role, jadi perlu query ulang)
+  static async findUserById(id: string) {
+    return await prisma.user.findUnique({ where: { id } });
   }
 
   static async createUser(request: SignUpReq) {
@@ -41,8 +49,6 @@ export class AuthRepository {
       data: {
         userId: params.userId,
         refreshTokenHash: hashToken(params.refreshToken),
-        // Prisma expect `string | null` (kolom String? di schema), bukan
-        // `string | undefined` -- jadi undefined dikonversi ke null di sini.
         userAgent: params.meta?.userAgent ?? null,
         ipAddress: params.meta?.ipAddress ?? null,
         expiresAt: params.expiresAt,
@@ -64,7 +70,6 @@ export class AuthRepository {
   }
 
   static async revokeSessionByRefreshToken(refreshToken: string) {
-    // pakai updateMany supaya tidak error kalau token sudah tidak ada/invalid
     return await prisma.session.updateMany({
       where: { refreshTokenHash: hashToken(refreshToken) },
       data: { revokedAt: new Date() },

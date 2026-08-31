@@ -1,9 +1,6 @@
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
-  "exclude": [
-    "tests/**/*.ts",
-    "prisma.config.ts"
-  ],
+  "include": ["src/**/*"],
+  "exclude": ["tests/**/*.ts", "prisma.config.ts", "prisma/**/*"],
   "compilerOptions": {
     // File Layout
     "rootDir": "./src",
@@ -46,6 +43,6 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   }
 }

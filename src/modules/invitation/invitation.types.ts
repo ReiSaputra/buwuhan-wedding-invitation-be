@@ -20,7 +20,7 @@ export interface CoupleInput {
 export interface CreateInvitationReq {
   title: string;
   slug: string;
-  couples: CoupleInput[];
+  couples?: CoupleInput[] | undefined;
   eventDate?: Date | string | undefined;
   eventTime?: string | undefined;
   venue?: string | undefined;

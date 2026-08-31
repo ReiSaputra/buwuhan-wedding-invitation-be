@@ -31,7 +31,7 @@
  *
  *     CreateInvitationRequestBody:
  *       type: object
- *       required: [title, slug, couples]
+ *       required: [title, slug]
  *       properties:
  *         title:
  *           type: string

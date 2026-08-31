@@ -22,9 +22,13 @@ function refineCouplesPair(couples: z.infer<typeof coupleSchema>[]) {
 export const createInvitationSchema = z.object({
   title: z.string().trim().min(1, "Judul wajib diisi").max(255),
   slug: slugSchema,
-  couples: z.array(coupleSchema).length(2, "Harus ada tepat 2 data mempelai (bride & groom)").refine(refineCouplesPair, {
-    message: "Tipe mempelai harus terdiri dari BRIDE dan GROOM, tidak boleh duplikat",
-  }),
+  couples: z
+    .array(coupleSchema)
+    .length(2, "Harus ada tepat 2 data mempelai (bride & groom)")
+    .refine(refineCouplesPair, {
+      message: "Tipe mempelai harus terdiri dari BRIDE dan GROOM, tidak boleh duplikat",
+    })
+    .optional(),
   eventDate: z.coerce.date().optional().nullable(),
   eventTime: z.string().trim().max(100).optional().nullable(),
   venue: z.string().trim().max(255).optional().nullable(),

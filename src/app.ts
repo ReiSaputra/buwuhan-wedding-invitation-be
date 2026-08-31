@@ -1,4 +1,5 @@
 import cookieParser from "cookie-parser";
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import swaggerUi from "swagger-ui-express";
@@ -12,7 +13,7 @@ const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+app.use(cors({ origin: process.env.NODE_ENV == "production" ? "https://buwuhan.com" : process.env.FRONTEND_URL, credentials: true }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/v1", v1Router);

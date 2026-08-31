@@ -7,6 +7,7 @@ import { guestRouter } from "../../modules/guest/guest.routes";
 import { rsvpRouter } from "../../modules/rsvp/rsvp.routes";
 import { userRouter } from "../../modules/user/user.routes";
 import { dashboardRouter } from "../../modules/dashboard/dashboard.routes";
+import { buwuhanRouter } from "../../modules/buwuhan/buwuhan.routes";
 
 const v1Router = Router();
 
@@ -17,5 +18,6 @@ v1Router.use("/api", guestRouter);
 v1Router.use("/api", rsvpRouter);
 v1Router.use("/api", userRouter);
 v1Router.use("/api", dashboardRouter);
+v1Router.use("/api", buwuhanRouter);
 
 export { v1Router };

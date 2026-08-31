@@ -88,6 +88,7 @@ model Invitation {
   rsvps         RSVP[]
   galleryPhotos GalleryPhoto[]
   loveStories   LoveStory[]
+  buwuhans      Buwuhan[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -218,4 +219,40 @@ model LoveStory {
 
   @@index([invitationId])
   @@map("love_stories")
+}
+
+model Buwuhan {
+  id           String   @id @default(cuid())
+  invitationId String
+
+  giverName  String
+  note       String?
+  receivedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invitation Invitation    @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  items      BuwuhanItem[]
+
+  @@index([invitationId])
+  @@map("buwuhans")
+}
+
+model BuwuhanItem {
+  id        String @id @default(cuid())
+  buwuhanId String
+
+  itemName       String
+  quantity       Decimal
+  unit           String
+  category       String?
+  estimatedValue Decimal?
+
+  createdAt DateTime @default(now())
+
+  buwuhan Buwuhan @relation(fields: [buwuhanId], references: [id], onDelete: Cascade)
+
+  @@index([buwuhanId])
+  @@map("buwuhan_items")
 }

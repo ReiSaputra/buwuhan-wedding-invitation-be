@@ -125,12 +125,33 @@ describe("invitation test: CRUD & Public", () => {
     expect(res.body.data.venue).toBe("Grand Ballroom Hotel Indonesia");
   });
 
+  it("berhasil membuat undangan baru dari modal quick wizard tanpa couples (201)", async () => {
+    (InvitationRepository.findBySlug as Mock).mockResolvedValue(null);
+    (TemplateRepository.findActiveById as Mock).mockResolvedValue({
+      id: "tpl-123",
+      tier: "FREE",
+    });
+    (InvitationRepository.create as Mock).mockResolvedValue({
+      ...mockInvitation,
+      couples: [],
+    });
+
+    const res = await request(app).post("/v1/api/invitations").set("Authorization", `Bearer ${validAuthToken}`).send({
+      title: "Han & Saputra",
+      slug: "han-saputra",
+      eventDate: "2026-10-20T00:00:00.000Z",
+      templateId: "tpl-123",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.message).toBe("Undangan berhasil dibuat");
+    expect(res.body.data.slug).toBe(mockInvitation.slug);
+  });
+
   it("berhasil melihat daftar undangan milik sendiri (200)", async () => {
     (InvitationRepository.findManyByOwner as Mock).mockResolvedValue([mockInvitation]);
 
-    const res = await request(app)
-      .get("/v1/api/invitations")
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get("/v1/api/invitations").set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(1);
@@ -140,9 +161,7 @@ describe("invitation test: CRUD & Public", () => {
   it("berhasil melihat detail undangan sendiri lengkap dengan galeri dan cerita (200)", async () => {
     (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
 
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitation.id}`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data.galleryPhotos).toHaveLength(1);
@@ -193,10 +212,7 @@ describe("invitation test: CRUD & Public", () => {
       status: "ACTIVE",
     });
 
-    const res = await request(app)
-      .patch(`/v1/api/invitations/${mockInvitation.id}/status`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({ status: "ACTIVE" });
+    const res = await request(app).patch(`/v1/api/invitations/${mockInvitation.id}/status`).set("Authorization", `Bearer ${validAuthToken}`).send({ status: "ACTIVE" });
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Status undangan berhasil diperbarui");
@@ -207,9 +223,7 @@ describe("invitation test: CRUD & Public", () => {
     (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
     (InvitationRepository.deleteById as Mock).mockResolvedValue(mockInvitation);
 
-    const res = await request(app)
-      .delete(`/v1/api/invitations/${mockInvitation.id}`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).delete(`/v1/api/invitations/${mockInvitation.id}`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Undangan berhasil dihapus");
@@ -221,14 +235,11 @@ describe("invitation test: Galeri Foto", () => {
     (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
     (InvitationRepository.addGalleryPhoto as Mock).mockResolvedValue(mockPhoto);
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/gallery`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({
-        imageUrl: mockPhoto.imageUrl,
-        caption: mockPhoto.caption,
-        order: 1,
-      });
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/gallery`).set("Authorization", `Bearer ${validAuthToken}`).send({
+      imageUrl: mockPhoto.imageUrl,
+      caption: mockPhoto.caption,
+      order: 1,
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.message).toBe("Foto galeri berhasil ditambahkan");
@@ -244,13 +255,10 @@ describe("invitation test: Galeri Foto", () => {
       order: 2,
     });
 
-    const res = await request(app)
-      .patch(`/v1/api/invitations/${mockInvitation.id}/gallery/${mockPhoto.id}`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({
-        caption: "Foto Baru",
-        order: 2,
-      });
+    const res = await request(app).patch(`/v1/api/invitations/${mockInvitation.id}/gallery/${mockPhoto.id}`).set("Authorization", `Bearer ${validAuthToken}`).send({
+      caption: "Foto Baru",
+      order: 2,
+    });
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Foto galeri berhasil diperbarui");
@@ -262,9 +270,7 @@ describe("invitation test: Galeri Foto", () => {
     (InvitationRepository.findGalleryPhotoById as Mock).mockResolvedValue(mockPhoto);
     (InvitationRepository.deleteGalleryPhoto as Mock).mockResolvedValue(mockPhoto);
 
-    const res = await request(app)
-      .delete(`/v1/api/invitations/${mockInvitation.id}/gallery/${mockPhoto.id}`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).delete(`/v1/api/invitations/${mockInvitation.id}/gallery/${mockPhoto.id}`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Foto galeri berhasil dihapus");
@@ -273,12 +279,9 @@ describe("invitation test: Galeri Foto", () => {
   it("menolak tambah foto jika undangan bukan milik requester (404)", async () => {
     (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/bukan-milik/gallery`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({
-        imageUrl: "https://photo.jpg",
-      });
+    const res = await request(app).post(`/v1/api/invitations/bukan-milik/gallery`).set("Authorization", `Bearer ${validAuthToken}`).send({
+      imageUrl: "https://photo.jpg",
+    });
 
     expect(res.status).toBe(404);
   });
@@ -289,16 +292,13 @@ describe("invitation test: Kisah Cinta (Love Story)", () => {
     (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
     (InvitationRepository.addLoveStory as Mock).mockResolvedValue(mockStory);
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/stories`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({
-        yearOrDate: "2020",
-        title: "Pertama Bertemu",
-        story: "Kami pertama kali bertemu di kampus...",
-        imageUrl: "https://storage.buwuhan.com/photos/meet.jpg",
-        order: 1,
-      });
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/stories`).set("Authorization", `Bearer ${validAuthToken}`).send({
+      yearOrDate: "2020",
+      title: "Pertama Bertemu",
+      story: "Kami pertama kali bertemu di kampus...",
+      imageUrl: "https://storage.buwuhan.com/photos/meet.jpg",
+      order: 1,
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.message).toBe("Kisah cinta berhasil ditambahkan");
@@ -313,12 +313,9 @@ describe("invitation test: Kisah Cinta (Love Story)", () => {
       title: "Momen Pertama",
     });
 
-    const res = await request(app)
-      .patch(`/v1/api/invitations/${mockInvitation.id}/stories/${mockStory.id}`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({
-        title: "Momen Pertama",
-      });
+    const res = await request(app).patch(`/v1/api/invitations/${mockInvitation.id}/stories/${mockStory.id}`).set("Authorization", `Bearer ${validAuthToken}`).send({
+      title: "Momen Pertama",
+    });
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Kisah cinta berhasil diperbarui");
@@ -329,9 +326,7 @@ describe("invitation test: Kisah Cinta (Love Story)", () => {
     (InvitationRepository.findLoveStoryById as Mock).mockResolvedValue(mockStory);
     (InvitationRepository.deleteLoveStory as Mock).mockResolvedValue(mockStory);
 
-    const res = await request(app)
-      .delete(`/v1/api/invitations/${mockInvitation.id}/stories/${mockStory.id}`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).delete(`/v1/api/invitations/${mockInvitation.id}/stories/${mockStory.id}`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Kisah cinta berhasil dihapus");
@@ -341,12 +336,9 @@ describe("invitation test: Kisah Cinta (Love Story)", () => {
     (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
     (InvitationRepository.findLoveStoryById as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .patch(`/v1/api/invitations/${mockInvitation.id}/stories/story-palsu`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({
-        title: "Cerita",
-      });
+    const res = await request(app).patch(`/v1/api/invitations/${mockInvitation.id}/stories/story-palsu`).set("Authorization", `Bearer ${validAuthToken}`).send({
+      title: "Cerita",
+    });
 
     expect(res.status).toBe(404);
   });

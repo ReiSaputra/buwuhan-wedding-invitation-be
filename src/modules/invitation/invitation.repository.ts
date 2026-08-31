@@ -1,14 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import { Prisma } from "../../generated/prisma/client";
-import type {
-  AddGalleryPhotoReq,
-  AddLoveStoryReq,
-  CreateInvitationReq,
-  InvitationStatusType,
-  UpdateGalleryPhotoReq,
-  UpdateInvitationReq,
-  UpdateLoveStoryReq,
-} from "./invitation.types";
+import type { AddGalleryPhotoReq, AddLoveStoryReq, CreateInvitationReq, InvitationStatusType, UpdateGalleryPhotoReq, UpdateInvitationReq, UpdateLoveStoryReq } from "./invitation.types";
 
 const includeRelations = {
   couples: true,
@@ -58,14 +50,18 @@ export class InvitationRepository {
           address: request.address ?? null,
           templateId: request.templateId ?? null,
           additionalInfo: request.additionalInfo ?? {},
-          couples: {
-            create: request.couples.map((c) => ({
-              type: c.type,
-              name: c.name,
-              fatherName: c.fatherName,
-              motherName: c.motherName,
-            })),
-          },
+          ...(request.couples && request.couples.length > 0
+            ? {
+                couples: {
+                  create: request.couples.map((c) => ({
+                    type: c.type,
+                    name: c.name,
+                    fatherName: c.fatherName,
+                    motherName: c.motherName,
+                  })),
+                },
+              }
+            : {}),
         },
         include: includeRelations,
       });

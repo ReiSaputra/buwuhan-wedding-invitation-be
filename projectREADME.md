@@ -214,13 +214,30 @@ Lokasi: `src/modules/dashboard/`. Terdaftar di `v1Router`.
 
 - Testing: **4 test lolos** di `tests/dashboard/dashboard.test.ts`.
 
-## 12. Middleware & Error Handling
+## 12. Modul Buwuhan (Catatan Buwuh) — SUDAH SELESAI
+
+Lokasi: `src/modules/buwuhan/`. Terdaftar di `v1Router`.
+
+### Endpoint (semua di bawah prefix `/v1/api`)
+
+| Method | Path                                          | Body                                               | Auth                  |
+| ------ | --------------------------------------------- | -------------------------------------------------- | --------------------- |
+| POST   | `/invitations/:invitationId/buwuhans`         | `{ giverName, note?, receivedAt?, items: [...] }`  | `requireAuth` (owner) |
+| GET    | `/invitations/:invitationId/buwuhans`         | —                                                  | `requireAuth` (owner) |
+| GET    | `/invitations/:invitationId/buwuhans/summary` | —                                                  | `requireAuth` (owner) |
+| GET    | `/buwuhans/:id`                               | —                                                  | `requireAuth` (owner) |
+| PATCH  | `/buwuhans/:id`                               | `{ giverName?, note?, receivedAt?, items?: [...]}` | `requireAuth` (owner) |
+| DELETE | `/buwuhans/:id`                               | —                                                  | `requireAuth` (owner) |
+
+- Testing: **19 test lolos** di `tests/buwuhan/buwuhan.test.ts`.
+
+## 13. Middleware & Error Handling
 
 - `requireAuth`: Memvalidasi JWT di header `Authorization: Bearer <token>` dan mengisi `req.user: AuthUser` (`{ id, role, planTier }`).
 - `requireRole(...roles)`: RBAC sederhana (contoh admin template).
 - Error classes: `AppError`, `UnauthorizedError` (401), `ForbiddenError` (403), `NotFoundError` (404), `ConflictError` (409), `ValidationError` (422).
 
-## 13. Dokumentasi API (Swagger)
+## 14. Dokumentasi API (Swagger)
 
 - Definisi dasar: `src/config/swagger.config.ts`
 - File anotasi JSDoc:
@@ -231,26 +248,27 @@ Lokasi: `src/modules/dashboard/`. Terdaftar di `v1Router`.
   - `src/modules/rsvp/rsvp.docs.ts`
   - `src/modules/user/user.docs.ts`
   - `src/modules/dashboard/dashboard.docs.ts`
+  - `src/modules/buwuhan/buwuhan.docs.ts`
 
-## 14. Status Pengerjaan & Belum Dikerjakan
+## 15. Status Pengerjaan & Belum Dikerjakan
 
-| Modul / Fitur              | Status                                         |
-| -------------------------- | ---------------------------------------------- |
-| Modul `auth`               | Selesai (17 test lolos)                        |
-| Modul `invitation`         | Selesai (16 test lolos)                        |
-| Modul `template`           | Selesai (API & Router siap)                    |
-| Modul `guest`              | Selesai (17 test lolos)                        |
-| Modul `rsvp`               | Selesai (14 test lolos)                        |
-| Modul `user`               | Selesai (3 test lolos)                         |
-| Modul `dashboard`          | Selesai (4 test lolos)                         |
-| Test modul `template`      | Belum ada                                      |
-| Fitur buwuhan              | Masih rencana, belum ada di schema maupun kode |
-| Integrasi Email Provider   | Utang teknis modul guest (lihat §8)            |
-| Reuse detection penuh      | Utang teknis auth (lihat §5)                   |
-| Endpoint logout-all-device | Utang teknis auth (lihat §5)                   |
+| Modul / Fitur              | Status                              |
+| -------------------------- | ----------------------------------- |
+| Modul `auth`               | Selesai (17 test lolos)             |
+| Modul `invitation`         | Selesai (16 test lolos)             |
+| Modul `template`           | Selesai (API & Router siap)         |
+| Modul `guest`              | Selesai (17 test lolos)             |
+| Modul `rsvp`               | Selesai (14 test lolos)             |
+| Modul `user`               | Selesai (3 test lolos)              |
+| Modul `dashboard`          | Selesai (4 test lolos)              |
+| Modul `buwuhan`            | Selesai (19 test lolos)             |
+| Test modul `template`      | Belum ada                           |
+| Integrasi Email Provider   | Utang teknis modul guest (lihat §8) |
+| Reuse detection penuh      | Utang teknis auth (lihat §5)        |
+| Endpoint logout-all-device | Utang teknis auth (lihat §5)        |
 
-## 15. Cara Melanjutkan
+## 16. Cara Melanjutkan
 
-1. **Ikuti pola modul yang sudah ada (`auth`, `invitation`, `guest`, `rsvp`, `user`, `dashboard`)** sebagai referensi struktur (controller → service → repository → routes → types → schema → docs).
+1. **Ikuti pola modul yang sudah ada (`auth`, `invitation`, `guest`, `rsvp`, `user`, `dashboard`, `buwuhan`)** sebagai referensi struktur (controller → service → repository → routes → types → schema → docs).
 2. **Testing**: Gunakan `vi.spyOn`, bukan `vi.mock()`. Rate limiter otomatis nonaktif saat `NODE_ENV=test`.
 3. **Route prefix**: Semua endpoint terdaftar di bawah `/v1/api/...`.

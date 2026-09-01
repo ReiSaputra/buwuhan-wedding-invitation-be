@@ -64,8 +64,13 @@ tests/
 │   └── guest.test.ts       # 17 test, semua lolos
 ├── rsvp/
 │   └── rsvp.test.ts        # 14 test, semua lolos
-└── invitation/
-    └── invitation.test.ts  # 14 test, semua lolos
+├── invitation/
+│   └── invitation.test.ts  # 23 test, semua lolos
+└── template/
+    └── template.test.ts    # 20 test, semua lolos
+
+docs/
+└── template-slug-contract.md  # Kontrak publik slug template (lihat §7)
 ```
 
 Pola per modul: **controller** (Express handler, cuma parsing request & panggil service) →
@@ -141,7 +146,21 @@ Lokasi: `src/modules/invitation/`. Terdaftar di `v1Router`.
 | PATCH  | `/invitations/:invitationId/stories/:id` | `{ yearOrDate?, title?, story?, ... }`                     | `requireAuth` (owner)     |
 | DELETE | `/invitations/:invitationId/stories/:id` | —                                                          | `requireAuth` (owner)     |
 
-- Testing: **18 test lolos** di `tests/invitation/invitation.test.ts`.
+> **Catatan penting untuk integrasi frontend:**
+>
+> - Endpoint halaman undangan publik adalah **`GET /v1/api/public/invitations/:slug`** (tanpa
+>   autentikasi). Bukan `GET /v1/api/invitations/:id` — endpoint itu terpasang `requireAuth`
+>   dan hanya bisa diakses oleh pemilik undangan.
+> - Response endpoint publik **tidak** memuat field `templateId` di level atas. Template
+>   dikembalikan sebagai objek bersarang:
+>   ```json
+>   "template": { "id": "...", "name": "...", "slug": "..." }
+>   ```
+>   dan bernilai `null` bila undangan belum memilih template (frontend mengandalkan ini untuk
+>   jatuh ke desain bawaan).
+
+- Testing: **23 test lolos** di `tests/invitation/invitation.test.ts`.
+
 
 ## 7. Modul Template — SUDAH SELESAI
 
@@ -149,8 +168,6 @@ Lokasi: `src/modules/template/`. Terdaftar di `v1Router`.
 
 ### Endpoint (semua di bawah prefix `/v1/api`)
 
-| Method | Path               | Query                                   | Body                                   | Auth |
-| ------ | ------------------ | --------------------------------------- | -------------------------------------- | ---- |
 | Method | Path               | Body                                    | Auth                                   |
 | ------ | ------------------ | --------------------------------------- | -------------------------------------- |
 | GET    | `/templates`       | —                                       | `requireAuth`                          |
@@ -158,6 +175,13 @@ Lokasi: `src/modules/template/`. Terdaftar di `v1Router`.
 | POST   | `/templates`       | `{ name, slug, tier, previewImageUrl }` | `requireAuth` + `requireRole("ADMIN")` |
 | PATCH  | `/templates/:id`   | field yang diubah (partial)             | `requireAuth` + `requireRole("ADMIN")` |
 | DELETE | `/templates/:id`   | —                                       | `requireAuth` + `requireRole("ADMIN")` |
+
+> **Kontrak slug:** Field `template.slug` adalah **kontrak publik** antara backend dan frontend.
+> Frontend memilih komponen template React berdasarkan nilai slug ini, sehingga slug bersifat
+> **immutable** setelah rilis. Lihat [`docs/template-slug-contract.md`](docs/template-slug-contract.md)
+> untuk daftar slug terdaftar dan aturan perubahannya.
+
+- Testing: **20 test lolos** di `tests/template/template.test.ts`.
 
 ## 8. Modul Guest (Manajemen Tamu & Presensi QR) — SUDAH SELESAI
 
@@ -237,6 +261,7 @@ Lokasi: `src/modules/buwuhan/`. Terdaftar di `v1Router`.
 | DELETE | `/buwuhans/:id`                               | —                                                  | `requireAuth` (owner) |
 
 #### Contoh Respon `GET /v1/api/buwuhans` (200 OK)
+
 ```json
 {
   "message": "Daftar buwuh berhasil diambil",
@@ -295,14 +320,13 @@ Lokasi: `src/modules/buwuhan/`. Terdaftar di `v1Router`.
 | Modul / Fitur              | Status                              |
 | -------------------------- | ----------------------------------- |
 | Modul `auth`               | Selesai (17 test lolos)             |
-| Modul `invitation`         | Selesai (18 test lolos)             |
-| Modul `template`           | Selesai (API & Router siap)         |
+| Modul `invitation`         | Selesai (23 test lolos)             |
+| Modul `template`           | Selesai (20 test lolos)             |
 | Modul `guest`              | Selesai (17 test lolos)             |
 | Modul `rsvp`               | Selesai (14 test lolos)             |
 | Modul `user`               | Selesai (3 test lolos)              |
 | Modul `dashboard`          | Selesai (4 test lolos)              |
 | Modul `buwuhan`            | Selesai (25 test lolos)             |
-| Test modul `template`      | Belum ada                           |
 | Integrasi Email Provider   | Utang teknis modul guest (lihat §8) |
 | Reuse detection penuh      | Utang teknis auth (lihat §5)        |
 | Endpoint logout-all-device | Utang teknis auth (lihat §5)        |

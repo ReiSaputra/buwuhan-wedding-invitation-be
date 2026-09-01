@@ -433,3 +433,89 @@ describe("invitation test: Kisah Cinta (Love Story)", () => {
     expect(res.status).toBe(404);
   });
 });
+
+// ── Regresi Kontrak template.slug ─────────────────────────────────────────────
+// Test ini mengunci perilaku endpoint publik terkait field template.
+// Lihat: docs/template-slug-contract.md
+
+describe("invitation test: Regresi kontrak template.slug", () => {
+  const mockInvitationWithTemplate = {
+    ...mockInvitation,
+    templateId: "tpl-royal-floral",
+    template: {
+      id: "tpl-royal-floral",
+      name: "Royal Floral",
+      slug: "royal-floral",
+      tier: "FREE" as const,
+      eventCategory: "WEDDING" as const,
+      previewImageUrl: "https://images.unsplash.com/photo-abc.jpg",
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  };
+
+  it("GET publik mengembalikan data.template sebagai objek {id, name, slug} — bukan flat/null (200)", async () => {
+    (InvitationRepository.findBySlug as Mock).mockResolvedValue(mockInvitationWithTemplate);
+
+    const res = await request(app).get(`/v1/api/public/invitations/${mockInvitation.slug}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.template).not.toBeNull();
+    expect(res.body.data.template).toMatchObject({
+      id: "tpl-royal-floral",
+      name: "Royal Floral",
+      slug: "royal-floral",
+    });
+    // Pastikan templateId TIDAK muncul di level atas response
+    expect(res.body.data.templateId).toBeUndefined();
+  });
+
+  it("GET publik mengembalikan data.template === null jika undangan tanpa template (200)", async () => {
+    (InvitationRepository.findBySlug as Mock).mockResolvedValue({
+      ...mockInvitation,
+      templateId: null,
+      template: null,
+    });
+
+    const res = await request(app).get(`/v1/api/public/invitations/${mockInvitation.slug}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.template).toBeNull();
+  });
+
+  it("GET publik undangan DRAFT mengembalikan 404 (mengunci perilaku invitation.service.ts)", async () => {
+    (InvitationRepository.findBySlug as Mock).mockResolvedValue({
+      ...mockInvitation,
+      status: "DRAFT",
+    });
+
+    const res = await request(app).get(`/v1/api/public/invitations/${mockInvitation.slug}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe("Undangan tidak ditemukan");
+  });
+
+  it("GET publik undangan COMPLETED tetap dapat diakses (200)", async () => {
+    (InvitationRepository.findBySlug as Mock).mockResolvedValue({
+      ...mockInvitationWithTemplate,
+      status: "COMPLETED",
+    });
+
+    const res = await request(app).get(`/v1/api/public/invitations/${mockInvitation.slug}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe("COMPLETED");
+    expect(res.body.data.template).toMatchObject({ slug: "royal-floral" });
+  });
+
+  it("GET publik dapat diakses tanpa header Authorization sama sekali (200)", async () => {
+    (InvitationRepository.findBySlug as Mock).mockResolvedValue(mockInvitationWithTemplate);
+
+    // Tidak ada .set("Authorization", ...) sama sekali
+    const res = await request(app).get(`/v1/api/public/invitations/${mockInvitation.slug}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.slug).toBe(mockInvitation.slug);
+  });
+});

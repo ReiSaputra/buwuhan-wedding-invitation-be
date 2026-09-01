@@ -1,6 +1,6 @@
 // Taruh file ini di: src/modules/template/template.types.ts
 
-import type { PlanTier, Template } from "../../generated/prisma/client";
+import type { EventCategory, PlanTier, Template } from "../../generated/prisma/client";
 
 // urutan rank tier -- dipakai buat bandingin "cukup tier atau tidak".
 // FREE=0, PRO=1, MAX=2. Kalau nanti ada tier baru, tinggal tambah di sini.
@@ -18,6 +18,7 @@ interface CreateTemplateReq {
   name: string;
   slug: string;
   tier: PlanTier;
+  eventCategory?: EventCategory;
   previewImageUrl: string;
   isActive?: boolean;
 }
@@ -26,6 +27,7 @@ interface UpdateTemplateReq {
   name?: string;
   slug?: string;
   tier?: PlanTier;
+  eventCategory?: EventCategory;
   previewImageUrl?: string;
   isActive?: boolean;
 }
@@ -35,6 +37,7 @@ interface TemplateData {
   name: string;
   slug: string;
   tier: PlanTier;
+  eventCategory: EventCategory;
   previewImageUrl: string;
   isActive: boolean;
   // dihitung dari planTier user yang request -- true kalau user boleh pakai
@@ -77,6 +80,7 @@ function toTemplateData(template: Template, userTier: PlanTier): TemplateData {
     name: template.name,
     slug: template.slug,
     tier: template.tier,
+    eventCategory: template.eventCategory,
     previewImageUrl: template.previewImageUrl,
     isActive: template.isActive,
     isAccessible: isTierSufficient(userTier, template.tier),

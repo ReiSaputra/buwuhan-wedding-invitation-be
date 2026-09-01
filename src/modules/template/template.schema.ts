@@ -14,6 +14,7 @@ export const createTemplateSchema = z.object({
   name: z.string().trim().min(1, "Nama template wajib diisi").max(255),
   slug: slugSchema,
   tier: z.enum(["FREE", "PRO", "MAX"]),
+  eventCategory: z.enum(["WEDDING", "KHITANAN", "RASULAN", "AQIQAH"]).optional().default("WEDDING"),
   previewImageUrl: z.url("previewImageUrl harus berupa URL yang valid"),
   isActive: z.boolean().optional(),
 });
@@ -23,6 +24,7 @@ export const updateTemplateSchema = z
     name: z.string().trim().min(1, "Nama template wajib diisi").max(255).optional(),
     slug: slugSchema.optional(),
     tier: z.enum(["FREE", "PRO", "MAX"]).optional(),
+    eventCategory: z.enum(["WEDDING", "KHITANAN", "RASULAN", "AQIQAH"]).optional(),
     previewImageUrl: z.url("previewImageUrl harus berupa URL yang valid").optional(),
     isActive: z.boolean().optional(),
   })

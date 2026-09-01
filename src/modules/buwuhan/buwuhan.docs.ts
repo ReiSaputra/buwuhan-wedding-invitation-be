@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @openapi
  * components:
  *   schemas:
@@ -206,6 +206,7 @@
  *         schema:
  *           type: string
  *         description: ID undangan pernikahan
+ *         example: "cly3k8a1b0000v8og3f1a1111"
  *     requestBody:
  *       required: true
  *       content:
@@ -224,24 +225,61 @@
  *                   properties:
  *                     data:
  *                       $ref: '#/components/schemas/BuwuhanResponseData'
+ *             example:
+ *               message: "Catatan buwuh berhasil ditambahkan"
+ *               status: 201
+ *               data:
+ *                 id: "cly3k9h2p0000v8og3f1a9x00"
+ *                 invitationId: "cly3k8a1b0000v8og3f1a1111"
+ *                 giverName: "Ahmad Subarjo"
+ *                 note: "Semoga berkah dan langgeng selalu"
+ *                 receivedAt: "2026-08-21T20:15:00.000Z"
+ *                 createdAt: "2026-08-21T20:15:00.000Z"
+ *                 updatedAt: "2026-08-21T20:15:00.000Z"
+ *                 items:
+ *                   - id: "cly3k9h2p0000v8og3f1a9x01"
+ *                     buwuhanId: "cly3k9h2p0000v8og3f1a9x00"
+ *                     itemName: "Uang Tunai"
+ *                     quantity: 1
+ *                     unit: "transaksi"
+ *                     category: null
+ *                     estimatedValue: 100000
+ *                     createdAt: "2026-08-21T20:15:00.000Z"
+ *                   - id: "cly3k9h2p0000v8og3f1a9x02"
+ *                     buwuhanId: "cly3k9h2p0000v8og3f1a9x00"
+ *                     itemName: "Beras"
+ *                     quantity: 25
+ *                     unit: "kg"
+ *                     category: "Sembako"
+ *                     estimatedValue: 350000
+ *                     createdAt: "2026-08-21T20:15:00.000Z"
  *       400:
  *         description: Validasi gagal (misal items kosong atau satuan tidak didukung).
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorEnvelope'
+ *             example:
+ *               success: false
+ *               message: "Satuan tidak valid"
  *       401:
  *         description: Unauthorized.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorEnvelope'
+ *             example:
+ *               success: false
+ *               message: "Token akses tidak ditemukan"
  *       404:
  *         description: Undangan tidak ditemukan atau bukan milik pengguna.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorEnvelope'
+ *             example:
+ *               success: false
+ *               message: "Undangan tidak ditemukan"
  *
  *   get:
  *     tags: [Buwuhan]
@@ -256,6 +294,7 @@
  *         schema:
  *           type: string
  *         description: ID undangan pernikahan
+ *         example: "cly3k8a1b0000v8og3f1a1111"
  *     responses:
  *       200:
  *         description: Daftar buwuh berhasil diambil.
@@ -270,18 +309,44 @@
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/BuwuhanResponseData'
+ *             example:
+ *               message: "Daftar buwuh berhasil diambil"
+ *               status: 200
+ *               data:
+ *                 - id: "cly3k9h2p0000v8og3f1a9x00"
+ *                   invitationId: "cly3k8a1b0000v8og3f1a1111"
+ *                   giverName: "Ahmad Subarjo"
+ *                   note: "Semoga berkah dan langgeng selalu"
+ *                   receivedAt: "2026-08-21T20:15:00.000Z"
+ *                   createdAt: "2026-08-21T20:15:00.000Z"
+ *                   updatedAt: "2026-08-21T20:15:00.000Z"
+ *                   items:
+ *                     - id: "cly3k9h2p0000v8og3f1a9x01"
+ *                       buwuhanId: "cly3k9h2p0000v8og3f1a9x00"
+ *                       itemName: "Beras"
+ *                       quantity: 25
+ *                       unit: "kg"
+ *                       category: "Sembako"
+ *                       estimatedValue: 350000
+ *                       createdAt: "2026-08-21T20:15:00.000Z"
  *       401:
  *         description: Unauthorized.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorEnvelope'
+ *             example:
+ *               success: false
+ *               message: "Token akses tidak ditemukan"
  *       404:
  *         description: Undangan tidak ditemukan.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorEnvelope'
+ *             example:
+ *               success: false
+ *               message: "Undangan tidak ditemukan"
  */
 
 /**

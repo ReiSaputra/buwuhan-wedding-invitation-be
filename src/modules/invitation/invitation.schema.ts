@@ -22,6 +22,7 @@ function refineCouplesPair(couples: z.infer<typeof coupleSchema>[]) {
 export const createInvitationSchema = z.object({
   title: z.string().trim().min(1, "Judul wajib diisi").max(255),
   slug: slugSchema,
+  eventCategory: z.enum(["WEDDING", "KHITANAN", "RASULAN", "AQIQAH"]).optional().default("WEDDING"),
   couples: z
     .array(coupleSchema)
     .length(2, "Harus ada tepat 2 data mempelai (bride & groom)")
@@ -41,6 +42,7 @@ export const updateInvitationSchema = z
   .object({
     title: z.string().trim().min(1, "Judul wajib diisi").max(255).optional(),
     slug: slugSchema.optional(),
+    eventCategory: z.enum(["WEDDING", "KHITANAN", "RASULAN", "AQIQAH"]).optional(),
     couples: z
       .array(coupleSchema)
       .length(2, "Harus ada tepat 2 data mempelai (bride & groom)")

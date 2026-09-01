@@ -74,6 +74,7 @@ const mockInvitation = {
   title: "Pernikahan Ayu & Budi",
   slug: "ayu-dan-budi",
   status: "ACTIVE" as const,
+  eventCategory: "WEDDING" as const,
   publishedAt: new Date(),
   eventDate: new Date("2026-10-10T00:00:00.000Z"),
   eventTime: "07:00 WIB",
@@ -108,6 +109,7 @@ describe("invitation test: CRUD & Public", () => {
       .send({
         title: "Pernikahan Ayu & Budi",
         slug: "ayu-dan-budi",
+        eventCategory: "WEDDING",
         eventDate: "2026-10-10T00:00:00.000Z",
         eventTime: "07:00 WIB",
         venue: "Grand Ballroom Hotel Indonesia",
@@ -122,6 +124,8 @@ describe("invitation test: CRUD & Public", () => {
     expect(res.body.message).toBe("Undangan berhasil dibuat");
     expect(res.body.data.id).toBe(mockInvitation.id);
     expect(res.body.data.status).toBe("ACTIVE");
+    expect(res.body.data.eventCategory).toBe("WEDDING");
+    expect(res.body.data.showCouples).toBe(true);
     expect(res.body.data.venue).toBe("Grand Ballroom Hotel Indonesia");
   });
 
@@ -146,6 +150,30 @@ describe("invitation test: CRUD & Public", () => {
     expect(res.status).toBe(201);
     expect(res.body.message).toBe("Undangan berhasil dibuat");
     expect(res.body.data.slug).toBe(mockInvitation.slug);
+    expect(res.body.data.showCouples).toBe(true);
+  });
+
+  it("berhasil membuat undangan non-pernikahan (KHITANAN) dengan showCouples false (201)", async () => {
+    (InvitationRepository.findBySlug as Mock).mockResolvedValue(null);
+    (InvitationRepository.create as Mock).mockResolvedValue({
+      ...mockInvitation,
+      eventCategory: "KHITANAN",
+      title: "Khitanan Muhammad Farel",
+      slug: "khitanan-muhammad-farel",
+      couples: [],
+    });
+
+    const res = await request(app).post("/v1/api/invitations").set("Authorization", `Bearer ${validAuthToken}`).send({
+      title: "Khitanan Muhammad Farel",
+      slug: "khitanan-muhammad-farel",
+      eventCategory: "KHITANAN",
+      eventDate: "2026-11-15T00:00:00.000Z",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.message).toBe("Undangan berhasil dibuat");
+    expect(res.body.data.eventCategory).toBe("KHITANAN");
+    expect(res.body.data.showCouples).toBe(false);
   });
 
   it("berhasil melihat daftar undangan milik sendiri (200)", async () => {

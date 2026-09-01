@@ -35,15 +35,20 @@
  *       properties:
  *         title:
  *           type: string
- *           description: Judul utama undangan pernikahan.
+ *           description: Judul utama undangan pernikahan / acara.
  *           example: "Pernikahan Ayu & Budi"
  *         slug:
  *           type: string
  *           description: "Identifier unik URL (hanya huruf kecil, angka, dan tanda hubung '-')."
  *           example: "ayu-dan-budi"
+ *         eventCategory:
+ *           type: string
+ *           enum: [WEDDING, KHITANAN, RASULAN, AQIQAH]
+ *           description: Kategori jenis acara (default WEDDING).
+ *           example: "WEDDING"
  *         couples:
  *           type: array
- *           description: Harus tepat 2 data mempelai (satu BRIDE dan satu GROOM).
+ *           description: Opsional. Tepat 2 data mempelai (satu BRIDE dan satu GROOM). Hanya relevan untuk kategori WEDDING.
  *           items:
  *             $ref: '#/components/schemas/CoupleInput'
  *         eventDate:
@@ -83,6 +88,10 @@
  *         slug:
  *           type: string
  *           example: "the-wedding-ayu-budi"
+ *         eventCategory:
+ *           type: string
+ *           enum: [WEDDING, KHITANAN, RASULAN, AQIQAH]
+ *           example: "WEDDING"
  *         couples:
  *           type: array
  *           description: Jika disertakan, akan menggantikan seluruh pasangan mempelai sebelumnya.
@@ -268,6 +277,14 @@
  *           type: string
  *           enum: [DRAFT, ACTIVE, COMPLETED]
  *           example: "ACTIVE"
+ *         eventCategory:
+ *           type: string
+ *           enum: [WEDDING, KHITANAN, RASULAN, AQIQAH]
+ *           example: "WEDDING"
+ *         showCouples:
+ *           type: boolean
+ *           description: Menunjukkan apakah bagian mempelai relevan ditampilkan (true hanya jika eventCategory adalah WEDDING).
+ *           example: true
  *         publishedAt:
  *           type: string
  *           format: date-time
@@ -354,6 +371,59 @@
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/CreateInvitationRequestBody'
+ *           examples:
+ *             ModalCepatPernikahan:
+ *               summary: "1. Dari Popup Modal Cepat (Pernikahan)"
+ *               description: "Format payload paling minimal saat user klik 'Buat Undangan Baru' di dashboard."
+ *               value:
+ *                 title: "Han & Saputra"
+ *                 slug: "han-saputra"
+ *                 eventCategory: "WEDDING"
+ *                 eventDate: "2026-10-20T00:00:00.000Z"
+ *                 templateId: "cmthdqg120001zozxnaa5bq7e"
+ *             PernikahanLengkap:
+ *               summary: "2. Undangan Pernikahan Lengkap (Dengan Mempelai)"
+ *               description: "Format payload lengkap berisi data orang tua & pasangan mempelai."
+ *               value:
+ *                 title: "Pernikahan Ayu & Budi"
+ *                 slug: "ayu-dan-budi"
+ *                 eventCategory: "WEDDING"
+ *                 eventDate: "2026-10-10T00:00:00.000Z"
+ *                 eventTime: "07:00 WIB"
+ *                 venue: "Grand Ballroom Hotel Indonesia"
+ *                 address: "Jl. MH Thamrin No. 1, Jakarta Pusat"
+ *                 templateId: "cmthdqg120001zozxnaa5bq7e"
+ *                 couples:
+ *                   - type: "BRIDE"
+ *                     name: "Ayu Lestari, S.Kom."
+ *                     fatherName: "Bambang Wijaya"
+ *                     motherName: "Siti Aminah"
+ *                   - type: "GROOM"
+ *                     name: "Budi Santoso, S.T."
+ *                     fatherName: "Joko Supriyanto"
+ *                     motherName: "Sri Rahayu"
+ *             AcaraKhitanan:
+ *               summary: "3. Acara Khitanan (Non-Pernikahan)"
+ *               description: "Kategori KHITANAN tanpa perlu mengisi data couples."
+ *               value:
+ *                 title: "Khitanan Muhammad Farel"
+ *                 slug: "khitanan-farel"
+ *                 eventCategory: "KHITANAN"
+ *                 eventDate: "2026-11-15T00:00:00.000Z"
+ *                 eventTime: "08:00 WIB"
+ *                 venue: "Kediaman Bpk. Ahmad"
+ *                 address: "Jl. Melati No. 12, Sleman, Yogyakarta"
+ *                 templateId: "cmtidcwyf0004eczxbd42xbd7"
+ *             AcaraRasulan:
+ *               summary: "4. Acara Rasulan / Merti Dusun"
+ *               description: "Kategori RASULAN tanpa perlu data couples."
+ *               value:
+ *                 title: "Rasulan Desa Sukamaju 2026"
+ *                 slug: "rasulan-sukamaju-2026"
+ *                 eventCategory: "RASULAN"
+ *                 eventDate: "2026-09-25T00:00:00.000Z"
+ *                 venue: "Balai Desa Sukamaju"
+ *                 templateId: "cmtidcwyy0005eczxbe86d02a"
  *     responses:
  *       201:
  *         description: Undangan berhasil dibuat.
@@ -366,28 +436,65 @@
  *                   properties:
  *                     data:
  *                       $ref: '#/components/schemas/InvitationData'
- *             example:
- *               message: "Undangan berhasil dibuat"
- *               status: 201
- *               data:
- *                 id: "cly3k8a1b0000v8og3f1a1111"
- *                 title: "Pernikahan Ayu & Budi"
- *                 slug: "ayu-dan-budi"
- *                 status: "DRAFT"
- *                 publishedAt: null
- *                 additionalInfo: { eventDate: "2026-10-10", venue: "Hotel Indonesia" }
- *                 couples:
- *                   - type: "BRIDE"
- *                     name: "Ayu Lestari, S.Kom."
- *                     fatherName: "Bambang Wijaya"
- *                     motherName: "Siti Aminah"
- *                   - type: "GROOM"
- *                     name: "Budi Santoso, S.T."
- *                     fatherName: "Joko Supriyanto"
- *                     motherName: "Sri Rahayu"
- *                 template: null
- *                 galleryPhotos: []
- *                 loveStories: []
+ *             examples:
+ *               ResponsePernikahan:
+ *                 summary: "Response Undangan Pernikahan (showCouples: true)"
+ *                 value:
+ *                   message: "Undangan berhasil dibuat"
+ *                   status: 201
+ *                   data:
+ *                     id: "cly3k8a1b0000v8og3f1a1111"
+ *                     title: "Pernikahan Ayu & Budi"
+ *                     slug: "ayu-dan-budi"
+ *                     status: "DRAFT"
+ *                     eventCategory: "WEDDING"
+ *                     showCouples: true
+ *                     publishedAt: null
+ *                     eventDate: "2026-10-10T00:00:00.000Z"
+ *                     eventTime: "07:00 WIB"
+ *                     venue: "Grand Ballroom Hotel Indonesia"
+ *                     address: "Jl. MH Thamrin No. 1, Jakarta Pusat"
+ *                     additionalInfo: {}
+ *                     couples:
+ *                       - type: "BRIDE"
+ *                         name: "Ayu Lestari, S.Kom."
+ *                         fatherName: "Bambang Wijaya"
+ *                         motherName: "Siti Aminah"
+ *                       - type: "GROOM"
+ *                         name: "Budi Santoso, S.T."
+ *                         fatherName: "Joko Supriyanto"
+ *                         motherName: "Sri Rahayu"
+ *                     template:
+ *                       id: "cmthdqg120001zozxnaa5bq7e"
+ *                       name: "Royal Floral"
+ *                       slug: "royal-floral"
+ *                     galleryPhotos: []
+ *                     loveStories: []
+ *               ResponseKhitanan:
+ *                 summary: "Response Acara Khitanan (showCouples: false)"
+ *                 value:
+ *                   message: "Undangan berhasil dibuat"
+ *                   status: 201
+ *                   data:
+ *                     id: "cly3k8a1b0000v8og3f1a2222"
+ *                     title: "Khitanan Muhammad Farel"
+ *                     slug: "khitanan-farel"
+ *                     status: "DRAFT"
+ *                     eventCategory: "KHITANAN"
+ *                     showCouples: false
+ *                     publishedAt: null
+ *                     eventDate: "2026-11-15T00:00:00.000Z"
+ *                     eventTime: "08:00 WIB"
+ *                     venue: "Kediaman Bpk. Ahmad"
+ *                     address: "Jl. Melati No. 12, Sleman"
+ *                     additionalInfo: {}
+ *                     couples: []
+ *                     template:
+ *                       id: "cmtidcwyf0004eczxbd42xbd7"
+ *                       name: "Khitanan Ceria Blue"
+ *                       slug: "khitanan-ceria-blue"
+ *                     galleryPhotos: []
+ *                     loveStories: []
  *       400:
  *         description: Validasi input gagal.
  *         content:
@@ -564,6 +671,22 @@
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/UpdateInvitationRequestBody'
+ *           example:
+ *             title: "The Wedding of Ayu & Budi"
+ *             slug: "the-wedding-ayu-budi"
+ *             eventDate: "2026-10-12T00:00:00.000Z"
+ *             eventTime: "08:00 WIB"
+ *             venue: "Gedung Serbaguna Puri"
+ *             address: "Jl. Pajajaran No. 10, Bogor"
+ *             couples:
+ *               - type: "BRIDE"
+ *                 name: "Ayu Lestari, S.Kom."
+ *                 fatherName: "Bambang Wijaya"
+ *                 motherName: "Siti Aminah"
+ *               - type: "GROOM"
+ *                 name: "Budi Santoso, S.T."
+ *                 fatherName: "Joko Supriyanto"
+ *                 motherName: "Sri Rahayu"
  *     responses:
  *       200:
  *         description: Undangan berhasil diperbarui.
@@ -576,12 +699,46 @@
  *                   properties:
  *                     data:
  *                       $ref: '#/components/schemas/InvitationData'
+ *             example:
+ *               message: "Undangan berhasil diperbarui"
+ *               status: 200
+ *               data:
+ *                 id: "cly3k8a1b0000v8og3f1a1111"
+ *                 title: "The Wedding of Ayu & Budi"
+ *                 slug: "the-wedding-ayu-budi"
+ *                 status: "DRAFT"
+ *                 eventCategory: "WEDDING"
+ *                 showCouples: true
+ *                 publishedAt: null
+ *                 eventDate: "2026-10-12T00:00:00.000Z"
+ *                 eventTime: "08:00 WIB"
+ *                 venue: "Gedung Serbaguna Puri"
+ *                 address: "Jl. Pajajaran No. 10, Bogor"
+ *                 additionalInfo: {}
+ *                 couples:
+ *                   - type: "BRIDE"
+ *                     name: "Ayu Lestari, S.Kom."
+ *                     fatherName: "Bambang Wijaya"
+ *                     motherName: "Siti Aminah"
+ *                   - type: "GROOM"
+ *                     name: "Budi Santoso, S.T."
+ *                     fatherName: "Joko Supriyanto"
+ *                     motherName: "Sri Rahayu"
+ *                 template:
+ *                   id: "cmthdqg120001zozxnaa5bq7e"
+ *                   name: "Royal Floral"
+ *                   slug: "royal-floral"
+ *                 galleryPhotos: []
+ *                 loveStories: []
  *       404:
  *         description: Undangan tidak ditemukan.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorEnvelope'
+ *             example:
+ *               success: false
+ *               message: "Undangan tidak ditemukan"
  *
  *   delete:
  *     tags: [Invitation]
@@ -633,6 +790,22 @@
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/UpdateInvitationStatusRequestBody'
+ *           examples:
+ *             AktifkanPertamaKali:
+ *               summary: "1. Aktifkan undangan (pertama kali → publishedAt otomatis terisi)"
+ *               description: "Jika undangan belum pernah dipublikasikan (publishedAt null), publishedAt akan otomatis diisi dengan waktu saat ini."
+ *               value:
+ *                 status: "ACTIVE"
+ *             SelesaikanAcara:
+ *               summary: "2. Tandai acara selesai (COMPLETED)"
+ *               description: "Undangan tetap dapat diakses publik. publishedAt tidak berubah karena sudah terisi sebelumnya."
+ *               value:
+ *                 status: "COMPLETED"
+ *             KembalikanKeDraft:
+ *               summary: "3. Kembalikan ke draft (DRAFT)"
+ *               description: "Undangan tidak lagi dapat diakses publik. publishedAt tidak di-reset oleh service — tetap menyimpan nilai lama."
+ *               value:
+ *                 status: "DRAFT"
  *     responses:
  *       200:
  *         description: Status undangan berhasil diperbarui.
@@ -645,30 +818,96 @@
  *                   properties:
  *                     data:
  *                       $ref: '#/components/schemas/InvitationData'
- *             example:
- *               message: "Status undangan berhasil diperbarui"
- *               status: 200
- *               data:
- *                 id: "cly3k8a1b0000v8og3f1a1111"
- *                 title: "Pernikahan Ayu & Budi"
- *                 slug: "ayu-dan-budi"
- *                 status: "ACTIVE"
- *                 publishedAt: "2026-08-27T10:00:00.000Z"
- *                 eventDate: "2026-10-10T00:00:00.000Z"
- *                 eventTime: "07:00 WIB"
- *                 venue: "Grand Ballroom Hotel Indonesia"
- *                 address: "Jl. MH Thamrin No. 1, Jakarta Pusat"
- *                 additionalInfo: {}
- *                 couples: []
- *                 template: null
- *                 galleryPhotos: []
- *                 loveStories: []
+ *             examples:
+ *               ResponseAktifkanPertamaKali:
+ *                 summary: "Response: Aktifkan pertama kali (publishedAt otomatis terisi)"
+ *                 description: "publishedAt diisi otomatis oleh server karena sebelumnya null."
+ *                 value:
+ *                   message: "Status undangan berhasil diperbarui"
+ *                   status: 200
+ *                   data:
+ *                     id: "cly3k8a1b0000v8og3f1a1111"
+ *                     title: "Pernikahan Ayu & Budi"
+ *                     slug: "ayu-dan-budi"
+ *                     status: "ACTIVE"
+ *                     eventCategory: "WEDDING"
+ *                     showCouples: true
+ *                     publishedAt: "2026-09-01T08:00:00.000Z"
+ *                     eventDate: "2026-10-10T00:00:00.000Z"
+ *                     eventTime: "07:00 WIB"
+ *                     venue: "Grand Ballroom Hotel Indonesia"
+ *                     address: "Jl. MH Thamrin No. 1, Jakarta Pusat"
+ *                     additionalInfo: {}
+ *                     couples:
+ *                       - type: "BRIDE"
+ *                         name: "Ayu Lestari, S.Kom."
+ *                         fatherName: "Bambang Wijaya"
+ *                         motherName: "Siti Aminah"
+ *                       - type: "GROOM"
+ *                         name: "Budi Santoso, S.T."
+ *                         fatherName: "Joko Supriyanto"
+ *                         motherName: "Sri Rahayu"
+ *                     template:
+ *                       id: "cmthdqg120001zozxnaa5bq7e"
+ *                       name: "Royal Floral"
+ *                       slug: "royal-floral"
+ *                     galleryPhotos: []
+ *                     loveStories: []
+ *               ResponseSelesaikanAcara:
+ *                 summary: "Response: Selesaikan acara (COMPLETED, publishedAt tidak berubah)"
+ *                 description: "publishedAt tidak di-update karena sudah terisi sebelumnya. Undangan tetap dapat diakses publik."
+ *                 value:
+ *                   message: "Status undangan berhasil diperbarui"
+ *                   status: 200
+ *                   data:
+ *                     id: "cly3k8a1b0000v8og3f1a1111"
+ *                     title: "Pernikahan Ayu & Budi"
+ *                     slug: "ayu-dan-budi"
+ *                     status: "COMPLETED"
+ *                     eventCategory: "WEDDING"
+ *                     showCouples: true
+ *                     publishedAt: "2026-09-01T08:00:00.000Z"
+ *                     eventDate: "2026-10-10T00:00:00.000Z"
+ *                     eventTime: "07:00 WIB"
+ *                     venue: "Grand Ballroom Hotel Indonesia"
+ *                     address: "Jl. MH Thamrin No. 1, Jakarta Pusat"
+ *                     additionalInfo: {}
+ *                     couples: []
+ *                     template: null
+ *                     galleryPhotos: []
+ *                     loveStories: []
+ *               ResponseKembalikanKeDraft:
+ *                 summary: "Response: Kembalikan ke draft (DRAFT, publishedAt tetap tidak di-reset)"
+ *                 description: "Undangan tidak lagi dapat diakses publik. publishedAt tetap menyimpan nilai lama karena service tidak me-reset-nya."
+ *                 value:
+ *                   message: "Status undangan berhasil diperbarui"
+ *                   status: 200
+ *                   data:
+ *                     id: "cly3k8a1b0000v8og3f1a1111"
+ *                     title: "Pernikahan Ayu & Budi"
+ *                     slug: "ayu-dan-budi"
+ *                     status: "DRAFT"
+ *                     eventCategory: "WEDDING"
+ *                     showCouples: true
+ *                     publishedAt: "2026-09-01T08:00:00.000Z"
+ *                     eventDate: "2026-10-10T00:00:00.000Z"
+ *                     eventTime: "07:00 WIB"
+ *                     venue: "Grand Ballroom Hotel Indonesia"
+ *                     address: "Jl. MH Thamrin No. 1, Jakarta Pusat"
+ *                     additionalInfo: {}
+ *                     couples: []
+ *                     template: null
+ *                     galleryPhotos: []
+ *                     loveStories: []
  *       404:
  *         description: Undangan tidak ditemukan.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorEnvelope'
+ *             example:
+ *               success: false
+ *               message: "Undangan tidak ditemukan"
  *
  * /public/invitations/{slug}:
  *   get:

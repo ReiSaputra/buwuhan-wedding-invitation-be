@@ -17,6 +17,11 @@
  *         tier:
  *           type: string
  *           enum: [FREE, PRO, MAX]
+ *         eventCategory:
+ *           type: string
+ *           enum: [WEDDING, KHITANAN, RASULAN, AQIQAH]
+ *           description: Kategori jenis acara (default WEDDING).
+ *           example: "WEDDING"
  *         previewImageUrl:
  *           type: string
  *           format: url
@@ -31,6 +36,7 @@
  *         name: { type: string }
  *         slug: { type: string }
  *         tier: { type: string, enum: [FREE, PRO, MAX] }
+ *         eventCategory: { type: string, enum: [WEDDING, KHITANAN, RASULAN, AQIQAH] }
  *         previewImageUrl: { type: string, format: url }
  *         isActive: { type: boolean }
  *
@@ -43,6 +49,7 @@
  *         name: { type: string }
  *         slug: { type: string }
  *         tier: { type: string, enum: [FREE, PRO, MAX] }
+ *         eventCategory: { type: string, enum: [WEDDING, KHITANAN, RASULAN, AQIQAH] }
  *         previewImageUrl: { type: string }
  *         isActive: { type: boolean }
  *         isAccessible:
@@ -59,6 +66,14 @@
  *     description: Hanya menampilkan template yang aktif. Butuh login (semua role), tidak khusus admin.
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [WEDDING, KHITANAN, RASULAN, AQIQAH]
+ *         description: Filter template berdasarkan kategori acara (misal WEDDING, KHITANAN, RASULAN, AQIQAH).
  *     responses:
  *       200:
  *         description: Daftar template berhasil diambil.
@@ -73,12 +88,43 @@
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/TemplateData'
+ *             example:
+ *               message: "Daftar template berhasil diambil"
+ *               status: 200
+ *               data:
+ *                 - id: "cmthdqg120001zozxnaa5bq7e"
+ *                   name: "Royal Floral"
+ *                   slug: "royal-floral"
+ *                   tier: "FREE"
+ *                   eventCategory: "WEDDING"
+ *                   previewImageUrl: "https://storage.buwuhan.com/templates/royal-floral.jpg"
+ *                   isActive: true
+ *                   isAccessible: true
+ *                 - id: "cmthdqg120002zozxnaa5bq7f"
+ *                   name: "Elegant Gold"
+ *                   slug: "elegant-gold"
+ *                   tier: "PRO"
+ *                   eventCategory: "WEDDING"
+ *                   previewImageUrl: "https://storage.buwuhan.com/templates/elegant-gold.jpg"
+ *                   isActive: true
+ *                   isAccessible: false
+ *                 - id: "cmtidcwyf0004eczxbd42xbd7"
+ *                   name: "Khitanan Ceria Blue"
+ *                   slug: "khitanan-ceria-blue"
+ *                   tier: "FREE"
+ *                   eventCategory: "KHITANAN"
+ *                   previewImageUrl: "https://storage.buwuhan.com/templates/khitanan-ceria-blue.jpg"
+ *                   isActive: true
+ *                   isAccessible: true
  *       401:
  *         description: Token akses tidak ada / tidak valid.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorEnvelope'
+ *             example:
+ *               success: false
+ *               message: "Token akses tidak ditemukan"
  *   post:
  *     tags: [Template]
  *     summary: Buat template baru (admin)
@@ -154,18 +200,36 @@
  *                   properties:
  *                     data:
  *                       $ref: '#/components/schemas/TemplateData'
+ *             example:
+ *               message: "Template ditemukan"
+ *               status: 200
+ *               data:
+ *                 id: "cmthdqg120001zozxnaa5bq7e"
+ *                 name: "Royal Floral"
+ *                 slug: "royal-floral"
+ *                 tier: "FREE"
+ *                 eventCategory: "WEDDING"
+ *                 previewImageUrl: "https://storage.buwuhan.com/templates/royal-floral.jpg"
+ *                 isActive: true
+ *                 isAccessible: true
  *       401:
  *         description: Token akses tidak ada / tidak valid.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorEnvelope'
+ *             example:
+ *               success: false
+ *               message: "Token akses tidak ditemukan"
  *       404:
  *         description: Template tidak ditemukan atau sudah nonaktif.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorEnvelope'
+ *             example:
+ *               success: false
+ *               message: "Template tidak ditemukan"
  */
 
 /**

@@ -41,14 +41,22 @@ model User {
   @@map("users")
 }
 
+enum EventCategory {
+  WEDDING
+  KHITANAN
+  RASULAN
+  AQIQAH
+}
+
 model Template {
   id String @id @default(cuid())
 
   name            String
-  slug            String   @unique
+  slug            String        @unique
   tier            PlanTier
+  eventCategory   EventCategory @default(WEDDING)
   previewImageUrl String
-  isActive        Boolean  @default(true)
+  isActive        Boolean       @default(true)
 
   invitations Invitation[]
 
@@ -70,6 +78,7 @@ model Invitation {
   title          String
   slug           String           @unique
   status         InvitationStatus @default(DRAFT)
+  eventCategory  EventCategory    @default(WEDDING)
   publishedAt    DateTime?
   eventDate      DateTime?
   eventTime      String?
@@ -222,7 +231,7 @@ model LoveStory {
 }
 
 model Buwuhan {
-  id           String   @id @default(cuid())
+  id           String @id @default(cuid())
   invitationId String
 
   giverName  String

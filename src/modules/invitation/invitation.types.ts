@@ -1,4 +1,4 @@
-import type { Couple, GalleryPhoto, Invitation, InvitationStatus, LoveStory, Prisma, Template } from "../../generated/prisma/client";
+import type { Couple, GalleryPhoto, Invitation, InvitationStatus, LoveStory, Prisma, Template, EventCategory } from "../../generated/prisma/client";
 
 export type InvitationWithRelations = Invitation & {
   couples: Couple[];
@@ -20,6 +20,7 @@ export interface CoupleInput {
 export interface CreateInvitationReq {
   title: string;
   slug: string;
+  eventCategory?: EventCategory | undefined;
   couples?: CoupleInput[] | undefined;
   eventDate?: Date | string | undefined;
   eventTime?: string | undefined;
@@ -32,6 +33,7 @@ export interface CreateInvitationReq {
 export interface UpdateInvitationReq {
   title?: string | undefined;
   slug?: string | undefined;
+  eventCategory?: EventCategory | undefined;
   couples?: CoupleInput[] | undefined;
   eventDate?: Date | string | null | undefined;
   eventTime?: string | null | undefined;
@@ -96,6 +98,8 @@ export interface InvitationData {
   title: string;
   slug: string;
   status: InvitationStatusType;
+  eventCategory: EventCategory;
+  showCouples: boolean;
   publishedAt: Date | null;
   eventDate: Date | null;
   eventTime: string | null;
@@ -170,6 +174,8 @@ export function toInvitationData(invitation: InvitationWithRelations): Invitatio
     title: invitation.title,
     slug: invitation.slug,
     status: invitation.status as InvitationStatusType,
+    eventCategory: invitation.eventCategory,
+    showCouples: invitation.eventCategory === "WEDDING",
     publishedAt: invitation.publishedAt,
     eventDate: invitation.eventDate,
     eventTime: invitation.eventTime,

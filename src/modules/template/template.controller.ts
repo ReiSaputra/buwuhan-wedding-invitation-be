@@ -1,14 +1,14 @@
-// Taruh file ini di: src/modules/template/template.controller.ts
-
 import type { NextFunction, Request, Response } from "express";
 
 import { TemplateService } from "./template.service";
 import type { CreateTemplateReq, CreateTemplateRes, DeactivateTemplateRes, GetTemplateRes, ListTemplateRes, UpdateTemplateReq, UpdateTemplateRes } from "./template.types";
+import type { EventCategory } from "../../generated/prisma/client";
 
 export class TemplateController {
   static async listForUser(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const response: ListTemplateRes = await TemplateService.listForUser(req.user!.planTier);
+      const category = req.query.category ? (String(req.query.category).toUpperCase() as EventCategory) : undefined;
+      const response: ListTemplateRes = await TemplateService.listForUser(req.user!.planTier, category);
 
       res.status(200).json(response);
     } catch (error) {

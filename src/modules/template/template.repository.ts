@@ -1,13 +1,14 @@
-// Taruh file ini di: src/modules/template/template.repository.ts
-
 import { prisma } from "../../lib/prisma";
-import { Prisma } from "../../generated/prisma/client";
+import { Prisma, type EventCategory } from "../../generated/prisma/client";
 import type { CreateTemplateReq, UpdateTemplateReq } from "./template.types";
 
 export class TemplateRepository {
-  static async findActive() {
+  static async findActive(eventCategory?: EventCategory) {
     return await prisma.template.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        ...(eventCategory ? { eventCategory } : {}),
+      },
       orderBy: [{ tier: "asc" }, { name: "asc" }],
     });
   }
@@ -41,6 +42,7 @@ export class TemplateRepository {
           name: request.name,
           slug: request.slug,
           tier: request.tier,
+          eventCategory: request.eventCategory ?? "WEDDING",
           previewImageUrl: request.previewImageUrl,
           isActive: request.isActive ?? true,
         },
@@ -60,6 +62,7 @@ export class TemplateRepository {
       if (request.name !== undefined) data.name = request.name;
       if (request.slug !== undefined) data.slug = request.slug;
       if (request.tier !== undefined) data.tier = request.tier;
+      if (request.eventCategory !== undefined) data.eventCategory = request.eventCategory;
       if (request.previewImageUrl !== undefined) data.previewImageUrl = request.previewImageUrl;
       if (request.isActive !== undefined) data.isActive = request.isActive;
 

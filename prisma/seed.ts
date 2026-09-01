@@ -1,4 +1,4 @@
-﻿import "dotenv/config";
+import "dotenv/config";
 import bcrypt from "bcrypt";
 import { prisma } from "../src/lib/prisma";
 
@@ -23,12 +23,13 @@ async function main() {
   });
   console.log(`✅ Admin siap: ${admin.email} (Password: Admin123#)`);
 
-  // 2. Seed Default Templates (sesuai Mockup UI)
+  // 2. Seed Default Templates (sesuai Mockup UI & Kategori Acara)
   const templates = [
     {
       name: "Royal Floral",
       slug: "royal-floral",
       tier: "FREE" as const,
+      eventCategory: "WEDDING" as const,
       previewImageUrl: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800",
       isActive: true,
     },
@@ -36,6 +37,7 @@ async function main() {
       name: "Modern Minimalist",
       slug: "modern-minimalist",
       tier: "FREE" as const,
+      eventCategory: "WEDDING" as const,
       previewImageUrl: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=800",
       isActive: true,
     },
@@ -43,7 +45,24 @@ async function main() {
       name: "Javanese Classic",
       slug: "javanese-classic",
       tier: "FREE" as const,
+      eventCategory: "WEDDING" as const,
       previewImageUrl: "https://images.unsplash.com/photo-1606800052052-a08af7148866?auto=format&fit=crop&q=80&w=800",
+      isActive: true,
+    },
+    {
+      name: "Khitanan Ceria Blue",
+      slug: "khitanan-ceria-blue",
+      tier: "FREE" as const,
+      eventCategory: "KHITANAN" as const,
+      previewImageUrl: "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&q=80&w=800",
+      isActive: true,
+    },
+    {
+      name: "Rasulan Syukuran Gold",
+      slug: "rasulan-syukuran-gold",
+      tier: "FREE" as const,
+      eventCategory: "RASULAN" as const,
+      previewImageUrl: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&q=80&w=800",
       isActive: true,
     },
   ];
@@ -54,12 +73,13 @@ async function main() {
       update: {
         name: tpl.name,
         tier: tpl.tier,
+        eventCategory: tpl.eventCategory,
         previewImageUrl: tpl.previewImageUrl,
         isActive: tpl.isActive,
       },
       create: tpl,
     });
-    console.log(`✅ Template siap: ${createdTemplate.name} [ID: ${createdTemplate.id}]`);
+    console.log(`✅ Template siap: ${createdTemplate.name} [Kategori: ${createdTemplate.eventCategory}] [ID: ${createdTemplate.id}]`);
   }
 
   console.log("🎉 Seeding selesai dengan sukses!");

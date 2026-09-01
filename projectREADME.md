@@ -87,9 +87,13 @@ Pola per modul: **controller** (Express handler, cuma parsing request & panggil 
 - **Template**: name, slug (unique), tier (`PlanTier`), previewImageUrl, isActive (soft-delete),
   relasi ke `invitations`
 - **Invitation**: title, slug (unique), status (enum `InvitationStatus`: DRAFT/ACTIVE/COMPLETED),
+  eventCategory (enum `EventCategory`: WEDDING/KHITANAN/RASULAN/AQIQAH, default: WEDDING),
   publishedAt, eventDate, eventTime, venue, address, additionalInfo (Json),
   relasi ke owner (`User`), optional `Template`, `Couple[]`, `Guest[]`, `RSVP[]`, `GalleryPhoto[]`, dan `LoveStory[]`
-- **Couple**: name, type (enum `CoupleType`: BRIDE/GROOM), fatherName, motherName
+- **Template**: name, slug (unique), tier (enum `PlanTier`: FREE/PRO/MAX),
+  eventCategory (enum `EventCategory`: WEDDING/KHITANAN/RASULAN/AQIQAH, default: WEDDING),
+  previewImageUrl, isActive (Boolean)
+- **Couple**: name, type (enum `CoupleType`: BRIDE/GROOM), fatherName, motherName (khusus kategori `WEDDING`, dikontrol via flag `showCouples`)
 - **GalleryPhoto**: imageUrl, caption, order, relasi ke `Invitation` (Cascade delete)
 - **LoveStory**: yearOrDate, title, story, imageUrl, order, relasi ke `Invitation` (Cascade delete)
 - **Guest**: name, category (Keluarga/Saudara/Rekan Kerja/Teman/VIP/Publik), phone, email, notes,
@@ -121,23 +125,23 @@ Lokasi: `src/modules/invitation/`. Terdaftar di `v1Router`.
 
 ### Endpoint (semua di bawah prefix `/v1/api`)
 
-| Method | Path                                     | Body                                      | Auth                      |
-| ------ | ---------------------------------------- | ----------------------------------------- | ------------------------- |
-| GET    | `/public/invitations/:slug`              | —                                         | publik (ACTIVE/COMPLETED) |
-| POST   | `/invitations`                           | `{ title, slug, eventDate, couples, ...}` | `requireAuth`             |
-| GET    | `/invitations`                           | —                                         | `requireAuth`             |
-| GET    | `/invitations/:id`                       | —                                         | `requireAuth` (owner)     |
-| PATCH  | `/invitations/:id`                       | field yang diubah (partial)               | `requireAuth` (owner)     |
-| PATCH  | `/invitations/:id/status`                | `{ status: InvitationStatus }`            | `requireAuth` (owner)     |
-| DELETE | `/invitations/:id`                       | —                                         | `requireAuth` (owner)     |
-| POST   | `/invitations/:invitationId/gallery`     | `{ imageUrl, caption?, order? }`          | `requireAuth` (owner)     |
-| PATCH  | `/invitations/:invitationId/gallery/:id` | `{ imageUrl?, caption?, order? }`         | `requireAuth` (owner)     |
-| DELETE | `/invitations/:invitationId/gallery/:id` | —                                         | `requireAuth` (owner)     |
-| POST   | `/invitations/:invitationId/stories`     | `{ yearOrDate, title, story, imageUrl?}`  | `requireAuth` (owner)     |
-| PATCH  | `/invitations/:invitationId/stories/:id` | `{ yearOrDate?, title?, story?, ... }`    | `requireAuth` (owner)     |
-| DELETE | `/invitations/:invitationId/stories/:id` | —                                         | `requireAuth` (owner)     |
+| Method | Path                                     | Body                                                       | Auth                      |
+| ------ | ---------------------------------------- | ---------------------------------------------------------- | ------------------------- |
+| GET    | `/public/invitations/:slug`              | —                                                          | publik (ACTIVE/COMPLETED) |
+| POST   | `/invitations`                           | `{ title, slug, eventCategory?, eventDate, couples?, ...}` | `requireAuth`             |
+| GET    | `/invitations`                           | —                                                          | `requireAuth`             |
+| GET    | `/invitations/:id`                       | —                                                          | `requireAuth` (owner)     |
+| PATCH  | `/invitations/:id`                       | field yang diubah (partial)                                | `requireAuth` (owner)     |
+| PATCH  | `/invitations/:id/status`                | `{ status: InvitationStatus }`                             | `requireAuth` (owner)     |
+| DELETE | `/invitations/:id`                       | —                                                          | `requireAuth` (owner)     |
+| POST   | `/invitations/:invitationId/gallery`     | `{ imageUrl, caption?, order? }`                           | `requireAuth` (owner)     |
+| PATCH  | `/invitations/:invitationId/gallery/:id` | `{ imageUrl?, caption?, order? }`                          | `requireAuth` (owner)     |
+| DELETE | `/invitations/:invitationId/gallery/:id` | —                                                          | `requireAuth` (owner)     |
+| POST   | `/invitations/:invitationId/stories`     | `{ yearOrDate, title, story, imageUrl?}`                   | `requireAuth` (owner)     |
+| PATCH  | `/invitations/:invitationId/stories/:id` | `{ yearOrDate?, title?, story?, ... }`                     | `requireAuth` (owner)     |
+| DELETE | `/invitations/:invitationId/stories/:id` | —                                                          | `requireAuth` (owner)     |
 
-- Testing: **16 test lolos** di `tests/invitation/invitation.test.ts`.
+- Testing: **18 test lolos** di `tests/invitation/invitation.test.ts`.
 
 ## 7. Modul Template — SUDAH SELESAI
 
@@ -145,6 +149,8 @@ Lokasi: `src/modules/template/`. Terdaftar di `v1Router`.
 
 ### Endpoint (semua di bawah prefix `/v1/api`)
 
+| Method | Path               | Query                                   | Body                                   | Auth |
+| ------ | ------------------ | --------------------------------------- | -------------------------------------- | ---- |
 | Method | Path               | Body                                    | Auth                                   |
 | ------ | ------------------ | --------------------------------------- | -------------------------------------- |
 | GET    | `/templates`       | —                                       | `requireAuth`                          |
@@ -159,34 +165,34 @@ Lokasi: `src/modules/guest/`. Terdaftar di `v1Router`.
 
 ### Endpoint (semua di bawah prefix `/v1/api`)
 
-| Method | Path                                              | Body                                               | Auth                  |
-| ------ | ------------------------------------------------- | -------------------------------------------------- | --------------------- |
-| GET    | `/public/invitations/:slug/guests/verify/:qrCode` | —                                                  | publik (scanner)      |
-| POST   | `/invitations/:invitationId/guests`               | `{ name, category, phone, email, notes, paxCount}` | `requireAuth` (owner) |
-| POST   | `/invitations/:invitationId/guests/bulk`          | `{ guests: [...] }`                                | `requireAuth` (owner) |
-| GET    | `/invitations/:invitationId/guests`               | Query: `?category=&isAttended=&search=`            | `requireAuth` (owner) |
-| GET    | `/invitations/:invitationId/guests/stats`         | —                                                  | `requireAuth` (owner) |
-| GET    | `/invitations/:invitationId/guests/:id`           | —                                                  | `requireAuth` (owner) |
-| PATCH  | `/invitations/:invitationId/guests/:id`           | `{ name, category, phone, email, notes, ... }`     | `requireAuth` (owner) |
-| DELETE | `/invitations/:invitationId/guests/:id`           | —                                                  | `requireAuth` (owner) |
-| POST   | `/invitations/:invitationId/guests/check-in`      | `{ qrCode?, guestId?, paxActual? }`                | `requireAuth` (owner) |
-| POST   | `/invitations/:invitationId/guests/check-out`     | `{ qrCode?, guestId? }`                            | `requireAuth` (owner) |
+| Method | Path                                              | Body                                             | Auth                  |
+| ------ | ------------------------------------------------- | ------------------------------------------------ | --------------------- |
+| GET    | `/public/invitations/:slug/guests/verify/:qrCode` | —                                                | publik (baca QR tamu) |
+| POST   | `/invitations/:invitationId/guests`               | `{ name, category, phone?, email?, notes? }`     | `requireAuth` (owner) |
+| POST   | `/invitations/:invitationId/guests/bulk`          | `[{ name, category, ... }]`                      | `requireAuth` (owner) |
+| GET    | `/invitations/:invitationId/guests`               | `?category=...&isAttended=...`                   | `requireAuth` (owner) |
+| GET    | `/invitations/:invitationId/guests/stats`         | —                                                | `requireAuth` (owner) |
+| GET    | `/invitations/:invitationId/guests/:id`           | —                                                | `requireAuth` (owner) |
+| PATCH  | `/invitations/:invitationId/guests/:id`           | field yang diubah (partial)                      | `requireAuth` (owner) |
+| DELETE | `/invitations/:invitationId/guests/:id`           | —                                                | `requireAuth` (owner) |
+| POST   | `/invitations/:invitationId/guests/check-in`      | `{ qrCode }` ATAU `{ guestId, paxActual?, ... }` | `requireAuth` (owner) |
+| POST   | `/invitations/:invitationId/guests/check-out`     | `{ guestId }`                                    | `requireAuth` (owner) |
 
 - Testing: **17 test lolos** di `tests/guest/guest.test.ts`.
 
-## 9. Modul RSVP (Konfirmasi Kehadiran & Buku Tamu Digital) — SUDAH SELESAI
+## 9. Modul RSVP & Buku Tamu Ucapan — SUDAH SELESAI
 
 Lokasi: `src/modules/rsvp/`. Terdaftar di `v1Router`.
 
 ### Endpoint (semua di bawah prefix `/v1/api`)
 
-| Method | Path                                     | Body                                               | Auth                  |
-| ------ | ---------------------------------------- | -------------------------------------------------- | --------------------- |
-| POST   | `/public/invitations/:slug/rsvp`         | `{ qrCode?, name?, status, reservation, message }` | publik                |
-| GET    | `/public/invitations/:slug/wishes`       | Query: `?limit=&page=`                             | publik                |
-| GET    | `/invitations/:invitationId/rsvps`       | Query: `?status=&search=`                          | `requireAuth` (owner) |
-| GET    | `/invitations/:invitationId/rsvps/stats` | —                                                  | `requireAuth` (owner) |
-| DELETE | `/invitations/:invitationId/rsvps/:id`   | —                                                  | `requireAuth` (owner) |
+| Method | Path                                     | Body                                 | Auth                      |
+| ------ | ---------------------------------------- | ------------------------------------ | ------------------------- |
+| POST   | `/public/invitations/:slug/rsvp`         | `{ guestId, status, message?, ... }` | publik (ACTIVE/COMPLETED) |
+| GET    | `/public/invitations/:slug/wishes`       | —                                    | publik (ACTIVE/COMPLETED) |
+| GET    | `/invitations/:invitationId/rsvps`       | —                                    | `requireAuth` (owner)     |
+| GET    | `/invitations/:invitationId/rsvps/stats` | —                                    | `requireAuth` (owner)     |
+| DELETE | `/invitations/:invitationId/rsvps/:id`   | —                                    | `requireAuth` (owner)     |
 
 - Testing: **14 test lolos** di `tests/rsvp/rsvp.test.ts`.
 
@@ -255,7 +261,7 @@ Lokasi: `src/modules/buwuhan/`. Terdaftar di `v1Router`.
 | Modul / Fitur              | Status                              |
 | -------------------------- | ----------------------------------- |
 | Modul `auth`               | Selesai (17 test lolos)             |
-| Modul `invitation`         | Selesai (16 test lolos)             |
+| Modul `invitation`         | Selesai (18 test lolos)             |
 | Modul `template`           | Selesai (API & Router siap)         |
 | Modul `guest`              | Selesai (17 test lolos)             |
 | Modul `rsvp`               | Selesai (14 test lolos)             |

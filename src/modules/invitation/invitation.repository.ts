@@ -44,6 +44,7 @@ export class InvitationRepository {
           slug: request.slug,
           ownerId,
           status: "DRAFT",
+          eventCategory: request.eventCategory ?? "WEDDING",
           eventDate: request.eventDate ? new Date(request.eventDate) : null,
           eventTime: request.eventTime ?? null,
           venue: request.venue ?? null,
@@ -84,6 +85,7 @@ export class InvitationRepository {
 
         if (request.title !== undefined) data.title = request.title;
         if (request.slug !== undefined) data.slug = request.slug;
+        if (request.eventCategory !== undefined) data.eventCategory = request.eventCategory;
         if (request.eventDate !== undefined) {
           data.eventDate = request.eventDate ? new Date(request.eventDate) : null;
         }

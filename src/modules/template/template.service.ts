@@ -1,6 +1,4 @@
-// Taruh file ini di: src/modules/template/template.service.ts
-
-import type { PlanTier } from "../../generated/prisma/client";
+import type { EventCategory, PlanTier } from "../../generated/prisma/client";
 import { TemplateRepository } from "./template.repository";
 import {
   createTemplateResponse,
@@ -22,8 +20,8 @@ import { ConflictError, NotFoundError } from "../../errors/app.error";
 export class TemplateService {
   // dipakai di panel pembuat undangan -- cuma template aktif, `isAccessible`
   // dihitung dari planTier user yang sedang login
-  static async listForUser(requesterTier: PlanTier): Promise<ListTemplateRes> {
-    const templates = await TemplateRepository.findActive();
+  static async listForUser(requesterTier: PlanTier, eventCategory?: EventCategory): Promise<ListTemplateRes> {
+    const templates = await TemplateRepository.findActive(eventCategory);
 
     return listTemplateResponse(templates, requesterTier);
   }

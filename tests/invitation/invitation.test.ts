@@ -7,6 +7,7 @@ import { invitationRouter } from "../../src/modules/invitation/invitation.routes
 import { InvitationRepository } from "../../src/modules/invitation/invitation.repository";
 import { TemplateRepository } from "../../src/modules/template/template.repository";
 import { errorHandler } from "../../src/middlewares/error.middleware";
+import { Prisma } from "../../src/generated/prisma/client";
 
 process.env.JWT_SECRET = "test-jwt-secret";
 
@@ -255,6 +256,30 @@ describe("invitation test: CRUD & Public", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Undangan berhasil dihapus");
+  });
+
+  it("menolak menghapus undangan milik pengguna lain atau tidak ditemukan (404)", async () => {
+    (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue(null);
+
+    const res = await request(app).delete(`/v1/api/invitations/unowned-id`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe("Undangan tidak ditemukan");
+  });
+
+  it("menangani Prisma foreign key error saat penghapusan (409)", async () => {
+    (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (InvitationRepository.deleteById as Mock).mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError("Foreign key violation", {
+        code: "P2003",
+        clientVersion: "7.9.1",
+      }),
+    );
+
+    const res = await request(app).delete(`/v1/api/invitations/${mockInvitation.id}`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(409);
+    expect(res.body.message).toBe("Data ini masih terhubung dengan data lain sehingga tidak bisa dihapus");
   });
 });
 

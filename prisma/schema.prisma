@@ -86,11 +86,13 @@ model Invitation {
   address        String?
   additionalInfo Json
 
+  // Restrict: Template yang sedang digunakan undangan tidak boleh dihapus demi menjaga integritas data
   templateId String?
-  template   Template? @relation(fields: [templateId], references: [id])
+  template   Template? @relation(fields: [templateId], references: [id], onDelete: Restrict)
 
+  // Cascade: Bila akun pengguna dihapus, seluruh undangan miliknya ikut terhapus
   ownerId String
-  owner   User   @relation(fields: [ownerId], references: [id])
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   couples       Couple[]
   guests        Guest[]
@@ -118,8 +120,9 @@ model Couple {
   fatherName String
   motherName String
 
+  // Cascade: Data mempelai adalah bagian dari undangan, wajib ikut terhapus saat undangan dihapus
   invitationId String
-  invitation   Invitation @relation(fields: [invitationId], references: [id])
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
 
   @@map("bride_and_grooms")
 }
@@ -139,6 +142,7 @@ model Guest {
   checkedInAt  DateTime?
   checkedOutAt DateTime?
 
+  // Cascade: Tamu undangan terikat pada undangan spesifik; ikut terhapus saat undangan dihapus
   invitationId String
   invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
 
@@ -163,9 +167,11 @@ model RSVP {
   reservation Int        @default(1)
   message     String?
 
+  // Cascade: RSVP terikat pada tamu; ikut terhapus bila data tamu dihapus
   guestId String
   guest   Guest  @relation(fields: [guestId], references: [id], onDelete: Cascade)
 
+  // Cascade: RSVP terikat pada undangan; ikut terhapus bila undangan dihapus
   invitationId String
   invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
 
@@ -180,8 +186,9 @@ model RSVP {
 model Session {
   id String @id @default(cuid())
 
+  // Cascade: Sesi login pengguna otomatis terhapus saat akun pengguna dihapus
   userId String
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   refreshTokenHash String  @unique
   userAgent        String?
@@ -202,6 +209,7 @@ model GalleryPhoto {
   caption  String?
   order    Int     @default(0)
 
+  // Cascade: Foto galeri terhapus saat undangan dihapus
   invitationId String
   invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
 
@@ -220,6 +228,7 @@ model LoveStory {
   imageUrl   String?
   order      Int     @default(0)
 
+  // Cascade: Cerita cinta terhapus saat undangan dihapus
   invitationId String
   invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
 
@@ -241,6 +250,7 @@ model Buwuhan {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Cascade: Catatan buwuhan terhapus saat undangan dihapus
   invitation Invitation    @relation(fields: [invitationId], references: [id], onDelete: Cascade)
   items      BuwuhanItem[]
 
@@ -260,6 +270,7 @@ model BuwuhanItem {
 
   createdAt DateTime @default(now())
 
+  // Cascade: Item buwuhan terhapus saat entitas buwuhan dihapus
   buwuhan Buwuhan @relation(fields: [buwuhanId], references: [id], onDelete: Cascade)
 
   @@index([buwuhanId])

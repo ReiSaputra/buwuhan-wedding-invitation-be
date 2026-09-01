@@ -13,6 +13,7 @@ beforeAll(() => {
   vi.spyOn(BuwuhanRepository, "findInvitationByIdAndOwner");
   vi.spyOn(BuwuhanRepository, "create");
   vi.spyOn(BuwuhanRepository, "findManyByInvitationId");
+  vi.spyOn(BuwuhanRepository, "findManyByOwnerId");
   vi.spyOn(BuwuhanRepository, "findById");
   vi.spyOn(BuwuhanRepository, "update");
   vi.spyOn(BuwuhanRepository, "delete");
@@ -33,11 +34,7 @@ const mockOwnerId = "user-123";
 const mockInvitationId = "inv-001";
 const mockBuwuhanId = "buwuhan-001";
 
-const validAuthToken = jwt.sign(
-  { id: mockOwnerId, role: "USER", planTier: "FREE" },
-  process.env.JWT_SECRET as string,
-  { expiresIn: "1d" }
-);
+const validAuthToken = jwt.sign({ id: mockOwnerId, role: "USER", planTier: "FREE" }, process.env.JWT_SECRET as string, { expiresIn: "1d" });
 
 const mockInvitation = { id: mockInvitationId, ownerId: mockOwnerId };
 
@@ -96,10 +93,7 @@ describe("POST /v1/api/invitations/:invitationId/buwuhans", () => {
   });
 
   it("201 - berhasil membuat catatan buwuh", async () => {
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitationId}/buwuhans`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send(validBody);
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitationId}/buwuhans`).set("Authorization", `Bearer ${validAuthToken}`).send(validBody);
 
     expect(res.status).toBe(201);
     expect(res.body.data.giverName).toBe("Ahmad");
@@ -107,10 +101,7 @@ describe("POST /v1/api/invitations/:invitationId/buwuhans", () => {
   });
 
   it("400 - gagal jika items kosong", async () => {
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitationId}/buwuhans`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({ giverName: "Ahmad", items: [] });
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitationId}/buwuhans`).set("Authorization", `Bearer ${validAuthToken}`).send({ giverName: "Ahmad", items: [] });
 
     expect(res.status).toBe(400);
   });
@@ -125,9 +116,7 @@ describe("POST /v1/api/invitations/:invitationId/buwuhans", () => {
   });
 
   it("401 - tanpa token", async () => {
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitationId}/buwuhans`)
-      .send(validBody);
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitationId}/buwuhans`).send(validBody);
 
     expect(res.status).toBe(401);
   });
@@ -135,10 +124,7 @@ describe("POST /v1/api/invitations/:invitationId/buwuhans", () => {
   it("404 - undangan tidak ditemukan", async () => {
     (BuwuhanRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/unknown-id/buwuhans`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send(validBody);
+    const res = await request(app).post(`/v1/api/invitations/unknown-id/buwuhans`).set("Authorization", `Bearer ${validAuthToken}`).send(validBody);
 
     expect(res.status).toBe(404);
   });
@@ -154,9 +140,7 @@ describe("GET /v1/api/invitations/:invitationId/buwuhans", () => {
   });
 
   it("200 - berhasil mengambil daftar buwuh", async () => {
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitationId}/buwuhans`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitationId}/buwuhans`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.data)).toBe(true);
@@ -172,9 +156,7 @@ describe("GET /v1/api/invitations/:invitationId/buwuhans", () => {
   it("404 - undangan tidak ditemukan", async () => {
     (BuwuhanRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .get(`/v1/api/invitations/unknown-id/buwuhans`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/unknown-id/buwuhans`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(404);
   });
@@ -198,9 +180,7 @@ describe("GET /v1/api/invitations/:invitationId/buwuhans/summary", () => {
   });
 
   it("200 - ringkasan statistik benar", async () => {
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitationId}/buwuhans/summary`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitationId}/buwuhans/summary`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data.totalItems).toBe(3);
@@ -224,9 +204,7 @@ describe("GET /v1/api/buwuhans/:id", () => {
   });
 
   it("200 - detail buwuh dengan items", async () => {
-    const res = await request(app)
-      .get(`/v1/api/buwuhans/${mockBuwuhanId}`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/buwuhans/${mockBuwuhanId}`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data.id).toBe(mockBuwuhanId);
@@ -238,9 +216,7 @@ describe("GET /v1/api/buwuhans/:id", () => {
   it("404 - ID tidak ditemukan", async () => {
     (BuwuhanRepository.findById as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .get(`/v1/api/buwuhans/nonexistent-id`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/buwuhans/nonexistent-id`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(404);
   });
@@ -283,10 +259,7 @@ describe("PATCH /v1/api/buwuhans/:id", () => {
   });
 
   it("200 - update berhasil dengan replace-all items", async () => {
-    const res = await request(app)
-      .patch(`/v1/api/buwuhans/${mockBuwuhanId}`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send(updateBody);
+    const res = await request(app).patch(`/v1/api/buwuhans/${mockBuwuhanId}`).set("Authorization", `Bearer ${validAuthToken}`).send(updateBody);
 
     expect(res.status).toBe(200);
     expect(res.body.data.giverName).toBe("Ahmad Updated");
@@ -297,18 +270,13 @@ describe("PATCH /v1/api/buwuhans/:id", () => {
   it("404 - ID tidak ditemukan", async () => {
     (BuwuhanRepository.findById as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .patch(`/v1/api/buwuhans/nonexistent-id`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send(updateBody);
+    const res = await request(app).patch(`/v1/api/buwuhans/nonexistent-id`).set("Authorization", `Bearer ${validAuthToken}`).send(updateBody);
 
     expect(res.status).toBe(404);
   });
 
   it("401 - tanpa token", async () => {
-    const res = await request(app)
-      .patch(`/v1/api/buwuhans/${mockBuwuhanId}`)
-      .send(updateBody);
+    const res = await request(app).patch(`/v1/api/buwuhans/${mockBuwuhanId}`).send(updateBody);
 
     expect(res.status).toBe(401);
   });
@@ -324,9 +292,7 @@ describe("DELETE /v1/api/buwuhans/:id", () => {
   });
 
   it("200 - hapus berhasil", async () => {
-    const res = await request(app)
-      .delete(`/v1/api/buwuhans/${mockBuwuhanId}`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).delete(`/v1/api/buwuhans/${mockBuwuhanId}`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.message).toContain("berhasil dihapus");
@@ -335,9 +301,7 @@ describe("DELETE /v1/api/buwuhans/:id", () => {
   it("404 - ID tidak ditemukan", async () => {
     (BuwuhanRepository.findById as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .delete(`/v1/api/buwuhans/nonexistent-id`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).delete(`/v1/api/buwuhans/nonexistent-id`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(404);
   });
@@ -345,5 +309,136 @@ describe("DELETE /v1/api/buwuhans/:id", () => {
   it("401 - tanpa token", async () => {
     const res = await request(app).delete(`/v1/api/buwuhans/${mockBuwuhanId}`);
     expect(res.status).toBe(401);
+  });
+});
+
+// ─────────────────────────────────────────────
+// GET /v1/api/buwuhans (Lintas Undangan)
+// ─────────────────────────────────────────────
+describe("GET /v1/api/buwuhans", () => {
+  const mockBuwuhanInv1 = {
+    id: "buwuhan-001",
+    invitationId: "inv-001",
+    giverName: "H. Ahmad & Keluarga",
+    note: "Selamat menempuh hidup baru",
+    receivedAt: new Date("2026-08-22T10:00:00.000Z"),
+    createdAt: new Date("2026-08-22T10:00:00.000Z"),
+    updatedAt: new Date("2026-08-22T10:00:00.000Z"),
+    invitation: {
+      id: "inv-001",
+      title: "Han & Saputra",
+      slug: "han-saputra",
+    },
+    items: [
+      {
+        id: "item-001",
+        buwuhanId: "buwuhan-001",
+        itemName: "Beras",
+        quantity: { toNumber: () => 50 } as any,
+        unit: "kg",
+        category: "Sembako",
+        estimatedValue: { toNumber: () => 650000 } as any,
+        createdAt: new Date("2026-08-22T10:00:00.000Z"),
+      },
+    ],
+  };
+
+  const mockBuwuhanInv2 = {
+    id: "buwuhan-002",
+    invitationId: "inv-002",
+    giverName: "Budi Santoso",
+    note: "Semoga samawa",
+    receivedAt: new Date("2026-08-20T08:00:00.000Z"),
+    createdAt: new Date("2026-08-20T08:00:00.000Z"),
+    updatedAt: new Date("2026-08-20T08:00:00.000Z"),
+    invitation: {
+      id: "inv-002",
+      title: "Resepsi Putri & Dimas",
+      slug: "putri-dimas",
+    },
+    items: [
+      {
+        id: "item-002",
+        buwuhanId: "buwuhan-002",
+        itemName: "Uang Tunai",
+        quantity: { toNumber: () => 1 } as any,
+        unit: "transaksi",
+        category: "Uang",
+        estimatedValue: { toNumber: () => 200000 } as any,
+        createdAt: new Date("2026-08-20T08:00:00.000Z"),
+      },
+    ],
+  };
+
+  it("401 - tanpa token autentikasi", async () => {
+    const res = await request(app).get("/v1/api/buwuhans");
+    expect(res.status).toBe(401);
+  });
+
+  it("200 - mengembalikan array kosong jika user belum punya catatan buwuh", async () => {
+    (BuwuhanRepository.findManyByOwnerId as Mock).mockResolvedValue([]);
+
+    const res = await request(app).get("/v1/api/buwuhans").set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Daftar buwuh berhasil diambil");
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data).toHaveLength(0);
+    expect(BuwuhanRepository.findManyByOwnerId).toHaveBeenCalledWith(mockOwnerId);
+  });
+
+  it("200 - mengembalikan seluruh catatan buwuh lintas undangan dengan title & slug undangan", async () => {
+    (BuwuhanRepository.findManyByOwnerId as Mock).mockResolvedValue([mockBuwuhanInv1, mockBuwuhanInv2]);
+
+    const res = await request(app).get("/v1/api/buwuhans").set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(2);
+
+    // Verifikasi data undangan pertama
+    expect(res.body.data[0].id).toBe("buwuhan-001");
+    expect(res.body.data[0].invitationId).toBe("inv-001");
+    expect(res.body.data[0].invitationTitle).toBe("Han & Saputra");
+    expect(res.body.data[0].invitationSlug).toBe("han-saputra");
+    expect(res.body.data[0].giverName).toBe("H. Ahmad & Keluarga");
+
+    // Verifikasi data undangan kedua
+    expect(res.body.data[1].id).toBe("buwuhan-002");
+    expect(res.body.data[1].invitationId).toBe("inv-002");
+    expect(res.body.data[1].invitationTitle).toBe("Resepsi Putri & Dimas");
+    expect(res.body.data[1].invitationSlug).toBe("putri-dimas");
+    expect(res.body.data[1].giverName).toBe("Budi Santoso");
+  });
+
+  it("memanggil repository dengan ownerId pengguna yang login (tidak menyertakan catatan milik orang lain)", async () => {
+    (BuwuhanRepository.findManyByOwnerId as Mock).mockResolvedValue([mockBuwuhanInv1]);
+
+    await request(app).get("/v1/api/buwuhans").set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(BuwuhanRepository.findManyByOwnerId).toHaveBeenCalledWith(mockOwnerId);
+  });
+
+  it("quantity dan estimatedValue bertipe number pada response payload", async () => {
+    (BuwuhanRepository.findManyByOwnerId as Mock).mockResolvedValue([mockBuwuhanInv1]);
+
+    const res = await request(app).get("/v1/api/buwuhans").set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(200);
+    const item = res.body.data[0].items[0];
+    expect(typeof item.quantity).toBe("number");
+    expect(item.quantity).toBe(50);
+    expect(typeof item.estimatedValue).toBe("number");
+    expect(item.estimatedValue).toBe(650000);
+  });
+
+  it("mempertahankan urutan receivedAt descending dari repository", async () => {
+    (BuwuhanRepository.findManyByOwnerId as Mock).mockResolvedValue([mockBuwuhanInv1, mockBuwuhanInv2]);
+
+    const res = await request(app).get("/v1/api/buwuhans").set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(200);
+    const date1 = new Date(res.body.data[0].receivedAt).getTime();
+    const date2 = new Date(res.body.data[1].receivedAt).getTime();
+    expect(date1).toBeGreaterThan(date2);
   });
 });

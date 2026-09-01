@@ -119,14 +119,14 @@ export class InvitationRepository {
     }
   }
 
-  static async updateStatus(id: string, status: InvitationStatusType, publishedAt?: Date | null) {
+  static async updateStatus(id: string, ownerId: string, status: InvitationStatusType, publishedAt?: Date | null) {
     const data: Prisma.InvitationUncheckedUpdateInput = { status };
     if (publishedAt !== undefined) {
       data.publishedAt = publishedAt;
     }
 
     return await prisma.invitation.update({
-      where: { id },
+      where: { id, ownerId },
       data,
       include: includeRelations,
     });

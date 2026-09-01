@@ -228,6 +228,7 @@ Lokasi: `src/modules/buwuhan/`. Terdaftar di `v1Router`.
 
 | Method | Path                                          | Body                                               | Auth                  |
 | ------ | --------------------------------------------- | -------------------------------------------------- | --------------------- |
+| GET    | `/buwuhans`                                   | —                                                  | `requireAuth` (owner) |
 | POST   | `/invitations/:invitationId/buwuhans`         | `{ giverName, note?, receivedAt?, items: [...] }`  | `requireAuth` (owner) |
 | GET    | `/invitations/:invitationId/buwuhans`         | —                                                  | `requireAuth` (owner) |
 | GET    | `/invitations/:invitationId/buwuhans/summary` | —                                                  | `requireAuth` (owner) |
@@ -235,7 +236,40 @@ Lokasi: `src/modules/buwuhan/`. Terdaftar di `v1Router`.
 | PATCH  | `/buwuhans/:id`                               | `{ giverName?, note?, receivedAt?, items?: [...]}` | `requireAuth` (owner) |
 | DELETE | `/buwuhans/:id`                               | —                                                  | `requireAuth` (owner) |
 
-- Testing: **19 test lolos** di `tests/buwuhan/buwuhan.test.ts`.
+#### Contoh Respon `GET /v1/api/buwuhans` (200 OK)
+```json
+{
+  "message": "Daftar buwuh berhasil diambil",
+  "status": 200,
+  "data": [
+    {
+      "id": "cly3k9h2p0000v8og3f1a9x00",
+      "invitationId": "cly3k8a1b0000v8og3f1a1111",
+      "invitationTitle": "Han & Saputra",
+      "invitationSlug": "han-saputra",
+      "giverName": "H. Ahmad & Keluarga",
+      "note": "Selamat menempuh hidup baru",
+      "receivedAt": "2026-08-21T13:15:00.000Z",
+      "createdAt": "2026-08-21T13:15:00.000Z",
+      "updatedAt": "2026-08-21T13:15:00.000Z",
+      "items": [
+        {
+          "id": "cly3k9h2p0000v8og3f1a9x01",
+          "buwuhanId": "cly3k9h2p0000v8og3f1a9x00",
+          "itemName": "Beras",
+          "quantity": 50,
+          "unit": "kg",
+          "category": "Sembako",
+          "estimatedValue": 650000,
+          "createdAt": "2026-08-21T13:15:00.000Z"
+        }
+      ]
+    }
+  ]
+}
+```
+
+- Testing: **25 test lolos** di `tests/buwuhan/buwuhan.test.ts`.
 
 ## 13. Middleware & Error Handling
 
@@ -267,7 +301,7 @@ Lokasi: `src/modules/buwuhan/`. Terdaftar di `v1Router`.
 | Modul `rsvp`               | Selesai (14 test lolos)             |
 | Modul `user`               | Selesai (3 test lolos)              |
 | Modul `dashboard`          | Selesai (4 test lolos)              |
-| Modul `buwuhan`            | Selesai (19 test lolos)             |
+| Modul `buwuhan`            | Selesai (25 test lolos)             |
 | Test modul `template`      | Belum ada                           |
 | Integrasi Email Provider   | Utang teknis modul guest (lihat §8) |
 | Reuse detection penuh      | Utang teknis auth (lihat §5)        |

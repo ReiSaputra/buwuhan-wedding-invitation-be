@@ -108,7 +108,7 @@ export class InvitationService {
       publishedAt = new Date();
     }
 
-    const updated = await InvitationRepository.updateStatus(id, request.status, publishedAt);
+    const updated = await InvitationRepository.updateStatus(id, ownerId, request.status, publishedAt);
 
     return updateInvitationStatusResponse(updated);
   }

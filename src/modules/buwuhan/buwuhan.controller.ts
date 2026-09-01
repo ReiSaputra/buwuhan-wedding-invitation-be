@@ -1,4 +1,4 @@
-﻿import type { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { BuwuhanService } from "./buwuhan.service";
 import type { CreateBuwuhanReq, UpdateBuwuhanReq } from "./buwuhan.types";
 
@@ -63,6 +63,16 @@ export class BuwuhanController {
       const invitationId = req.params.invitationId as string;
       const ownerId = req.user!.id;
       const result = await BuwuhanService.getSummary(invitationId, ownerId);
+      res.status(result.status).json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async listByOwner(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const ownerId = req.user!.id;
+      const result = await BuwuhanService.listByOwner(ownerId);
       res.status(result.status).json(result);
     } catch (err) {
       next(err);

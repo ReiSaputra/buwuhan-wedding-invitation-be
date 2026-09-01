@@ -1,4 +1,4 @@
-﻿import { prisma } from "../../lib/prisma";
+import { prisma } from "../../lib/prisma";
 import type { CreateBuwuhanReq, UpdateBuwuhanReq } from "./buwuhan.types";
 
 export class BuwuhanRepository {
@@ -81,6 +81,17 @@ export class BuwuhanRepository {
 
   static async delete(id: string) {
     return await prisma.buwuhan.delete({ where: { id } });
+  }
+
+  static async findManyByOwnerId(ownerId: string) {
+    return await prisma.buwuhan.findMany({
+      where: { invitation: { ownerId } },
+      include: {
+        items: true,
+        invitation: { select: { id: true, title: true, slug: true } },
+      },
+      orderBy: { receivedAt: "desc" },
+    });
   }
 
   static async getSummary(invitationId: string) {

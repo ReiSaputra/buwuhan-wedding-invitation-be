@@ -179,3 +179,38 @@ export function deleteBuwuhanResponse(): DeleteBuwuhanRes {
 export function getBuwuhanSummaryResponse(summary: BuwuhanSummaryData): GetBuwuhanSummaryRes {
   return { message: "Ringkasan buwuh berhasil diambil", status: 200, data: summary };
 }
+
+// ── Owner-level (lintas undangan) ─────────────────────────────────────
+
+export interface OwnerBuwuhanData extends BuwuhanData {
+  invitationTitle: string;
+  invitationSlug: string;
+}
+
+export interface ListOwnerBuwuhanRes {
+  message: string;
+  status: number;
+  data: OwnerBuwuhanData[];
+}
+
+export function formatOwnerBuwuhan(
+  buwuhan: Parameters<typeof formatBuwuhan>[0] & {
+    invitation: { id: string; title: string; slug: string };
+  }
+): OwnerBuwuhanData {
+  return {
+    ...formatBuwuhan(buwuhan),
+    invitationTitle: buwuhan.invitation.title,
+    invitationSlug: buwuhan.invitation.slug,
+  };
+}
+
+export function listOwnerBuwuhanResponse(
+  buwuhans: Parameters<typeof formatOwnerBuwuhan>[0][]
+): ListOwnerBuwuhanRes {
+  return {
+    message: "Daftar buwuh berhasil diambil",
+    status: 200,
+    data: buwuhans.map(formatOwnerBuwuhan),
+  };
+}

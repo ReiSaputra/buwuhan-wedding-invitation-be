@@ -1,10 +1,11 @@
-﻿import { BuwuhanRepository } from "./buwuhan.repository";
+import { BuwuhanRepository } from "./buwuhan.repository";
 import {
   createBuwuhanResponse,
   deleteBuwuhanResponse,
   getBuwuhanResponse,
   getBuwuhanSummaryResponse,
   listBuwuhanResponse,
+  listOwnerBuwuhanResponse,
   updateBuwuhanResponse,
   type CreateBuwuhanReq,
   type CreateBuwuhanRes,
@@ -12,6 +13,7 @@ import {
   type GetBuwuhanRes,
   type GetBuwuhanSummaryRes,
   type ListBuwuhanRes,
+  type ListOwnerBuwuhanRes,
   type UpdateBuwuhanReq,
   type UpdateBuwuhanRes,
 } from "./buwuhan.types";
@@ -87,5 +89,10 @@ export class BuwuhanService {
 
     const summary = await BuwuhanRepository.getSummary(invitationId);
     return getBuwuhanSummaryResponse(summary);
+  }
+
+  static async listByOwner(ownerId: string): Promise<ListOwnerBuwuhanRes> {
+    const buwuhans = await BuwuhanRepository.findManyByOwnerId(ownerId);
+    return listOwnerBuwuhanResponse(buwuhans);
   }
 }

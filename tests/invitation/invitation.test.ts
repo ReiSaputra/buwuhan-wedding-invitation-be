@@ -234,7 +234,7 @@ describe("invitation test: CRUD & Public", () => {
     expect(res.body.message).toBe("Undangan tidak ditemukan");
   });
 
-  it("berhasil update status undangan (200)", async () => {
+  it("berhasil update status undangan (200) dan memastikan ID yang benar digunakan", async () => {
     (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
     (InvitationRepository.updateStatus as Mock).mockResolvedValue({
       ...mockInvitation,
@@ -246,6 +246,43 @@ describe("invitation test: CRUD & Public", () => {
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Status undangan berhasil diperbarui");
     expect(res.body.data.status).toBe("ACTIVE");
+
+    // Pastikan repository.updateStatus dipanggil dengan ID undangan yang tepat (bukan ID lain)
+    // publishedAt = undefined karena mockInvitation sudah memiliki publishedAt (tidak di-set ulang)
+    expect(InvitationRepository.updateStatus).toHaveBeenCalledWith(mockInvitation.id, mockUser.id, "ACTIVE", undefined);
+    // Pastikan ID yang ada di response sesuai dengan yang diminta
+    expect(res.body.data.id).toBe(mockInvitation.id);
+  });
+
+  it("menolak update status undangan milik pengguna lain atau tidak ditemukan (404)", async () => {
+    (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue(null);
+
+    const res = await request(app).patch(`/v1/api/invitations/undangan-orang-lain/status`).set("Authorization", `Bearer ${validAuthToken}`).send({ status: "ACTIVE" });
+
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe("Undangan tidak ditemukan");
+    // Pastikan updateStatus TIDAK pernah dipanggil ketika ID tidak ditemukan / bukan milik user
+    expect(InvitationRepository.updateStatus).not.toHaveBeenCalled();
+  });
+
+  it("otomatis set publishedAt saat pertama kali diaktifkan (status ACTIVE, belum pernah publish)", async () => {
+    const unpublishedInvitation = { ...mockInvitation, publishedAt: null };
+    (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue(unpublishedInvitation);
+    (InvitationRepository.updateStatus as Mock).mockResolvedValue({
+      ...unpublishedInvitation,
+      status: "ACTIVE",
+      publishedAt: new Date(),
+    });
+
+    const res = await request(app).patch(`/v1/api/invitations/${mockInvitation.id}/status`).set("Authorization", `Bearer ${validAuthToken}`).send({ status: "ACTIVE" });
+
+    expect(res.status).toBe(200);
+    // Pastikan updateStatus dipanggil dengan publishedAt berupa Date (bukan undefined/null)
+    const callArgs = (InvitationRepository.updateStatus as Mock).mock.calls[0];
+    expect(callArgs[0]).toBe(mockInvitation.id); // id yang benar
+    expect(callArgs[1]).toBe(mockUser.id); // ownerId yang benar
+    expect(callArgs[2]).toBe("ACTIVE"); // status
+    expect(callArgs[3]).toBeInstanceOf(Date); // publishedAt di-set otomatis
   });
 
   it("berhasil menghapus undangan (200)", async () => {

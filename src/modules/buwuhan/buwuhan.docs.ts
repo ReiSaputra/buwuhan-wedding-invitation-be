@@ -153,6 +153,18 @@
  *           items:
  *             $ref: '#/components/schemas/BuwuhanItemResponseData'
  *
+ *     OwnerBuwuhanResponseData:
+ *       allOf:
+ *         - $ref: '#/components/schemas/BuwuhanResponseData'
+ *         - type: object
+ *           properties:
+ *             invitationTitle:
+ *               type: string
+ *               example: "Han & Saputra"
+ *             invitationSlug:
+ *               type: string
+ *               example: "han-saputra"
+ *
  *     TopItemSummary:
  *       type: object
  *       nullable: true
@@ -401,6 +413,62 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorEnvelope'
+ */
+
+/**
+ * @openapi
+ * /buwuhans:
+ *   get:
+ *     tags: [Buwuhan]
+ *     summary: Ambil daftar catatan buwuh lintas seluruh undangan
+ *     description: Mengembalikan seluruh catatan buwuh dari semua undangan yang dimiliki oleh pengguna yang sedang login, dilengkapi informasi judul dan slug undangan asalnya.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Daftar buwuh berhasil diambil.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/OwnerBuwuhanResponseData'
+ *             example:
+ *               message: "Daftar buwuh berhasil diambil"
+ *               status: 200
+ *               data:
+ *                 - id: "cly3k9h2p0000v8og3f1a9x00"
+ *                   invitationId: "cly3k8a1b0000v8og3f1a1111"
+ *                   invitationTitle: "Han & Saputra"
+ *                   invitationSlug: "han-saputra"
+ *                   giverName: "H. Ahmad & Keluarga"
+ *                   note: "Selamat menempuh hidup baru"
+ *                   receivedAt: "2026-08-21T13:15:00.000Z"
+ *                   createdAt: "2026-08-21T13:15:00.000Z"
+ *                   updatedAt: "2026-08-21T13:15:00.000Z"
+ *                   items:
+ *                     - id: "cly3k9h2p0000v8og3f1a9x01"
+ *                       buwuhanId: "cly3k9h2p0000v8og3f1a9x00"
+ *                       itemName: "Beras"
+ *                       quantity: 50
+ *                       unit: "kg"
+ *                       category: "Sembako"
+ *                       estimatedValue: 650000
+ *                       createdAt: "2026-08-21T13:15:00.000Z"
+ *       401:
+ *         description: Unauthorized.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorEnvelope'
+ *             example:
+ *               success: false
+ *               message: "Token akses tidak ditemukan"
  */
 
 /**

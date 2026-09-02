@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import { guestRouter } from "../../src/modules/guest/guest.routes";
 import { GuestRepository } from "../../src/modules/guest/guest.repository";
 import { errorHandler } from "../../src/middlewares/error.middleware";
+import { mailer } from "../../src/lib/mailer";
 
 process.env.JWT_SECRET = "test-jwt-secret";
 
@@ -24,6 +25,8 @@ beforeAll(() => {
   vi.spyOn(GuestRepository, "checkIn");
   vi.spyOn(GuestRepository, "checkOut");
   vi.spyOn(GuestRepository, "getStats");
+  vi.spyOn(GuestRepository, "findGuestsForEmail");
+  vi.spyOn(mailer, "sendMail").mockResolvedValue({ messageId: "mock-msg-id" });
 });
 
 function buildTestApp() {
@@ -327,5 +330,108 @@ describe("guest test: statistics & public qr verify", () => {
 
     expect(res.status).toBe(404);
     expect(res.body.message).toBe("Undangan atau data tamu tidak ditemukan");
+  });
+});
+
+describe("guest test: send email & share links", () => {
+  it("berhasil mengirim email undangan personal ke 1 tamu (200)", async () => {
+    (GuestRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (GuestRepository.findByIdAndInvitationId as Mock).mockResolvedValue(mockGuest);
+
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/guests/${mockGuest.id}/send-email`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Undangan berhasil dikirim ke email tamu");
+    expect(res.body.data.guestId).toBe(mockGuest.id);
+    expect(res.body.data.email).toBe(mockGuest.email);
+    expect(mailer.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: mockGuest.email,
+        subject: `Undangan: ${mockInvitation.title}`,
+      }),
+    );
+  });
+
+  it("menolak kirim email jika tamu belum memiliki alamat email (422/400)", async () => {
+    (GuestRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (GuestRepository.findByIdAndInvitationId as Mock).mockResolvedValue({
+      ...mockGuest,
+      email: null,
+    });
+
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/guests/${mockGuest.id}/send-email`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(422);
+    expect(res.body.message).toContain("belum memiliki alamat email");
+  });
+
+  it("menolak kirim email jika undangan bukan milik requester (404)", async () => {
+    (GuestRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(null);
+
+    const res = await request(app).post(`/v1/api/invitations/undangan-lain/guests/${mockGuest.id}/send-email`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe("Undangan tidak ditemukan");
+  });
+
+  it("menolak kirim email jika data tamu tidak ditemukan (404)", async () => {
+    (GuestRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (GuestRepository.findByIdAndInvitationId as Mock).mockResolvedValue(null);
+
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/guests/guest-palsu/send-email`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe("Data tamu tidak ditemukan");
+  });
+
+  it("berhasil mengirim email massal (bulk) ke semua tamu ber-email (200)", async () => {
+    const mockGuest2 = {
+      ...mockGuest,
+      id: "guest-456",
+      name: "Siti Rahma",
+      email: "siti@example.com",
+    };
+
+    (GuestRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (GuestRepository.findGuestsForEmail as Mock).mockResolvedValue([mockGuest, mockGuest2]);
+
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/guests/send-email-bulk`).set("Authorization", `Bearer ${validAuthToken}`).send({});
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.totalTargeted).toBe(2);
+    expect(res.body.data.totalSent).toBe(2);
+    expect(res.body.data.totalFailed).toBe(0);
+    expect(mailer.sendMail).toHaveBeenCalledTimes(2);
+  });
+
+  it("berhasil mengirim email massal (bulk) dengan spesifik guestIds (200)", async () => {
+    (GuestRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (GuestRepository.findGuestsForEmail as Mock).mockResolvedValue([mockGuest]);
+
+    const res = await request(app)
+      .post(`/v1/api/invitations/${mockInvitation.id}/guests/send-email-bulk`)
+      .set("Authorization", `Bearer ${validAuthToken}`)
+      .send({ guestIds: [mockGuest.id] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.totalSent).toBe(1);
+    expect(GuestRepository.findGuestsForEmail).toHaveBeenCalledWith(mockInvitation.id, [mockGuest.id]);
+  });
+
+  it("berhasil mengambil data share undangan tamu termasuk link WhatsApp (200)", async () => {
+    (GuestRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (GuestRepository.findByIdAndInvitationId as Mock).mockResolvedValue(mockGuest);
+
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/guests/${mockGuest.id}/share`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.guestName).toBe("Rizky Ramadhan");
+    expect(res.body.data.invitationUrl).toContain("ayu-dan-budi");
+    expect(res.body.data.shareMessage).toContain("Rizky Ramadhan");
+    expect(res.body.data.shareMessage).toContain(mockGuest.qrCode);
+    // WhatsApp direct link harus memiliki format 628xxx (bukan 08xxx)
+    expect(res.body.data.whatsappShareUrl).toContain("phone=6281234567890");
+    // WhatsApp universal share URL harus ada (tanpa parameter phone)
+    expect(res.body.data.whatsappUniversalShareUrl).toContain("api.whatsapp.com/send?text=");
   });
 });

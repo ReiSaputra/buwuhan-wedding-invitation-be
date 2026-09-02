@@ -3,16 +3,22 @@ import crypto from "crypto";
 import { GuestRepository } from "./guest.repository";
 import {
   bulkCreateGuestResponse,
+  bulkSendGuestEmailResponse,
+  buildInvitationUrl,
   checkInGuestResponse,
   checkOutGuestResponse,
   createGuestResponse,
   deleteGuestResponse,
   getGuestResponse,
+  getGuestShareResponse,
   getGuestStatsResponse,
   listGuestResponse,
+  sendGuestEmailResponse,
   updateGuestResponse,
   type BulkCreateGuestReq,
   type BulkCreateGuestRes,
+  type BulkSendGuestEmailReq,
+  type BulkSendGuestEmailRes,
   type CheckInGuestReq,
   type CheckInGuestRes,
   type CheckOutGuestReq,
@@ -21,13 +27,18 @@ import {
   type CreateGuestRes,
   type DeleteGuestRes,
   type GetGuestRes,
+  type GetGuestShareRes,
   type GetGuestStatsRes,
   type GuestFilterQuery,
   type ListGuestRes,
+  type SendGuestEmailRes,
   type UpdateGuestReq,
   type UpdateGuestRes,
 } from "./guest.types";
-import { NotFoundError } from "../../errors/app.error";
+import { NotFoundError, ValidationError } from "../../errors/app.error";
+import { mailer } from "../../lib/mailer";
+import { generateInvitationEmailHtml, generateInvitationEmailText } from "./guest.mail";
+import { logger } from "../../utils/log";
 
 function generateQrToken(): string {
   // Generate random token 12 karakter hex huruf besar (contoh: 7B3A9C12E4F0)
@@ -210,5 +221,143 @@ export class GuestService {
     const coupleNames = formatCoupleNames(guest.invitation.couples);
 
     return getGuestResponse(guest, guest.invitation.slug, coupleNames);
+  }
+
+  // ── Email Provider Integration ───────────────────────────────────────
+
+  static async sendEmail(invitationId: string, guestId: string, ownerId: string): Promise<SendGuestEmailRes> {
+    const invitation = await GuestRepository.findInvitationByIdAndOwner(invitationId, ownerId);
+
+    if (!invitation) {
+      throw new NotFoundError("Undangan tidak ditemukan");
+    }
+
+    const guest = await GuestRepository.findByIdAndInvitationId(guestId, invitationId);
+
+    if (!guest) {
+      throw new NotFoundError("Data tamu tidak ditemukan");
+    }
+
+    if (!guest.email || !guest.email.trim()) {
+      throw new ValidationError("Tamu ini belum memiliki alamat email yang terdaftar");
+    }
+
+    const coupleNames = formatCoupleNames(invitation.couples);
+    const invitationUrl = buildInvitationUrl(invitation.slug, guest.qrCode);
+
+    const emailPayload = {
+      guestName: guest.name,
+      guestEmail: guest.email,
+      qrCode: guest.qrCode,
+      invitationTitle: invitation.title,
+      invitationSlug: invitation.slug,
+      invitationUrl,
+      coupleNames,
+      eventDate: invitation.eventDate,
+      eventTime: invitation.eventTime,
+      venue: invitation.venue,
+      address: invitation.address,
+    };
+
+    const html = generateInvitationEmailHtml(emailPayload);
+    const text = generateInvitationEmailText(emailPayload);
+
+    await mailer.sendMail({
+      to: guest.email,
+      subject: `Undangan: ${invitation.title}`,
+      html,
+      text,
+    });
+
+    return sendGuestEmailResponse(guest);
+  }
+
+  static async sendEmailBulk(invitationId: string, ownerId: string, request?: BulkSendGuestEmailReq): Promise<BulkSendGuestEmailRes> {
+    const invitation = await GuestRepository.findInvitationByIdAndOwner(invitationId, ownerId);
+
+    if (!invitation) {
+      throw new NotFoundError("Undangan tidak ditemukan");
+    }
+
+    const guests = await GuestRepository.findGuestsForEmail(invitationId, request?.guestIds);
+    const coupleNames = formatCoupleNames(invitation.couples);
+
+    const results: { guestId: string; guestName: string; email: string; success: boolean; error?: string }[] = [];
+    let totalSent = 0;
+    let totalFailed = 0;
+
+    for (const guest of guests) {
+      if (!guest.email || !guest.email.trim()) {
+        continue;
+      }
+
+      try {
+        const invitationUrl = buildInvitationUrl(invitation.slug, guest.qrCode);
+        const emailPayload = {
+          guestName: guest.name,
+          guestEmail: guest.email,
+          qrCode: guest.qrCode,
+          invitationTitle: invitation.title,
+          invitationSlug: invitation.slug,
+          invitationUrl,
+          coupleNames,
+          eventDate: invitation.eventDate,
+          eventTime: invitation.eventTime,
+          venue: invitation.venue,
+          address: invitation.address,
+        };
+
+        const html = generateInvitationEmailHtml(emailPayload);
+        const text = generateInvitationEmailText(emailPayload);
+
+        await mailer.sendMail({
+          to: guest.email,
+          subject: `Undangan: ${invitation.title}`,
+          html,
+          text,
+        });
+
+        results.push({
+          guestId: guest.id,
+          guestName: guest.name,
+          email: guest.email,
+          success: true,
+        });
+        totalSent += 1;
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : "Gagal mengirim email";
+        logger.error(`[GuestService.sendEmailBulk] Error sending to ${guest.email}:`, err);
+        results.push({
+          guestId: guest.id,
+          guestName: guest.name,
+          email: guest.email,
+          success: false,
+          error: errorMsg,
+        });
+        totalFailed += 1;
+      }
+    }
+
+    return bulkSendGuestEmailResponse(guests.length, totalSent, totalFailed, results);
+  }
+
+  // ── WhatsApp & Share Link Helper ────────────────────────────────────
+
+  static async getShareInfo(invitationId: string, guestId: string, ownerId: string): Promise<GetGuestShareRes> {
+    const invitation = await GuestRepository.findInvitationByIdAndOwner(invitationId, ownerId);
+
+    if (!invitation) {
+      throw new NotFoundError("Undangan tidak ditemukan");
+    }
+
+    const guest = await GuestRepository.findByIdAndInvitationId(guestId, invitationId);
+
+    if (!guest) {
+      throw new NotFoundError("Data tamu tidak ditemukan");
+    }
+
+    const coupleNames = formatCoupleNames(invitation.couples);
+
+    return getGuestShareResponse(guest, invitation.slug, coupleNames);
   }
 }

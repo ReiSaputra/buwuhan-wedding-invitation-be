@@ -1,4 +1,4 @@
-﻿import { prisma } from "../../lib/prisma";
+import { prisma } from "../../lib/prisma";
 import type { CreateGuestReq, GuestFilterQuery, GuestStatsData, UpdateGuestReq } from "./guest.types";
 
 export class GuestRepository {
@@ -134,6 +134,17 @@ export class GuestRepository {
           : {}),
       },
       orderBy: { createdAt: "desc" },
+    });
+  }
+
+  static async findGuestsForEmail(invitationId: string, guestIds?: string[]) {
+    return await prisma.guest.findMany({
+      where: {
+        invitationId,
+        email: { not: null },
+        ...(guestIds && guestIds.length > 0 ? { id: { in: guestIds } } : {}),
+      },
+      orderBy: { createdAt: "asc" },
     });
   }
 

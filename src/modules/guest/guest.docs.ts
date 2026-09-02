@@ -662,6 +662,7 @@
  *                 invitationId: "cly3k8a1b0000v8og3f1a1111"
  *                 invitationUrl: "https://buwuhan.com/invitation/ayu-dan-budi?to=7B3A9C12E4F0"
  *                 whatsappShareUrl: "https://api.whatsapp.com/send?phone=6281234567890&text=Halo%20Rizky..."
+ *                 whatsappUniversalShareUrl: "https://api.whatsapp.com/send?text=Halo%20Rizky..."
  *                 createdAt: "2026-08-26T10:00:00.000Z"
  *                 updatedAt: "2026-08-26T10:00:00.000Z"
  *       404:
@@ -673,4 +674,124 @@
  *             example:
  *               success: false
  *               message: "Undangan atau data tamu tidak ditemukan"
+ *
+ * /invitations/{invitationId}/guests/{id}/send-email:
+ *   post:
+ *     tags: [Guest]
+ *     summary: Kirim email undangan personal ke 1 tamu
+ *     description: Mengirim email undangan digital beserta tiket QR Code langsung ke alamat email tamu yang terdaftar.
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: invitationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID undangan.
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID tamu penerima email.
+ *     responses:
+ *       200:
+ *         description: Email berhasil dikirim.
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Undangan berhasil dikirim ke email tamu"
+ *               status: 200
+ *               data:
+ *                 guestId: "cly3k9h2p0000v8og3f1a7x2q"
+ *                 guestName: "Rizky Ramadhan"
+ *                 email: "rizky@example.com"
+ *       400:
+ *         description: Tamu belum memiliki email atau validasi gagal.
+ *       404:
+ *         description: Undangan atau tamu tidak ditemukan.
+ *
+ * /invitations/{invitationId}/guests/send-email-bulk:
+ *   post:
+ *     tags: [Guest]
+ *     summary: Kirim email undangan massal ke tamu
+ *     description: Mengirim email undangan digital secara massal ke semua tamu yang memiliki email, atau spesifik ke daftar guestIds yang diberikan.
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: invitationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID undangan.
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               guestIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Daftar ID tamu (opsional, jika kosong akan mengirim ke seluruh tamu yang memiliki email).
+ *     responses:
+ *       200:
+ *         description: Rekap pengiriman email massal.
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Proses pengiriman email selesai: 2 berhasil, 0 gagal"
+ *               status: 200
+ *               data:
+ *                 totalTargeted: 2
+ *                 totalSent: 2
+ *                 totalFailed: 0
+ *                 results:
+ *                   - guestId: "cly3k9h2p0000v8og3f1a7x2q"
+ *                     guestName: "Rizky Ramadhan"
+ *                     email: "rizky@example.com"
+ *                     success: true
+ *
+ * /invitations/{invitationId}/guests/{id}/share:
+ *   get:
+ *     tags: [Guest]
+ *     summary: Dapatkan data tautan & teks share WhatsApp tamu
+ *     description: Mengambil data tautan personal, template teks undangan WhatsApp, link direct WA, dan link universal share untuk tamu tertentu.
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: invitationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID undangan.
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID tamu.
+ *     responses:
+ *       200:
+ *         description: Data share undangan tamu berhasil diambil.
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Data share undangan tamu berhasil diambil"
+ *               status: 200
+ *               data:
+ *                 guestId: "cly3k9h2p0000v8og3f1a7x2q"
+ *                 guestName: "Rizky Ramadhan"
+ *                 phone: "081234567890"
+ *                 email: "rizky@example.com"
+ *                 qrCode: "7B3A9C12E4F0"
+ *                 invitationUrl: "https://buwuhan.com/invitation/ayu-dan-budi?to=7B3A9C12E4F0"
+ *                 shareMessage: "Halo Rizky Ramadhan,\n\nKami mengundang Anda..."
+ *                 whatsappShareUrl: "https://api.whatsapp.com/send?phone=6281234567890&text=Halo..."
+ *                 whatsappUniversalShareUrl: "https://api.whatsapp.com/send?text=Halo..."
  */

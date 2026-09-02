@@ -1,8 +1,9 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 
 import { GuestController } from "./guest.controller";
 import {
   bulkCreateGuestSchema,
+  bulkSendGuestEmailSchema,
   checkInGuestSchema,
   checkOutGuestSchema,
   createGuestSchema,
@@ -28,3 +29,8 @@ guestRouter.delete("/invitations/:invitationId/guests/:id", requireAuth, GuestCo
 // Presensi (Check-In & Check-Out via QR / ID)
 guestRouter.post("/invitations/:invitationId/guests/check-in", requireAuth, validate(checkInGuestSchema), GuestController.checkIn);
 guestRouter.post("/invitations/:invitationId/guests/check-out", requireAuth, validate(checkOutGuestSchema), GuestController.checkOut);
+
+// Email Provider & Share Link Undangan
+guestRouter.post("/invitations/:invitationId/guests/send-email-bulk", requireAuth, validate(bulkSendGuestEmailSchema), GuestController.sendEmailBulk);
+guestRouter.post("/invitations/:invitationId/guests/:id/send-email", requireAuth, GuestController.sendEmail);
+guestRouter.get("/invitations/:invitationId/guests/:id/share", requireAuth, GuestController.getShareInfo);

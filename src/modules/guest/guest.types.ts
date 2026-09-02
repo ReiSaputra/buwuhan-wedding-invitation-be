@@ -33,6 +33,10 @@ export interface CheckOutGuestReq {
   guestId?: string | undefined;
 }
 
+export interface BulkSendGuestEmailReq {
+  guestIds?: string[] | undefined;
+}
+
 export interface GuestFilterQuery {
   category?: string | undefined;
   isAttended?: boolean | undefined;
@@ -55,6 +59,7 @@ export interface GuestItemData {
   invitationId: string;
   invitationUrl: string;
   whatsappShareUrl: string | null;
+  whatsappUniversalShareUrl: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,6 +71,18 @@ export interface GuestStatsData {
   totalPaxExpected: number;
   totalPaxActual: number;
   byCategory: Record<string, { total: number; attended: number }>;
+}
+
+export interface GuestShareData {
+  guestId: string;
+  guestName: string;
+  phone: string | null;
+  email: string | null;
+  qrCode: string;
+  invitationUrl: string;
+  shareMessage: string;
+  whatsappShareUrl: string | null;
+  whatsappUniversalShareUrl: string;
 }
 
 export interface CreateGuestRes {
@@ -124,11 +141,50 @@ export interface GetGuestStatsRes {
   data: GuestStatsData;
 }
 
+export interface SendGuestEmailRes {
+  message: string;
+  status: number;
+  data: {
+    guestId: string;
+    guestName: string;
+    email: string;
+  };
+}
+
+export interface BulkSendGuestEmailRes {
+  message: string;
+  status: number;
+  data: {
+    totalTargeted: number;
+    totalSent: number;
+    totalFailed: number;
+    results: {
+      guestId: string;
+      guestName: string;
+      email: string;
+      success: boolean;
+      error?: string;
+    }[];
+  };
+}
+
+export interface GetGuestShareRes {
+  message: string;
+  status: number;
+  data: GuestShareData;
+}
+
 // ── Helper formatters ────────────────────────────────────────────────
 
 export function buildInvitationUrl(invitationSlug: string, qrCode: string): string {
   const baseUrl = process.env.FRONTEND_URL || "https://buwuhan.com";
   return `${baseUrl}/invitation/${invitationSlug}?to=${encodeURIComponent(qrCode)}`;
+}
+
+export function buildInvitationShareMessage(guestName: string, invitationSlug: string, qrCode: string, coupleNames?: string): string {
+  const link = buildInvitationUrl(invitationSlug, qrCode);
+  const coupleText = coupleNames ? ` dari ${coupleNames}` : "";
+  return `Halo ${guestName},\n\nKami mengundang Anda untuk menghadiri pernikahan kami${coupleText}.\n\nBuka link undangan digital Anda berikut:\n${link}\n\nTerima kasih!`;
 }
 
 export function buildWhatsappShareUrl(guestName: string, phone: string | null, invitationSlug: string, qrCode: string, coupleNames?: string): string | null {
@@ -140,11 +196,13 @@ export function buildWhatsappShareUrl(guestName: string, phone: string | null, i
     cleanPhone = "62" + cleanPhone.slice(1);
   }
 
-  const link = buildInvitationUrl(invitationSlug, qrCode);
-  const coupleText = coupleNames ? ` dari ${coupleNames}` : "";
-  const message = `Halo ${guestName},\n\nKami mengundang Anda untuk menghadiri pernikahan kami${coupleText}.\n\nBuka link undangan digital Anda berikut:\n${link}\n\nTerima kasih!`;
-
+  const message = buildInvitationShareMessage(guestName, invitationSlug, qrCode, coupleNames);
   return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
+}
+
+export function buildWhatsappUniversalShareUrl(guestName: string, invitationSlug: string, qrCode: string, coupleNames?: string): string {
+  const message = buildInvitationShareMessage(guestName, invitationSlug, qrCode, coupleNames);
+  return `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
 }
 
 export function formatGuestItem(guest: Guest, invitationSlug: string, coupleNames?: string): GuestItemData {
@@ -164,8 +222,23 @@ export function formatGuestItem(guest: Guest, invitationSlug: string, coupleName
     invitationId: guest.invitationId,
     invitationUrl: buildInvitationUrl(invitationSlug, guest.qrCode),
     whatsappShareUrl: buildWhatsappShareUrl(guest.name, guest.phone, invitationSlug, guest.qrCode, coupleNames),
+    whatsappUniversalShareUrl: buildWhatsappUniversalShareUrl(guest.name, invitationSlug, guest.qrCode, coupleNames),
     createdAt: guest.createdAt,
     updatedAt: guest.updatedAt,
+  };
+}
+
+export function formatGuestShareData(guest: Guest, invitationSlug: string, coupleNames?: string): GuestShareData {
+  return {
+    guestId: guest.id,
+    guestName: guest.name,
+    phone: guest.phone,
+    email: guest.email,
+    qrCode: guest.qrCode,
+    invitationUrl: buildInvitationUrl(invitationSlug, guest.qrCode),
+    shareMessage: buildInvitationShareMessage(guest.name, invitationSlug, guest.qrCode, coupleNames),
+    whatsappShareUrl: buildWhatsappShareUrl(guest.name, guest.phone, invitationSlug, guest.qrCode, coupleNames),
+    whatsappUniversalShareUrl: buildWhatsappUniversalShareUrl(guest.name, invitationSlug, guest.qrCode, coupleNames),
   };
 }
 
@@ -240,5 +313,43 @@ export function getGuestStatsResponse(stats: GuestStatsData): GetGuestStatsRes {
     message: "Guest statistics retrieved successfully",
     status: 200,
     data: stats,
+  };
+}
+
+export function sendGuestEmailResponse(guest: Guest): SendGuestEmailRes {
+  return {
+    message: "Undangan berhasil dikirim ke email tamu",
+    status: 200,
+    data: {
+      guestId: guest.id,
+      guestName: guest.name,
+      email: guest.email!,
+    },
+  };
+}
+
+export function bulkSendGuestEmailResponse(
+  totalTargeted: number,
+  totalSent: number,
+  totalFailed: number,
+  results: { guestId: string; guestName: string; email: string; success: boolean; error?: string }[],
+): BulkSendGuestEmailRes {
+  return {
+    message: `Proses pengiriman email selesai: ${totalSent} berhasil, ${totalFailed} gagal`,
+    status: 200,
+    data: {
+      totalTargeted,
+      totalSent,
+      totalFailed,
+      results,
+    },
+  };
+}
+
+export function getGuestShareResponse(guest: Guest, invitationSlug: string, coupleNames?: string): GetGuestShareRes {
+  return {
+    message: "Data share undangan tamu berhasil diambil",
+    status: 200,
+    data: formatGuestShareData(guest, invitationSlug, coupleNames),
   };
 }

@@ -161,7 +161,6 @@ Lokasi: `src/modules/invitation/`. Terdaftar di `v1Router`.
 
 - Testing: **23 test lolos** di `tests/invitation/invitation.test.ts`.
 
-
 ## 7. Modul Template — SUDAH SELESAI
 
 Lokasi: `src/modules/template/`. Terdaftar di `v1Router`.
@@ -189,20 +188,28 @@ Lokasi: `src/modules/guest/`. Terdaftar di `v1Router`.
 
 ### Endpoint (semua di bawah prefix `/v1/api`)
 
-| Method | Path                                              | Body                                             | Auth                  |
-| ------ | ------------------------------------------------- | ------------------------------------------------ | --------------------- |
-| GET    | `/public/invitations/:slug/guests/verify/:qrCode` | —                                                | publik (baca QR tamu) |
-| POST   | `/invitations/:invitationId/guests`               | `{ name, category, phone?, email?, notes? }`     | `requireAuth` (owner) |
-| POST   | `/invitations/:invitationId/guests/bulk`          | `[{ name, category, ... }]`                      | `requireAuth` (owner) |
-| GET    | `/invitations/:invitationId/guests`               | `?category=...&isAttended=...`                   | `requireAuth` (owner) |
-| GET    | `/invitations/:invitationId/guests/stats`         | —                                                | `requireAuth` (owner) |
-| GET    | `/invitations/:invitationId/guests/:id`           | —                                                | `requireAuth` (owner) |
-| PATCH  | `/invitations/:invitationId/guests/:id`           | field yang diubah (partial)                      | `requireAuth` (owner) |
-| DELETE | `/invitations/:invitationId/guests/:id`           | —                                                | `requireAuth` (owner) |
-| POST   | `/invitations/:invitationId/guests/check-in`      | `{ qrCode }` ATAU `{ guestId, paxActual?, ... }` | `requireAuth` (owner) |
-| POST   | `/invitations/:invitationId/guests/check-out`     | `{ guestId }`                                    | `requireAuth` (owner) |
+| Method | Path                                                | Body                                             | Auth                  |
+| ------ | --------------------------------------------------- | ------------------------------------------------ | --------------------- |
+| GET    | `/public/invitations/:slug/guests/verify/:qrCode`   | —                                                | publik (baca QR tamu) |
+| POST   | `/invitations/:invitationId/guests`                 | `{ name, category, phone?, email?, notes? }`     | `requireAuth` (owner) |
+| POST   | `/invitations/:invitationId/guests/bulk`            | `[{ name, category, ... }]`                      | `requireAuth` (owner) |
+| GET    | `/invitations/:invitationId/guests`                 | `?category=...&isAttended=...`                   | `requireAuth` (owner) |
+| GET    | `/invitations/:invitationId/guests/stats`           | —                                                | `requireAuth` (owner) |
+| GET    | `/invitations/:invitationId/guests/:id`             | —                                                | `requireAuth` (owner) |
+| PATCH  | `/invitations/:invitationId/guests/:id`             | field yang diubah (partial)                      | `requireAuth` (owner) |
+| DELETE | `/invitations/:invitationId/guests/:id`             | —                                                | `requireAuth` (owner) |
+| POST   | `/invitations/:invitationId/guests/check-in`        | `{ qrCode }` ATAU `{ guestId, paxActual?, ... }` | `requireAuth` (owner) |
+| POST   | `/invitations/:invitationId/guests/check-out`       | `{ guestId }`                                    | `requireAuth` (owner) |
+| POST   | `/invitations/:invitationId/guests/:id/send-email`  | —                                                | `requireAuth` (owner) |
+| POST   | `/invitations/:invitationId/guests/send-email-bulk` | `{ guestIds?: string[] }`                        | `requireAuth` (owner) |
+| GET    | `/invitations/:invitationId/guests/:id/share`       | —                                                | `requireAuth` (owner) |
 
-- Testing: **17 test lolos** di `tests/guest/guest.test.ts`.
+> **Fitur Share & Email Tamu:**
+>
+> - **WhatsApp Share URL**: Tautan langsung chat WA (`https://api.whatsapp.com/send?phone=628xxx&text=...`) maupun share universal (`?text=...`) yang memuat link personal tamu (`/invitation/:slug?to=:qrCode`).
+> - **Email Provider**: Pengiriman email undangan digital + kode tiket presensi personal menggunakan SMTP/Nodemailer (single & bulk).
+
+- Testing: **24 test lolos** di `tests/guest/guest.test.ts`.
 
 ## 9. Modul RSVP & Buku Tamu Ucapan — SUDAH SELESAI
 
@@ -322,12 +329,12 @@ Lokasi: `src/modules/buwuhan/`. Terdaftar di `v1Router`.
 | Modul `auth`               | Selesai (17 test lolos)             |
 | Modul `invitation`         | Selesai (23 test lolos)             |
 | Modul `template`           | Selesai (20 test lolos)             |
-| Modul `guest`              | Selesai (17 test lolos)             |
+| Modul `guest`              | Selesai (24 test lolos)             |
 | Modul `rsvp`               | Selesai (14 test lolos)             |
 | Modul `user`               | Selesai (3 test lolos)              |
 | Modul `dashboard`          | Selesai (4 test lolos)              |
 | Modul `buwuhan`            | Selesai (25 test lolos)             |
-| Integrasi Email Provider   | Utang teknis modul guest (lihat §8) |
+| Integrasi Email & WA Share | Selesai (Nodemailer SMTP & WA link) |
 | Reuse detection penuh      | Utang teknis auth (lihat §5)        |
 | Endpoint logout-all-device | Utang teknis auth (lihat §5)        |
 

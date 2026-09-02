@@ -1,4 +1,4 @@
-﻿import * as z from "zod";
+import * as z from "zod";
 
 export const createGuestSchema = z.object({
   name: z.string().trim().min(1, "Nama tamu wajib diisi").max(255, "Nama tamu maksimal 255 karakter"),
@@ -60,8 +60,13 @@ export const checkOutGuestSchema = z
     message: "Harus menyertakan qrCode atau guestId untuk check-out",
   });
 
+export const bulkSendGuestEmailSchema = z.object({
+  guestIds: z.array(z.string().min(1, "Guest ID tidak valid")).optional(),
+});
+
 export type CreateGuestInput = z.infer<typeof createGuestSchema>;
 export type BulkCreateGuestInput = z.infer<typeof bulkCreateGuestSchema>;
 export type UpdateGuestInput = z.infer<typeof updateGuestSchema>;
 export type CheckInGuestInput = z.infer<typeof checkInGuestSchema>;
 export type CheckOutGuestInput = z.infer<typeof checkOutGuestSchema>;
+export type BulkSendGuestEmailInput = z.infer<typeof bulkSendGuestEmailSchema>;

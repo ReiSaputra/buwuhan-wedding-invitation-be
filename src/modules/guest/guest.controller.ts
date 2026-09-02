@@ -1,7 +1,15 @@
-﻿import type { NextFunction, Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import { GuestService } from "./guest.service";
-import type { BulkCreateGuestReq, CheckInGuestReq, CheckOutGuestReq, CreateGuestReq, GuestFilterQuery, UpdateGuestReq } from "./guest.types";
+import type {
+  BulkCreateGuestReq,
+  BulkSendGuestEmailReq,
+  CheckInGuestReq,
+  CheckOutGuestReq,
+  CreateGuestReq,
+  GuestFilterQuery,
+  UpdateGuestReq,
+} from "./guest.types";
 
 export class GuestController {
   static async create(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -132,6 +140,47 @@ export class GuestController {
       const qrCode = req.params.qrCode as string;
 
       const response = await GuestService.getPublicByQrCode(slug, qrCode);
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ── Email & WhatsApp Share Handlers ──────────────────────────────────
+
+  static async sendEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const invitationId = req.params.invitationId as string;
+      const guestId = req.params.id as string;
+      const ownerId = req.user!.id;
+
+      const response = await GuestService.sendEmail(invitationId, guestId, ownerId);
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async sendEmailBulk(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const invitationId = req.params.invitationId as string;
+      const ownerId = req.user!.id;
+      const request = req.body as BulkSendGuestEmailReq;
+
+      const response = await GuestService.sendEmailBulk(invitationId, ownerId, request);
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getShareInfo(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const invitationId = req.params.invitationId as string;
+      const guestId = req.params.id as string;
+      const ownerId = req.user!.id;
+
+      const response = await GuestService.getShareInfo(invitationId, guestId, ownerId);
       res.status(200).json(response);
     } catch (error) {
       next(error);

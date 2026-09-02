@@ -35,7 +35,7 @@ import {
   type UpdateGuestReq,
   type UpdateGuestRes,
 } from "./guest.types";
-import { NotFoundError, ValidationError } from "../../errors/app.error";
+import { EmailDeliveryError, NotFoundError, ValidationError } from "../../errors/app.error";
 import { mailer } from "../../lib/mailer";
 import { generateInvitationEmailHtml, generateInvitationEmailText } from "./guest.mail";
 import { logger } from "../../utils/log";
@@ -262,12 +262,17 @@ export class GuestService {
     const html = generateInvitationEmailHtml(emailPayload);
     const text = generateInvitationEmailText(emailPayload);
 
-    await mailer.sendMail({
-      to: guest.email,
-      subject: `Undangan: ${invitation.title}`,
-      html,
-      text,
-    });
+    try {
+      await mailer.sendMail({
+        to: guest.email,
+        subject: `Undangan: ${invitation.title}`,
+        html,
+        text,
+      });
+    } catch (err) {
+      logger.error(`[GuestService.sendEmail] Failed to send email to ${guest.email}:`, err);
+      throw new EmailDeliveryError("Gagal mengirim email undangan. Pastikan alamat email tamu valid atau coba beberapa saat lagi.");
+    }
 
     return sendGuestEmailResponse(guest);
   }

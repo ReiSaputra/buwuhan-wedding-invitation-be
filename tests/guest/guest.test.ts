@@ -26,6 +26,9 @@ beforeAll(() => {
   vi.spyOn(GuestRepository, "checkOut");
   vi.spyOn(GuestRepository, "getStats");
   vi.spyOn(GuestRepository, "findGuestsForEmail");
+  // Reset transporter singleton agar tidak pakai instance SMTP asli dari .env
+  mailer.setTransporter(null);
+  // Mock sendMail sehingga tidak pernah menyentuh network
   vi.spyOn(mailer, "sendMail").mockResolvedValue({ messageId: "mock-msg-id" });
 });
 
@@ -88,6 +91,10 @@ const mockGuest = {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mailer.setTransporter({
+    sendMail: vi.fn().mockResolvedValue({ messageId: "mock-msg-id", accepted: [], rejected: [] }),
+  } as never);
+  vi.spyOn(mailer, "sendMail").mockResolvedValue({ messageId: "mock-msg-id" });
 });
 
 describe("guest test: create guest", () => {
@@ -382,6 +389,17 @@ describe("guest test: send email & share links", () => {
 
     expect(res.status).toBe(404);
     expect(res.body.message).toBe("Data tamu tidak ditemukan");
+  });
+
+  it("mengembalikan status 502 jika pengiriman email via SMTP gagal", async () => {
+    (GuestRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (GuestRepository.findByIdAndInvitationId as Mock).mockResolvedValue(mockGuest);
+    (mailer.sendMail as Mock).mockRejectedValueOnce(new Error("SMTP Connection Timeout"));
+
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/guests/${mockGuest.id}/send-email`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(502);
+    expect(res.body.message).toContain("Gagal mengirim email undangan");
   });
 
   it("berhasil mengirim email massal (bulk) ke semua tamu ber-email (200)", async () => {

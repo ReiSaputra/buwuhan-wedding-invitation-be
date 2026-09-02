@@ -42,3 +42,9 @@ export class ForbiddenError extends AppError {
     super(message, 403, "FORBIDDEN");
   }
 }
+
+export class EmailDeliveryError extends AppError {
+  constructor(message = "Gagal mengirim email, pastikan alamat email valid atau coba beberapa saat lagi") {
+    super(message, 502, "EMAIL_DELIVERY_FAILED");
+  }
+}

@@ -324,3 +324,136 @@
  *             schema:
  *               $ref: '#/components/schemas/ErrorEnvelope'
  */
+
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *     AdminTemplateListItem:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           example: "cmthdqg120001zozxnaa5bq7e"
+ *         name:
+ *           type: string
+ *           example: "Royal Floral"
+ *         slug:
+ *           type: string
+ *           example: "royal-floral"
+ *         tier:
+ *           type: string
+ *           enum: [FREE, PRO, MAX]
+ *           example: "FREE"
+ *         eventCategory:
+ *           type: string
+ *           enum: [WEDDING, KHITANAN, RASULAN, AQIQAH]
+ *           example: "WEDDING"
+ *         previewImageUrl:
+ *           type: string
+ *           example: "https://storage.buwuhan.com/templates/royal-floral.jpg"
+ *         isActive:
+ *           type: boolean
+ *           example: true
+ *         usageCount:
+ *           type: integer
+ *           description: Jumlah undangan yang menggunakan template ini.
+ *           example: 42
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           example: "2026-08-01T00:00:00.000Z"
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *           example: "2026-08-15T00:00:00.000Z"
+ */
+
+/**
+ * @openapi
+ * /admin/templates:
+ *   get:
+ *     tags: [Admin - Template]
+ *     summary: Daftar seluruh katalog template (admin)
+ *     description: Menampilkan seluruh template (baik yang aktif maupun nonaktif) dengan metrik jumlah penggunaan (usageCount), serta filter pencarian, status aktif, tier, dan kategori acara. Hanya dapat diakses oleh ADMIN.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *         description: Filter status aktif ("true" untuk aktif, "false" untuk nonaktif/diarsipkan).
+ *       - in: query
+ *         name: tier
+ *         schema:
+ *           type: string
+ *           enum: [FREE, PRO, MAX]
+ *         description: Filter berdasarkan paket tier.
+ *       - in: query
+ *         name: eventCategory
+ *         schema:
+ *           type: string
+ *           enum: [WEDDING, KHITANAN, RASULAN, AQIQAH]
+ *         description: Filter berdasarkan kategori acara.
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Pencarian nama template atau slug.
+ *     responses:
+ *       200:
+ *         description: Daftar seluruh template berhasil diambil.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/AdminTemplateListItem'
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - Bukan ADMIN.
+ */
+
+/**
+ * @openapi
+ * /admin/templates/{id}/restore:
+ *   patch:
+ *     tags: [Admin - Template]
+ *     summary: Aktifkan kembali template yang dinonaktifkan (admin)
+ *     description: Mengembalikan template yang sebelumnya berstatus `isActive: false` (akibat soft delete) menjadi aktif kembali (`isActive: true`). Hanya dapat diakses oleh ADMIN.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID template (CUID).
+ *     responses:
+ *       200:
+ *         description: Template berhasil diaktifkan kembali.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/TemplateData'
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - Bukan ADMIN.
+ *       404:
+ *         description: Template tidak ditemukan.
+ */

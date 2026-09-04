@@ -25,3 +25,7 @@ templateRouter.post("/templates", requireAuth, requireRole("ADMIN"), validate(cr
 templateRouter.patch("/templates/:id", requireAuth, requireRole("ADMIN"), validate(updateTemplateSchema), TemplateController.update);
 // soft-delete (nonaktifkan), bukan hapus permanen -- lihat catatan di template.repository.ts
 templateRouter.delete("/templates/:id", requireAuth, requireRole("ADMIN"), TemplateController.deactivate);
+
+// ── Admin-only -- Kelola Katalog Penuh & Restore ──────────────────────
+templateRouter.get("/admin/templates", requireAuth, requireRole("ADMIN"), TemplateController.listForAdmin);
+templateRouter.patch("/admin/templates/:id/restore", requireAuth, requireRole("ADMIN"), TemplateController.restore);

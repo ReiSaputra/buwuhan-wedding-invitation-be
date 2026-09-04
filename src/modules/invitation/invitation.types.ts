@@ -1,4 +1,4 @@
-import type { Couple, GalleryPhoto, Invitation, InvitationStatus, LoveStory, Prisma, Template, EventCategory } from "../../generated/prisma/client";
+import type { Couple, GalleryPhoto, Invitation, InvitationStatus, LoveStory, Prisma, Template, EventCategory, PlanTier } from "../../generated/prisma/client";
 
 export type InvitationWithRelations = Invitation & {
   couples: Couple[];
@@ -288,5 +288,91 @@ export function loveStoryResponse(story: LoveStory, message = "Kisah cinta berha
       order: story.order,
       createdAt: story.createdAt,
     },
+  };
+}
+
+// ── Admin Invitation Management Types ───────────────────────────────
+
+export interface AdminInvitationListItem {
+  id: string;
+  title: string;
+  slug: string;
+  status: InvitationStatusType;
+  eventCategory: EventCategory;
+  eventDate: Date | null;
+  eventTime: string | null;
+  venue: string | null;
+  address: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  owner: {
+    id: string;
+    fullName: string;
+    email: string;
+    planTier: PlanTier;
+  };
+  template: {
+    id: string;
+    name: string;
+    slug: string;
+    previewImageUrl: string;
+  } | null;
+  stats: {
+    totalGuests: number;
+    totalRsvps: number;
+  };
+}
+
+export interface AdminInvitationListPaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface AdminInvitationListRes {
+  message: string;
+  status: number;
+  data: {
+    invitations: AdminInvitationListItem[];
+    pagination: AdminInvitationListPaginationMeta;
+  };
+}
+
+export interface AdminInvitationDetailData extends InvitationData {
+  owner: {
+    id: string;
+    fullName: string;
+    email: string;
+    planTier: PlanTier;
+  };
+  stats: {
+    totalGuests: number;
+    totalRsvps: number;
+  };
+}
+
+export interface AdminInvitationDetailRes {
+  message: string;
+  status: number;
+  data: AdminInvitationDetailData;
+}
+
+export function adminInvitationListResponse(invitations: AdminInvitationListItem[], pagination: AdminInvitationListPaginationMeta): AdminInvitationListRes {
+  return {
+    message: "Daftar seluruh undangan berhasil diambil",
+    status: 200,
+    data: {
+      invitations,
+      pagination,
+    },
+  };
+}
+
+export function adminInvitationDetailResponse(data: AdminInvitationDetailData): AdminInvitationDetailRes {
+  return {
+    message: "Detail undangan berhasil diambil",
+    status: 200,
+    data,
   };
 }

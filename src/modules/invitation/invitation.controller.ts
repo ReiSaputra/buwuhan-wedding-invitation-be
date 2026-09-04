@@ -1,9 +1,12 @@
 import type { NextFunction, Request, Response } from "express";
 
 import { InvitationService } from "./invitation.service";
+import { adminInvitationQuerySchema } from "./invitation.schema";
 import type {
   AddGalleryPhotoReq,
   AddLoveStoryReq,
+  AdminInvitationDetailRes,
+  AdminInvitationListRes,
   CreateInvitationReq,
   CreateInvitationRes,
   DeleteInvitationRes,
@@ -152,6 +155,37 @@ export class InvitationController {
       const invitationId = req.params.invitationId as string;
       const storyId = req.params.id as string;
       const response = await InvitationService.removeLoveStory(invitationId, storyId, req.user!.id);
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ── Admin Moderation & Overview Handlers ─────────────────────────────
+
+  static async listAdminInvitations(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const query = adminInvitationQuerySchema.parse(req.query);
+      const response: AdminInvitationListRes = await InvitationService.listInvitationsForAdmin(query);
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getAdminInvitationDetail(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const response: AdminInvitationDetailRes = await InvitationService.getInvitationDetailForAdmin(req.params.id as string);
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateAdminInvitationStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const body = req.body as UpdateInvitationStatusReq;
+      const response: UpdateInvitationStatusRes = await InvitationService.updateStatusByAdmin(req.params.id as string, body.status);
       res.status(200).json(response);
     } catch (error) {
       next(error);

@@ -1,6 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import { Prisma, type EventCategory } from "../../generated/prisma/client";
-import type { CreateTemplateReq, UpdateTemplateReq } from "./template.types";
+import type { AdminTemplateFilterParams, CreateTemplateReq, UpdateTemplateReq } from "./template.types";
 
 export class TemplateRepository {
   static async findActive(eventCategory?: EventCategory) {
@@ -86,4 +86,48 @@ export class TemplateRepository {
       data: { isActive: false },
     });
   }
+
+  // ── Admin Catalog Management ────────────────────────────────────────
+
+  static async findAllWithFilter(params: AdminTemplateFilterParams) {
+    const where: Prisma.TemplateWhereInput = {};
+
+    if (params.isActive !== undefined) {
+      where.isActive = params.isActive;
+    }
+
+    if (params.tier) {
+      where.tier = params.tier;
+    }
+
+    if (params.eventCategory) {
+      where.eventCategory = params.eventCategory;
+    }
+
+    if (params.search && params.search.trim()) {
+      const searchTerm = params.search.trim();
+      where.OR = [
+        { name: { contains: searchTerm, mode: "insensitive" } },
+        { slug: { contains: searchTerm, mode: "insensitive" } },
+      ];
+    }
+
+    return await prisma.template.findMany({
+      where,
+      include: {
+        _count: {
+          select: { invitations: true },
+        },
+      },
+      orderBy: [{ isActive: "desc" }, { tier: "asc" }, { name: "asc" }],
+    });
+  }
+
+  static async restore(id: string) {
+    return await prisma.template.update({
+      where: { id },
+      data: { isActive: true },
+    });
+  }
 }
+

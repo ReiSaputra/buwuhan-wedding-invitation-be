@@ -34,3 +34,18 @@ export const updateTemplateSchema = z
 
 export type CreateTemplateInput = z.infer<typeof createTemplateSchema>;
 export type UpdateTemplateInput = z.infer<typeof updateTemplateSchema>;
+
+// ── Admin Filter Query ───────────────────────────────────────────────
+
+export const adminTemplateQuerySchema = z.object({
+  isActive: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((val) => (val === undefined ? undefined : val === "true")),
+  tier: z.enum(["FREE", "PRO", "MAX"]).optional(),
+  eventCategory: z.enum(["WEDDING", "KHITANAN", "RASULAN", "AQIQAH"]).optional(),
+  search: z.string().trim().optional(),
+});
+
+export type AdminTemplateQueryInput = z.infer<typeof adminTemplateQuerySchema>;
+

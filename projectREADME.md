@@ -130,21 +130,24 @@ Lokasi: `src/modules/invitation/`. Terdaftar di `v1Router`.
 
 ### Endpoint (semua di bawah prefix `/v1/api`)
 
-| Method | Path                                     | Body                                                       | Auth                      |
-| ------ | ---------------------------------------- | ---------------------------------------------------------- | ------------------------- |
-| GET    | `/public/invitations/:slug`              | —                                                          | publik (ACTIVE/COMPLETED) |
-| POST   | `/invitations`                           | `{ title, slug, eventCategory?, eventDate, couples?, ...}` | `requireAuth`             |
-| GET    | `/invitations`                           | —                                                          | `requireAuth`             |
-| GET    | `/invitations/:id`                       | —                                                          | `requireAuth` (owner)     |
-| PATCH  | `/invitations/:id`                       | field yang diubah (partial)                                | `requireAuth` (owner)     |
-| PATCH  | `/invitations/:id/status`                | `{ status: InvitationStatus }`                             | `requireAuth` (owner)     |
-| DELETE | `/invitations/:id`                       | —                                                          | `requireAuth` (owner)     |
-| POST   | `/invitations/:invitationId/gallery`     | `{ imageUrl, caption?, order? }`                           | `requireAuth` (owner)     |
-| PATCH  | `/invitations/:invitationId/gallery/:id` | `{ imageUrl?, caption?, order? }`                          | `requireAuth` (owner)     |
-| DELETE | `/invitations/:invitationId/gallery/:id` | —                                                          | `requireAuth` (owner)     |
-| POST   | `/invitations/:invitationId/stories`     | `{ yearOrDate, title, story, imageUrl?}`                   | `requireAuth` (owner)     |
-| PATCH  | `/invitations/:invitationId/stories/:id` | `{ yearOrDate?, title?, story?, ... }`                     | `requireAuth` (owner)     |
-| DELETE | `/invitations/:invitationId/stories/:id` | —                                                          | `requireAuth` (owner)     |
+| Method | Path                                     | Body                                                       | Auth                                   |
+| ------ | ---------------------------------------- | ---------------------------------------------------------- | -------------------------------------- |
+| GET    | `/public/invitations/:slug`              | —                                                          | publik (ACTIVE/COMPLETED)              |
+| POST   | `/invitations`                           | `{ title, slug, eventCategory?, eventDate, couples?, ...}` | `requireAuth`                          |
+| GET    | `/invitations`                           | —                                                          | `requireAuth`                          |
+| GET    | `/invitations/:id`                       | —                                                          | `requireAuth` (owner)                  |
+| PATCH  | `/invitations/:id`                       | field yang diubah (partial)                                | `requireAuth` (owner)                  |
+| PATCH  | `/invitations/:id/status`                | `{ status: InvitationStatus }`                             | `requireAuth` (owner)                  |
+| DELETE | `/invitations/:id`                       | —                                                          | `requireAuth` (owner)                  |
+| POST   | `/invitations/:invitationId/gallery`     | `{ imageUrl, caption?, order? }`                           | `requireAuth` (owner)                  |
+| PATCH  | `/invitations/:invitationId/gallery/:id` | `{ imageUrl?, caption?, order? }`                          | `requireAuth` (owner)                  |
+| DELETE | `/invitations/:invitationId/gallery/:id` | —                                                          | `requireAuth` (owner)                  |
+| POST   | `/invitations/:invitationId/stories`     | `{ yearOrDate, title, story, imageUrl?}`                   | `requireAuth` (owner)                  |
+| PATCH  | `/invitations/:invitationId/stories/:id` | `{ yearOrDate?, title?, story?, ... }`                     | `requireAuth` (owner)                  |
+| DELETE | `/invitations/:invitationId/stories/:id` | —                                                          | `requireAuth` (owner)                  |
+| GET    | `/admin/invitations`                     | `?page&limit&search...`                                    | `requireAuth` + `requireRole("ADMIN")` |
+| GET    | `/admin/invitations/:id`                 | —                                                          | `requireAuth` + `requireRole("ADMIN")` |
+| PATCH  | `/admin/invitations/:id/status`          | `{ status }`                                               | `requireAuth` + `requireRole("ADMIN")` |
 
 > **Catatan penting untuk integrasi frontend:**
 >
@@ -159,7 +162,7 @@ Lokasi: `src/modules/invitation/`. Terdaftar di `v1Router`.
 >   dan bernilai `null` bila undangan belum memilih template (frontend mengandalkan ini untuk
 >   jatuh ke desain bawaan).
 
-- Testing: **23 test lolos** di `tests/invitation/invitation.test.ts`.
+- Testing: **38 test lolos** di `tests/invitation/invitation.test.ts`.
 
 ## 7. Modul Template — SUDAH SELESAI
 
@@ -167,20 +170,22 @@ Lokasi: `src/modules/template/`. Terdaftar di `v1Router`.
 
 ### Endpoint (semua di bawah prefix `/v1/api`)
 
-| Method | Path               | Body                                    | Auth                                   |
-| ------ | ------------------ | --------------------------------------- | -------------------------------------- |
-| GET    | `/templates`       | —                                       | `requireAuth`                          |
-| GET    | `/templates/:slug` | —                                       | `requireAuth`                          |
-| POST   | `/templates`       | `{ name, slug, tier, previewImageUrl }` | `requireAuth` + `requireRole("ADMIN")` |
-| PATCH  | `/templates/:id`   | field yang diubah (partial)             | `requireAuth` + `requireRole("ADMIN")` |
-| DELETE | `/templates/:id`   | —                                       | `requireAuth` + `requireRole("ADMIN")` |
+| Method | Path                           | Body                                    | Auth                                   |
+| ------ | ------------------------------ | --------------------------------------- | -------------------------------------- |
+| GET    | `/templates`                   | —                                       | `requireAuth`                          |
+| GET    | `/templates/:slug`             | —                                       | `requireAuth`                          |
+| POST   | `/templates`                   | `{ name, slug, tier, previewImageUrl }` | `requireAuth` + `requireRole("ADMIN")` |
+| PATCH  | `/templates/:id`               | field yang diubah (partial)             | `requireAuth` + `requireRole("ADMIN")` |
+| DELETE | `/templates/:id`               | —                                       | `requireAuth` + `requireRole("ADMIN")` |
+| GET    | `/admin/templates`             | `?isActive&tier&category...`            | `requireAuth` + `requireRole("ADMIN")` |
+| PATCH  | `/admin/templates/:id/restore` | —                                       | `requireAuth` + `requireRole("ADMIN")` |
 
 > **Kontrak slug:** Field `template.slug` adalah **kontrak publik** antara backend dan frontend.
 > Frontend memilih komponen template React berdasarkan nilai slug ini, sehingga slug bersifat
 > **immutable** setelah rilis. Lihat [`docs/template-slug-contract.md`](docs/template-slug-contract.md)
 > untuk daftar slug terdaftar dan aturan perubahannya.
 
-- Testing: **20 test lolos** di `tests/template/template.test.ts`.
+- Testing: **26 test lolos** di `tests/template/template.test.ts`.
 
 ## 8. Modul Guest (Manajemen Tamu & Presensi QR) — SUDAH SELESAI
 
@@ -227,29 +232,36 @@ Lokasi: `src/modules/rsvp/`. Terdaftar di `v1Router`.
 
 - Testing: **14 test lolos** di `tests/rsvp/rsvp.test.ts`.
 
-## 10. Modul User — SUDAH SELESAI
+## 10. Modul User (Profil & Admin User Management) — SUDAH SELESAI
 
 Lokasi: `src/modules/user/`. Terdaftar di `v1Router`.
 
 ### Endpoint (semua di bawah prefix `/v1/api`)
 
-| Method | Path        | Body | Auth          |
-| ------ | ----------- | ---- | ------------- |
-| GET    | `/users/me` | —    | `requireAuth` |
+| Method | Path                               | Body                    | Auth                                   |
+| ------ | ---------------------------------- | ----------------------- | -------------------------------------- |
+| GET    | `/users/me`                        | —                       | `requireAuth`                          |
+| GET    | `/admin/users`                     | `?page&limit&search...` | `requireAuth` + `requireRole("ADMIN")` |
+| GET    | `/admin/users/:id`                 | —                       | `requireAuth` + `requireRole("ADMIN")` |
+| PATCH  | `/admin/users/:id/tier`            | `{ planTier }`          | `requireAuth` + `requireRole("ADMIN")` |
+| PATCH  | `/admin/users/:id/role`            | `{ role }`              | `requireAuth` + `requireRole("ADMIN")` |
+| POST   | `/admin/users/:id/revoke-sessions` | —                       | `requireAuth` + `requireRole("ADMIN")` |
+| DELETE | `/admin/users/:id`                 | —                       | `requireAuth` + `requireRole("ADMIN")` |
 
-- Testing: **3 test lolos** di `tests/user/user.test.ts`.
+- Testing: **28 test lolos** di `tests/user/user.test.ts`.
 
-## 11. Modul Dashboard — SUDAH SELESAI
+## 11. Modul Dashboard (Host & Admin Platform Analytics) — SUDAH SELESAI
 
 Lokasi: `src/modules/dashboard/`. Terdaftar di `v1Router`.
 
 ### Endpoint (semua di bawah prefix `/v1/api`)
 
-| Method | Path         | Body | Auth          |
-| ------ | ------------ | ---- | ------------- |
-| GET    | `/dashboard` | —    | `requireAuth` |
+| Method | Path                     | Body | Auth                                   |
+| ------ | ------------------------ | ---- | -------------------------------------- |
+| GET    | `/dashboard`             | —    | `requireAuth`                          |
+| GET    | `/admin/dashboard/stats` | —    | `requireAuth` + `requireRole("ADMIN")` |
 
-- Testing: **4 test lolos** di `tests/dashboard/dashboard.test.ts`.
+- Testing: **7 test lolos** di `tests/dashboard/dashboard.test.ts`.
 
 ## 12. Modul Buwuhan (Catatan Buwuh) — SUDAH SELESAI
 
@@ -324,19 +336,19 @@ Lokasi: `src/modules/buwuhan/`. Terdaftar di `v1Router`.
 
 ## 15. Status Pengerjaan & Belum Dikerjakan
 
-| Modul / Fitur              | Status                              |
-| -------------------------- | ----------------------------------- |
-| Modul `auth`               | Selesai (17 test lolos)             |
-| Modul `invitation`         | Selesai (23 test lolos)             |
-| Modul `template`           | Selesai (20 test lolos)             |
-| Modul `guest`              | Selesai (24 test lolos)             |
-| Modul `rsvp`               | Selesai (14 test lolos)             |
-| Modul `user`               | Selesai (3 test lolos)              |
-| Modul `dashboard`          | Selesai (4 test lolos)              |
-| Modul `buwuhan`            | Selesai (25 test lolos)             |
-| Integrasi Email & WA Share | Selesai (Nodemailer SMTP & WA link) |
-| Reuse detection penuh      | Utang teknis auth (lihat §5)        |
-| Endpoint logout-all-device | Utang teknis auth (lihat §5)        |
+| Modul / Fitur              | Status                                                    |
+| -------------------------- | --------------------------------------------------------- |
+| Modul `auth`               | Selesai (17 test lolos)                                   |
+| Modul `invitation`         | Selesai (38 test lolos - Host & Admin Moderasi)           |
+| Modul `template`           | Selesai (26 test lolos - Katalog & Restore)               |
+| Modul `guest`              | Selesai (24 test lolos)                                   |
+| Modul `rsvp`               | Selesai (14 test lolos)                                   |
+| Modul `user`               | Selesai (28 test lolos - Admin Role, Tier, Sesi & Delete) |
+| Modul `dashboard`          | Selesai (7 test lolos - Host & Admin Analytics)           |
+| Modul `buwuhan`            | Selesai (25 test lolos)                                   |
+| Integrasi Email & WA Share | Selesai (Nodemailer SMTP & WA link)                       |
+| Reuse detection penuh      | Utang teknis auth (lihat §5)                              |
+| Endpoint logout-all-device | Utang teknis auth (lihat §5)                              |
 
 ## 16. Cara Melanjutkan
 

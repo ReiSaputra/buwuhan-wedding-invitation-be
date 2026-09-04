@@ -81,6 +81,99 @@
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/DashboardInvitationItem'
+ *
+ *     AdminDashboardUsersStats:
+ *       type: object
+ *       properties:
+ *         total:
+ *           type: integer
+ *           example: 1250
+ *         byTier:
+ *           type: object
+ *           properties:
+ *             FREE: { type: integer, example: 980 }
+ *             PRO: { type: integer, example: 210 }
+ *             MAX: { type: integer, example: 60 }
+ *         byRole:
+ *           type: object
+ *           properties:
+ *             USER: { type: integer, example: 1245 }
+ *             ADMIN: { type: integer, example: 5 }
+ *
+ *     AdminDashboardInvitationsStats:
+ *       type: object
+ *       properties:
+ *         total:
+ *           type: integer
+ *           example: 1420
+ *         byStatus:
+ *           type: object
+ *           properties:
+ *             DRAFT: { type: integer, example: 320 }
+ *             ACTIVE: { type: integer, example: 950 }
+ *             COMPLETED: { type: integer, example: 150 }
+ *         byCategory:
+ *           type: object
+ *           properties:
+ *             WEDDING: { type: integer, example: 1200 }
+ *             KHITANAN: { type: integer, example: 150 }
+ *             RASULAN: { type: integer, example: 50 }
+ *             AQIQAH: { type: integer, example: 20 }
+ *
+ *     AdminDashboardGuestsStats:
+ *       type: object
+ *       properties:
+ *         totalGuests:
+ *           type: integer
+ *           example: 45000
+ *         totalCheckedIn:
+ *           type: integer
+ *           example: 31200
+ *         totalRsvps:
+ *           type: integer
+ *           example: 28900
+ *         byRsvpStatus:
+ *           type: object
+ *           properties:
+ *             CONFIRMED: { type: integer, example: 24500 }
+ *             DECLINED: { type: integer, example: 4400 }
+ *
+ *     TopTemplateItem:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           example: "tpl-royal-floral"
+ *         name:
+ *           type: string
+ *           example: "Royal Floral"
+ *         slug:
+ *           type: string
+ *           example: "royal-floral"
+ *         tier:
+ *           type: string
+ *           enum: [FREE, PRO, MAX]
+ *           example: "FREE"
+ *         previewImageUrl:
+ *           type: string
+ *           example: "https://storage.buwuhan.com/templates/royal-floral.jpg"
+ *         usageCount:
+ *           type: integer
+ *           example: 420
+ *
+ *     AdminDashboardStatsData:
+ *       type: object
+ *       properties:
+ *         users:
+ *           $ref: '#/components/schemas/AdminDashboardUsersStats'
+ *         invitations:
+ *           $ref: '#/components/schemas/AdminDashboardInvitationsStats'
+ *         guests:
+ *           $ref: '#/components/schemas/AdminDashboardGuestsStats'
+ *         topTemplates:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/TopTemplateItem'
  */
 
 /**
@@ -134,4 +227,69 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorEnvelope'
+ */
+
+/**
+ * @openapi
+ * /admin/dashboard/stats:
+ *   get:
+ *     tags: [Admin - Dashboard]
+ *     summary: Ambil metrik agregat statistik platform global (admin)
+ *     description: Mengembalikan data statistik makro mencakup total user & tier/role breakdown, total undangan & status/kategori breakdown, tamu & RSVP, serta 5 template terpopuler. Hanya dapat diakses oleh ADMIN.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistik platform berhasil diambil.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/AdminDashboardStatsData'
+ *             example:
+ *               message: "Statistik platform berhasil diambil"
+ *               status: 200
+ *               data:
+ *                 users:
+ *                   total: 1250
+ *                   byTier:
+ *                     FREE: 980
+ *                     PRO: 210
+ *                     MAX: 60
+ *                   byRole:
+ *                     USER: 1245
+ *                     ADMIN: 5
+ *                 invitations:
+ *                   total: 1420
+ *                   byStatus:
+ *                     DRAFT: 320
+ *                     ACTIVE: 950
+ *                     COMPLETED: 150
+ *                   byCategory:
+ *                     WEDDING: 1200
+ *                     KHITANAN: 150
+ *                     RASULAN: 50
+ *                     AQIQAH: 20
+ *                 guests:
+ *                   totalGuests: 45000
+ *                   totalCheckedIn: 31200
+ *                   totalRsvps: 28900
+ *                   byRsvpStatus:
+ *                     CONFIRMED: 24500
+ *                     DECLINED: 4400
+ *                 topTemplates:
+ *                   - id: "tpl-royal-floral"
+ *                     name: "Royal Floral"
+ *                     slug: "royal-floral"
+ *                     tier: "FREE"
+ *                     previewImageUrl: "https://storage.buwuhan.com/templates/royal-floral.jpg"
+ *                     usageCount: 420
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - Bukan ADMIN.
  */

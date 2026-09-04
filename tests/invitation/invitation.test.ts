@@ -27,6 +27,9 @@ beforeAll(() => {
   vi.spyOn(InvitationRepository, "findLoveStoryById");
   vi.spyOn(InvitationRepository, "updateLoveStory");
   vi.spyOn(InvitationRepository, "deleteLoveStory");
+  vi.spyOn(InvitationRepository, "findManyWithFilterForAdmin");
+  vi.spyOn(InvitationRepository, "findByIdForAdmin");
+  vi.spyOn(InvitationRepository, "updateStatusByAdmin");
   vi.spyOn(TemplateRepository, "findActiveById");
 });
 
@@ -46,7 +49,14 @@ const mockUser = {
   planTier: "FREE" as const,
 };
 
+const mockAdmin = {
+  id: "admin-999",
+  role: "ADMIN" as const,
+  planTier: "MAX" as const,
+};
+
 const validAuthToken = jwt.sign(mockUser, process.env.JWT_SECRET, { expiresIn: "1d" });
+const adminAuthToken = jwt.sign(mockAdmin, process.env.JWT_SECRET, { expiresIn: "1d" });
 
 const mockPhoto = {
   id: "photo-1",
@@ -517,5 +527,166 @@ describe("invitation test: Regresi kontrak template.slug", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data.slug).toBe(mockInvitation.slug);
+  });
+});
+
+// ── Admin Invitation Management: GET /admin/invitations ───────────────
+
+describe("admin invitation test: GET /admin/invitations", () => {
+  it("berhasil mengambil seluruh daftar undangan lintas pengguna dengan paginasi (200)", async () => {
+    (InvitationRepository.findManyWithFilterForAdmin as Mock).mockResolvedValue({
+      total: 1,
+      invitations: [
+        {
+          ...mockInvitation,
+          owner: {
+            id: mockUser.id,
+            fullName: "Fathur Saputra",
+            email: "fathur@example.com",
+            planTier: "FREE",
+          },
+          template: null,
+          _count: {
+            guests: 20,
+            rsvps: 15,
+          },
+        },
+      ],
+    });
+
+    const res = await request(app).get("/v1/api/admin/invitations?page=1&limit=10").set("Authorization", `Bearer ${adminAuthToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Daftar seluruh undangan berhasil diambil");
+    expect(res.body.data.invitations).toHaveLength(1);
+    expect(res.body.data.invitations[0].id).toBe(mockInvitation.id);
+    expect(res.body.data.invitations[0].owner.fullName).toBe("Fathur Saputra");
+    expect(res.body.data.invitations[0].stats).toEqual({
+      totalGuests: 20,
+      totalRsvps: 15,
+    });
+    expect(res.body.data.pagination).toEqual({
+      total: 1,
+      page: 1,
+      limit: 10,
+      totalPages: 1,
+    });
+  });
+
+  it("berhasil memfilter pencarian dan status/kategori acara (200)", async () => {
+    (InvitationRepository.findManyWithFilterForAdmin as Mock).mockResolvedValue({
+      total: 0,
+      invitations: [],
+    });
+
+    const res = await request(app).get("/v1/api/admin/invitations?search=ayu&status=ACTIVE&eventCategory=WEDDING").set("Authorization", `Bearer ${adminAuthToken}`);
+
+    expect(res.status).toBe(200);
+    expect(InvitationRepository.findManyWithFilterForAdmin).toHaveBeenCalledWith(
+      expect.objectContaining({
+        search: "ayu",
+        status: "ACTIVE",
+        eventCategory: "WEDDING",
+      }),
+    );
+  });
+
+  it("menolak akses jika bukan ADMIN (403)", async () => {
+    const res = await request(app).get("/v1/api/admin/invitations").set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toBe("Kamu tidak punya akses untuk melakukan aksi ini");
+  });
+
+  it("menolak akses tanpa token otentikasi (401)", async () => {
+    const res = await request(app).get("/v1/api/admin/invitations");
+
+    expect(res.status).toBe(401);
+  });
+});
+
+// ── Admin Invitation Management: GET /admin/invitations/:id ───────────
+
+describe("admin invitation test: GET /admin/invitations/:id", () => {
+  it("berhasil mengambil detail lengkap undangan lintas pengguna (200)", async () => {
+    (InvitationRepository.findByIdForAdmin as Mock).mockResolvedValue({
+      ...mockInvitation,
+      owner: {
+        id: mockUser.id,
+        fullName: "Fathur Saputra",
+        email: "fathur@example.com",
+        planTier: "FREE",
+      },
+      _count: {
+        guests: 50,
+        rsvps: 42,
+      },
+    });
+
+    const res = await request(app).get(`/v1/api/admin/invitations/${mockInvitation.id}`).set("Authorization", `Bearer ${adminAuthToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Detail undangan berhasil diambil");
+    expect(res.body.data.id).toBe(mockInvitation.id);
+    expect(res.body.data.owner.fullName).toBe("Fathur Saputra");
+    expect(res.body.data.stats).toEqual({
+      totalGuests: 50,
+      totalRsvps: 42,
+    });
+  });
+
+  it("mengembalikan 404 jika undangan tidak ditemukan (404)", async () => {
+    (InvitationRepository.findByIdForAdmin as Mock).mockResolvedValue(null);
+
+    const res = await request(app).get("/v1/api/admin/invitations/non-existent-invitation").set("Authorization", `Bearer ${adminAuthToken}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe("Undangan tidak ditemukan");
+  });
+
+  it("menolak akses jika bukan ADMIN (403)", async () => {
+    const res = await request(app).get(`/v1/api/admin/invitations/${mockInvitation.id}`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(403);
+  });
+});
+
+// ── Admin Invitation Management: PATCH /admin/invitations/:id/status ──
+
+describe("admin invitation test: PATCH /admin/invitations/:id/status", () => {
+  it("berhasil memoderasi status undangan menjadi DRAFT / COMPLETED oleh admin (200)", async () => {
+    (InvitationRepository.findByIdForAdmin as Mock).mockResolvedValue(mockInvitation);
+    (InvitationRepository.updateStatusByAdmin as Mock).mockResolvedValue({
+      ...mockInvitation,
+      status: "DRAFT",
+    });
+
+    const res = await request(app).patch(`/v1/api/admin/invitations/${mockInvitation.id}/status`).set("Authorization", `Bearer ${adminAuthToken}`).send({ status: "DRAFT" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Status undangan berhasil diperbarui");
+    expect(res.body.data.status).toBe("DRAFT");
+    expect(InvitationRepository.updateStatusByAdmin).toHaveBeenCalledWith(mockInvitation.id, "DRAFT", null);
+  });
+
+  it("menolak jika nilai status tidak valid (400)", async () => {
+    const res = await request(app).patch(`/v1/api/admin/invitations/${mockInvitation.id}/status`).set("Authorization", `Bearer ${adminAuthToken}`).send({ status: "INVALID_STATUS" });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("mengembalikan 404 jika undangan tidak ditemukan (404)", async () => {
+    (InvitationRepository.findByIdForAdmin as Mock).mockResolvedValue(null);
+
+    const res = await request(app).patch("/v1/api/admin/invitations/non-existent/status").set("Authorization", `Bearer ${adminAuthToken}`).send({ status: "COMPLETED" });
+
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe("Undangan tidak ditemukan");
+  });
+
+  it("menolak akses jika bukan ADMIN (403)", async () => {
+    const res = await request(app).patch(`/v1/api/admin/invitations/${mockInvitation.id}/status`).set("Authorization", `Bearer ${validAuthToken}`).send({ status: "DRAFT" });
+
+    expect(res.status).toBe(403);
   });
 });

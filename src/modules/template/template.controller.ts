@@ -1,7 +1,18 @@
 import type { NextFunction, Request, Response } from "express";
 
 import { TemplateService } from "./template.service";
-import type { CreateTemplateReq, CreateTemplateRes, DeactivateTemplateRes, GetTemplateRes, ListTemplateRes, UpdateTemplateReq, UpdateTemplateRes } from "./template.types";
+import { adminTemplateQuerySchema } from "./template.schema";
+import type {
+  AdminTemplateListRes,
+  CreateTemplateReq,
+  CreateTemplateRes,
+  DeactivateTemplateRes,
+  GetTemplateRes,
+  ListTemplateRes,
+  RestoreTemplateRes,
+  UpdateTemplateReq,
+  UpdateTemplateRes,
+} from "./template.types";
 import type { EventCategory } from "../../generated/prisma/client";
 
 export class TemplateController {
@@ -59,4 +70,28 @@ export class TemplateController {
       next(error);
     }
   }
+
+  // ── Admin Catalog Handlers ──────────────────────────────────────────
+
+  static async listForAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const query = adminTemplateQuerySchema.parse(req.query);
+      const response: AdminTemplateListRes = await TemplateService.listForAdmin(query);
+
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async restore(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const response: RestoreTemplateRes = await TemplateService.restore(req.params.id as string, req.user!.planTier);
+
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
+

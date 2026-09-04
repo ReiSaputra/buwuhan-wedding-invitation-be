@@ -4,6 +4,7 @@ import { InvitationController } from "./invitation.controller";
 import { addGalleryPhotoSchema, addLoveStorySchema, createInvitationSchema, updateGalleryPhotoSchema, updateInvitationSchema, updateInvitationStatusSchema, updateLoveStorySchema } from "./invitation.schema";
 import { validate } from "../../middlewares/validate.middleware";
 import { requireAuth } from "../../middlewares/auth.middleware";
+import { requireRole } from "../../middlewares/role.middleware";
 
 export const invitationRouter = Router();
 
@@ -27,3 +28,8 @@ invitationRouter.delete("/invitations/:invitationId/gallery/:id", requireAuth, I
 invitationRouter.post("/invitations/:invitationId/stories", requireAuth, validate(addLoveStorySchema), InvitationController.addLoveStory);
 invitationRouter.patch("/invitations/:invitationId/stories/:id", requireAuth, validate(updateLoveStorySchema), InvitationController.updateLoveStory);
 invitationRouter.delete("/invitations/:invitationId/stories/:id", requireAuth, InvitationController.removeLoveStory);
+
+// ── Admin-only -- Monitoring & Moderasi Seluruh Undangan ──────────────
+invitationRouter.get("/admin/invitations", requireAuth, requireRole("ADMIN"), InvitationController.listAdminInvitations);
+invitationRouter.get("/admin/invitations/:id", requireAuth, requireRole("ADMIN"), InvitationController.getAdminInvitationDetail);
+invitationRouter.patch("/admin/invitations/:id/status", requireAuth, requireRole("ADMIN"), validate(updateInvitationStatusSchema), InvitationController.updateAdminInvitationStatus);

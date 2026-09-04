@@ -17,6 +17,8 @@ beforeAll(() => {
   vi.spyOn(TemplateRepository, "create");
   vi.spyOn(TemplateRepository, "update");
   vi.spyOn(TemplateRepository, "deactivate");
+  vi.spyOn(TemplateRepository, "findAllWithFilter");
+  vi.spyOn(TemplateRepository, "restore");
 });
 
 function buildTestApp() {
@@ -280,5 +282,100 @@ describe("template test: CRUD umum", () => {
     const res = await request(app).delete(`/v1/api/templates/${mockTemplate.id}`).set("Authorization", `Bearer ${adminToken}`);
 
     expect(res.status).toBe(200);
+  });
+});
+
+// ── Admin Template Catalog: GET /admin/templates ──────────────────────
+
+describe("admin template test: GET /admin/templates", () => {
+  it("berhasil mengambil seluruh katalog template beserta usageCount (200)", async () => {
+    (TemplateRepository.findAllWithFilter as Mock).mockResolvedValue([
+      {
+        ...mockTemplate,
+        _count: { invitations: 15 },
+      },
+      {
+        ...mockTemplate,
+        id: "tpl-archived",
+        slug: "archived-theme",
+        isActive: false,
+        _count: { invitations: 2 },
+      },
+    ]);
+
+    const res = await request(app).get("/v1/api/admin/templates").set("Authorization", `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Daftar seluruh template berhasil diambil");
+    expect(res.body.data).toHaveLength(2);
+    expect(res.body.data[0].usageCount).toBe(15);
+    expect(res.body.data[1].isActive).toBe(false);
+    expect(res.body.data[1].usageCount).toBe(2);
+  });
+
+  it("berhasil memfilter pencarian dan status aktif / tier / kategori (200)", async () => {
+    (TemplateRepository.findAllWithFilter as Mock).mockResolvedValue([]);
+
+    const res = await request(app).get("/v1/api/admin/templates?isActive=true&tier=FREE&eventCategory=WEDDING&search=royal").set("Authorization", `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(TemplateRepository.findAllWithFilter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isActive: true,
+        tier: "FREE",
+        eventCategory: "WEDDING",
+        search: "royal",
+      }),
+    );
+  });
+
+  it("menolak akses jika bukan ADMIN (403)", async () => {
+    const res = await request(app).get("/v1/api/admin/templates").set("Authorization", `Bearer ${userToken}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toBe("Kamu tidak punya akses untuk melakukan aksi ini");
+  });
+
+  it("menolak akses tanpa token otentikasi (401)", async () => {
+    const res = await request(app).get("/v1/api/admin/templates");
+
+    expect(res.status).toBe(401);
+  });
+});
+
+// ── Admin Template Restore: PATCH /admin/templates/:id/restore ────────
+
+describe("admin template test: PATCH /admin/templates/:id/restore", () => {
+  it("berhasil mengaktifkan kembali template yang dinonaktifkan (200)", async () => {
+    (TemplateRepository.findById as Mock).mockResolvedValue({
+      ...mockTemplate,
+      isActive: false,
+    });
+    (TemplateRepository.restore as Mock).mockResolvedValue({
+      ...mockTemplate,
+      isActive: true,
+    });
+
+    const res = await request(app).patch(`/v1/api/admin/templates/${mockTemplate.id}/restore`).set("Authorization", `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Template berhasil diaktifkan kembali");
+    expect(res.body.data.isActive).toBe(true);
+    expect(TemplateRepository.restore).toHaveBeenCalledWith(mockTemplate.id);
+  });
+
+  it("mengembalikan 404 jika template tidak ditemukan (404)", async () => {
+    (TemplateRepository.findById as Mock).mockResolvedValue(null);
+
+    const res = await request(app).patch("/v1/api/admin/templates/non-existent-template/restore").set("Authorization", `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe("Template tidak ditemukan");
+  });
+
+  it("menolak akses jika bukan ADMIN (403)", async () => {
+    const res = await request(app).patch(`/v1/api/admin/templates/${mockTemplate.id}/restore`).set("Authorization", `Bearer ${userToken}`);
+
+    expect(res.status).toBe(403);
   });
 });

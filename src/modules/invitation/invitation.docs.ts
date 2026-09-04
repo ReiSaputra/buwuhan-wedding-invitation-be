@@ -1284,3 +1284,236 @@
  *               success: false
  *               message: "Kisah cinta tidak ditemukan"
  */
+
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *     AdminInvitationListItem:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           example: "cly3k8a1b0000v8og3f1a1111"
+ *         title:
+ *           type: string
+ *           example: "Pernikahan Ayu & Budi"
+ *         slug:
+ *           type: string
+ *           example: "ayu-dan-budi"
+ *         status:
+ *           type: string
+ *           enum: [DRAFT, ACTIVE, COMPLETED]
+ *           example: "ACTIVE"
+ *         eventCategory:
+ *           type: string
+ *           enum: [WEDDING, KHITANAN, RASULAN, AQIQAH]
+ *           example: "WEDDING"
+ *         eventDate:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *           example: "2026-10-15T00:00:00.000Z"
+ *         eventTime:
+ *           type: string
+ *           nullable: true
+ *           example: "08:00 WIB"
+ *         venue:
+ *           type: string
+ *           nullable: true
+ *           example: "Grand Ballroom Hotel Indonesia"
+ *         address:
+ *           type: string
+ *           nullable: true
+ *           example: "Jl. Sudirman No. 1, Jakarta"
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           example: "2026-08-27T10:00:00.000Z"
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *           example: "2026-08-28T12:00:00.000Z"
+ *         owner:
+ *           type: object
+ *           properties:
+ *             id: { type: string, example: "usr-123" }
+ *             fullName: { type: string, example: "Fathur Saputra" }
+ *             email: { type: string, example: "fathur@example.com" }
+ *             planTier: { type: string, enum: [FREE, PRO, MAX], example: "PRO" }
+ *         template:
+ *           type: object
+ *           nullable: true
+ *           properties:
+ *             id: { type: string, example: "tpl-royal" }
+ *             name: { type: string, example: "Royal Floral" }
+ *             slug: { type: string, example: "royal-floral" }
+ *             previewImageUrl: { type: string, example: "https://storage.buwuhan.com/templates/preview.jpg" }
+ *         stats:
+ *           type: object
+ *           properties:
+ *             totalGuests: { type: integer, example: 150 }
+ *             totalRsvps: { type: integer, example: 120 }
+ *
+ *     AdminInvitationDetailData:
+ *       allOf:
+ *         - $ref: '#/components/schemas/InvitationData'
+ *         - type: object
+ *           properties:
+ *             owner:
+ *               type: object
+ *               properties:
+ *                 id: { type: string, example: "usr-123" }
+ *                 fullName: { type: string, example: "Fathur Saputra" }
+ *                 email: { type: string, example: "fathur@example.com" }
+ *                 planTier: { type: string, enum: [FREE, PRO, MAX], example: "PRO" }
+ *             stats:
+ *               type: object
+ *               properties:
+ *                 totalGuests: { type: integer, example: 150 }
+ *                 totalRsvps: { type: integer, example: 120 }
+ */
+
+/**
+ * @openapi
+ * /admin/invitations:
+ *   get:
+ *     tags: [Admin - Invitation]
+ *     summary: Daftar seluruh undangan platform (admin)
+ *     description: Menampilkan daftar seluruh undangan dari semua pengguna di platform dengan dukungan pencarian (judul/slug/nama pemilik/email pemilik), filter status & kategori, serta paginasi. Hanya dapat diakses oleh ADMIN.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Nomor halaman.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Jumlah data per halaman.
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Pencarian judul undangan, slug, nama pemilik, atau email pemilik.
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [DRAFT, ACTIVE, COMPLETED]
+ *         description: Filter status undangan.
+ *       - in: query
+ *         name: eventCategory
+ *         schema:
+ *           type: string
+ *           enum: [WEDDING, KHITANAN, RASULAN, AQIQAH]
+ *         description: Filter kategori acara.
+ *     responses:
+ *       200:
+ *         description: Daftar seluruh undangan berhasil diambil.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         invitations:
+ *                           type: array
+ *                           items:
+ *                             $ref: '#/components/schemas/AdminInvitationListItem'
+ *                         pagination:
+ *                           $ref: '#/components/schemas/PaginationMeta'
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - Bukan ADMIN.
+ */
+
+/**
+ * @openapi
+ * /admin/invitations/{id}:
+ *   get:
+ *     tags: [Admin - Invitation]
+ *     summary: Detail lengkap undangan lintas pengguna (admin)
+ *     description: Mengambil data lengkap undangan (termasuk pasangan mempelai, galeri, kisah cinta, info pemilik, dan statistik tamu & RSVP) untuk keperluan pengawasan atau investigasi konten. Hanya dapat diakses oleh ADMIN.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID undangan (CUID).
+ *     responses:
+ *       200:
+ *         description: Detail undangan berhasil diambil.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/AdminInvitationDetailData'
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - Bukan ADMIN.
+ *       404:
+ *         description: Undangan tidak ditemukan.
+ */
+
+/**
+ * @openapi
+ * /admin/invitations/{id}/status:
+ *   patch:
+ *     tags: [Admin - Invitation]
+ *     summary: Moderasi status undangan secara sepihak (admin)
+ *     description: Mengubah status undangan (misal: mentakedown/menonaktifkan undangan menjadi DRAFT jika ada konten melanggar, atau menandai COMPLETED). Hanya dapat diakses oleh ADMIN.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID undangan (CUID).
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateInvitationStatusRequestBody'
+ *     responses:
+ *       200:
+ *         description: Status undangan berhasil diperbarui.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/InvitationData'
+ *       400:
+ *         description: Validasi input gagal.
+ *       401:
+ *         description: Unauthorized.
+ *       403:
+ *         description: Forbidden - Bukan ADMIN.
+ *       404:
+ *         description: Undangan tidak ditemukan.
+ */

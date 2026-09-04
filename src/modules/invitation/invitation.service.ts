@@ -1,23 +1,30 @@
 import type { PlanTier } from "../../generated/prisma/client";
-import { InvitationRepository } from "./invitation.repository";
+import { InvitationRepository, type AdminInvitationFilterParams } from "./invitation.repository";
 import { TemplateRepository } from "../template/template.repository";
 import { isTierSufficient } from "../template/template.types";
 import {
+  adminInvitationDetailResponse,
+  adminInvitationListResponse,
   createInvitationResponse,
   deleteInvitationResponse,
   galleryPhotoResponse,
   getInvitationResponse,
   listInvitationResponse,
   loveStoryResponse,
+  toInvitationData,
   updateInvitationResponse,
   updateInvitationStatusResponse,
   type AddGalleryPhotoReq,
   type AddLoveStoryReq,
+  type AdminInvitationDetailRes,
+  type AdminInvitationListItem,
+  type AdminInvitationListRes,
   type CreateInvitationReq,
   type CreateInvitationRes,
   type DeleteInvitationRes,
   type GalleryPhotoRes,
   type GetInvitationRes,
+  type InvitationStatusType,
   type ListInvitationRes,
   type LoveStoryRes,
   type UpdateGalleryPhotoReq,
@@ -201,5 +208,74 @@ export class InvitationService {
     await InvitationRepository.deleteLoveStory(storyId);
 
     return { message: "Kisah cinta berhasil dihapus", status: 200 };
+  }
+
+  // ── Admin Moderation & Overview ─────────────────────────────────────
+
+  static async listInvitationsForAdmin(params: AdminInvitationFilterParams): Promise<AdminInvitationListRes> {
+    const { total, invitations } = await InvitationRepository.findManyWithFilterForAdmin(params);
+
+    const list: AdminInvitationListItem[] = invitations.map((inv) => ({
+      id: inv.id,
+      title: inv.title,
+      slug: inv.slug,
+      status: inv.status,
+      eventCategory: inv.eventCategory,
+      eventDate: inv.eventDate,
+      eventTime: inv.eventTime,
+      venue: inv.venue,
+      address: inv.address,
+      createdAt: inv.createdAt,
+      updatedAt: inv.updatedAt,
+      owner: inv.owner,
+      template: inv.template,
+      stats: {
+        totalGuests: inv._count.guests,
+        totalRsvps: inv._count.rsvps,
+      },
+    }));
+
+    const totalPages = Math.ceil(total / params.limit) || 1;
+
+    return adminInvitationListResponse(list, {
+      total,
+      page: params.page,
+      limit: params.limit,
+      totalPages,
+    });
+  }
+
+  static async getInvitationDetailForAdmin(id: string): Promise<AdminInvitationDetailRes> {
+    const invitation = await InvitationRepository.findByIdForAdmin(id);
+
+    if (!invitation) throw new NotFoundError("Undangan tidak ditemukan");
+
+    const baseData = toInvitationData(invitation);
+
+    return adminInvitationDetailResponse({
+      ...baseData,
+      owner: invitation.owner,
+      stats: {
+        totalGuests: invitation._count.guests,
+        totalRsvps: invitation._count.rsvps,
+      },
+    });
+  }
+
+  static async updateStatusByAdmin(id: string, status: InvitationStatusType): Promise<UpdateInvitationStatusRes> {
+    const existing = await InvitationRepository.findByIdForAdmin(id);
+
+    if (!existing) throw new NotFoundError("Undangan tidak ditemukan");
+
+    let publishedAt: Date | null | undefined = undefined;
+    if (status === "ACTIVE" && !existing.publishedAt) {
+      publishedAt = new Date();
+    } else if (status === "DRAFT") {
+      publishedAt = null;
+    }
+
+    const updated = await InvitationRepository.updateStatusByAdmin(id, status, publishedAt);
+
+    return updateInvitationStatusResponse(updated);
   }
 }

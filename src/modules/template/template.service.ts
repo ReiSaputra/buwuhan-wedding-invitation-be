@@ -1,16 +1,22 @@
 import type { EventCategory, PlanTier } from "../../generated/prisma/client";
 import { TemplateRepository } from "./template.repository";
 import {
+  adminTemplateListResponse,
   createTemplateResponse,
   deactivateTemplateResponse,
   getTemplateResponse,
   listTemplateResponse,
+  restoreTemplateResponse,
   updateTemplateResponse,
+  type AdminTemplateFilterParams,
+  type AdminTemplateListItem,
+  type AdminTemplateListRes,
   type CreateTemplateReq,
   type CreateTemplateRes,
   type DeactivateTemplateRes,
   type GetTemplateRes,
   type ListTemplateRes,
+  type RestoreTemplateRes,
   type UpdateTemplateReq,
   type UpdateTemplateRes,
 } from "./template.types";
@@ -70,4 +76,34 @@ export class TemplateService {
 
     return deactivateTemplateResponse();
   }
+
+  static async listForAdmin(params: AdminTemplateFilterParams): Promise<AdminTemplateListRes> {
+    const templates = await TemplateRepository.findAllWithFilter(params);
+
+    const list: AdminTemplateListItem[] = templates.map((t) => ({
+      id: t.id,
+      name: t.name,
+      slug: t.slug,
+      tier: t.tier,
+      eventCategory: t.eventCategory,
+      previewImageUrl: t.previewImageUrl,
+      isActive: t.isActive,
+      usageCount: t._count.invitations,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+    }));
+
+    return adminTemplateListResponse(list);
+  }
+
+  static async restore(id: string, requesterTier: PlanTier): Promise<RestoreTemplateRes> {
+    const existing = await TemplateRepository.findById(id);
+
+    if (!existing) throw new NotFoundError("Template tidak ditemukan");
+
+    const restored = await TemplateRepository.restore(id);
+
+    return restoreTemplateResponse(restored, requesterTier);
+  }
 }
+

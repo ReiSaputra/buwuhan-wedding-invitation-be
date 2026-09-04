@@ -12,6 +12,7 @@ process.env.JWT_SECRET = "test-jwt-secret";
 beforeAll(() => {
   vi.spyOn(DashboardRepository, "findUserWithDetails");
   vi.spyOn(DashboardRepository, "findInvitationsWithStats");
+  vi.spyOn(DashboardRepository, "getPlatformStats");
 });
 
 function buildTestApp() {
@@ -30,7 +31,24 @@ const mockUser = {
   planTier: "FREE" as const,
 };
 
-const validAuthToken = jwt.sign({ id: mockUser.id, role: "USER", planTier: mockUser.planTier }, process.env.JWT_SECRET, { expiresIn: "1d" });
+const mockAdmin = {
+  id: "admin-999",
+  fullName: "Admin Buwuhan",
+  planTier: "MAX" as const,
+  role: "ADMIN" as const,
+};
+
+const userAuthToken = jwt.sign(
+  { id: mockUser.id, role: "USER", planTier: mockUser.planTier },
+  process.env.JWT_SECRET,
+  { expiresIn: "1d" },
+);
+
+const adminAuthToken = jwt.sign(
+  { id: mockAdmin.id, role: mockAdmin.role, planTier: mockAdmin.planTier },
+  process.env.JWT_SECRET,
+  { expiresIn: "1d" },
+);
 
 const mockInvitationsWithStats = [
   {
@@ -66,16 +84,55 @@ const mockInvitationsWithStats = [
   },
 ];
 
+const mockRawPlatformStats = {
+  usersByTier: [
+    { planTier: "FREE" as const, _count: { _all: 10 } },
+    { planTier: "PRO" as const, _count: { _all: 5 } },
+    { planTier: "MAX" as const, _count: { _all: 2 } },
+  ],
+  usersByRole: [
+    { role: "USER" as const, _count: { _all: 16 } },
+    { role: "ADMIN" as const, _count: { _all: 1 } },
+  ],
+  invitationsByStatus: [
+    { status: "ACTIVE" as const, _count: { _all: 12 } },
+    { status: "DRAFT" as const, _count: { _all: 4 } },
+    { status: "COMPLETED" as const, _count: { _all: 2 } },
+  ],
+  invitationsByCategory: [
+    { eventCategory: "WEDDING" as const, _count: { _all: 15 } },
+    { eventCategory: "KHITANAN" as const, _count: { _all: 3 } },
+  ],
+  totalGuests: 250,
+  totalCheckedIn: 180,
+  rsvpsByStatus: [
+    { status: "CONFIRMED" as const, _count: { _all: 150 } },
+    { status: "DECLINED" as const, _count: { _all: 30 } },
+  ],
+  topTemplates: [
+    {
+      id: "tpl-royal-floral",
+      name: "Royal Floral",
+      slug: "royal-floral",
+      tier: "FREE" as const,
+      previewImageUrl: "https://storage.buwuhan.com/templates/royal-floral.jpg",
+      _count: { invitations: 10 },
+    },
+  ],
+};
+
 beforeEach(() => {
   vi.resetAllMocks();
 });
+
+// ── Host Dashboard: GET /dashboard ────────────────────────────────────
 
 describe("dashboard test: GET /dashboard", () => {
   it("berhasil mengambil ringkasan data dashboard host beserta stats (200)", async () => {
     (DashboardRepository.findUserWithDetails as Mock).mockResolvedValue(mockUser);
     (DashboardRepository.findInvitationsWithStats as Mock).mockResolvedValue(mockInvitationsWithStats);
 
-    const res = await request(app).get("/v1/api/dashboard").set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get("/v1/api/dashboard").set("Authorization", `Bearer ${userAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Data dashboard berhasil diambil");
@@ -111,7 +168,7 @@ describe("dashboard test: GET /dashboard", () => {
     (DashboardRepository.findUserWithDetails as Mock).mockResolvedValue(mockUser);
     (DashboardRepository.findInvitationsWithStats as Mock).mockResolvedValue([]);
 
-    const res = await request(app).get("/v1/api/dashboard").set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get("/v1/api/dashboard").set("Authorization", `Bearer ${userAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data.stats.totalInvitations).toBe(0);
@@ -129,9 +186,69 @@ describe("dashboard test: GET /dashboard", () => {
   it("mengembalikan 404 jika user tidak ditemukan (404)", async () => {
     (DashboardRepository.findUserWithDetails as Mock).mockResolvedValue(null);
 
-    const res = await request(app).get("/v1/api/dashboard").set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get("/v1/api/dashboard").set("Authorization", `Bearer ${userAuthToken}`);
 
     expect(res.status).toBe(404);
     expect(res.body.message).toBe("Pengguna tidak ditemukan");
+  });
+});
+
+// ── Admin Global Analytics: GET /admin/dashboard/stats ────────────────
+
+describe("admin dashboard test: GET /admin/dashboard/stats", () => {
+  it("berhasil mengambil seluruh metrik agregat statistik platform global (200)", async () => {
+    (DashboardRepository.getPlatformStats as Mock).mockResolvedValue(mockRawPlatformStats);
+
+    const res = await request(app)
+      .get("/v1/api/admin/dashboard/stats")
+      .set("Authorization", `Bearer ${adminAuthToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Statistik platform berhasil diambil");
+
+    // Users
+    expect(res.body.data.users.total).toBe(17);
+    expect(res.body.data.users.byTier).toEqual({ FREE: 10, PRO: 5, MAX: 2 });
+    expect(res.body.data.users.byRole).toEqual({ USER: 16, ADMIN: 1 });
+
+    // Invitations
+    expect(res.body.data.invitations.total).toBe(18);
+    expect(res.body.data.invitations.byStatus).toEqual({ DRAFT: 4, ACTIVE: 12, COMPLETED: 2 });
+    expect(res.body.data.invitations.byCategory.WEDDING).toBe(15);
+    expect(res.body.data.invitations.byCategory.KHITANAN).toBe(3);
+    expect(res.body.data.invitations.byCategory.RASULAN).toBe(0);
+    expect(res.body.data.invitations.byCategory.AQIQAH).toBe(0);
+
+    // Guests & RSVP
+    expect(res.body.data.guests.totalGuests).toBe(250);
+    expect(res.body.data.guests.totalCheckedIn).toBe(180);
+    expect(res.body.data.guests.totalRsvps).toBe(180);
+    expect(res.body.data.guests.byRsvpStatus).toEqual({ CONFIRMED: 150, DECLINED: 30 });
+
+    // Top Templates
+    expect(res.body.data.topTemplates).toHaveLength(1);
+    expect(res.body.data.topTemplates[0]).toEqual({
+      id: "tpl-royal-floral",
+      name: "Royal Floral",
+      slug: "royal-floral",
+      tier: "FREE",
+      previewImageUrl: "https://storage.buwuhan.com/templates/royal-floral.jpg",
+      usageCount: 10,
+    });
+  });
+
+  it("menolak akses jika role pengguna adalah USER biasa (403)", async () => {
+    const res = await request(app)
+      .get("/v1/api/admin/dashboard/stats")
+      .set("Authorization", `Bearer ${userAuthToken}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toBe("Kamu tidak punya akses untuk melakukan aksi ini");
+  });
+
+  it("menolak akses tanpa token autentikasi (401)", async () => {
+    const res = await request(app).get("/v1/api/admin/dashboard/stats");
+
+    expect(res.status).toBe(401);
   });
 });

@@ -1,5 +1,5 @@
 import { prisma } from "../../lib/prisma";
-import { Prisma } from "../../generated/prisma/client";
+import { Prisma, type EventCategory } from "../../generated/prisma/client";
 import type { AddGalleryPhotoReq, AddLoveStoryReq, CreateInvitationReq, InvitationStatusType, UpdateGalleryPhotoReq, UpdateInvitationReq, UpdateLoveStoryReq } from "./invitation.types";
 
 const includeRelations = {
@@ -213,4 +213,108 @@ export class InvitationRepository {
       where: { id },
     });
   }
+
+  // ── Admin Moderation & Overview ─────────────────────────────────────
+
+  static async findManyWithFilterForAdmin(params: AdminInvitationFilterParams) {
+    const where: Prisma.InvitationWhereInput = {};
+
+    if (params.status) {
+      where.status = params.status;
+    }
+
+    if (params.eventCategory) {
+      where.eventCategory = params.eventCategory;
+    }
+
+    if (params.search && params.search.trim()) {
+      const searchTerm = params.search.trim();
+      where.OR = [
+        { title: { contains: searchTerm, mode: "insensitive" } },
+        { slug: { contains: searchTerm, mode: "insensitive" } },
+        { owner: { fullName: { contains: searchTerm, mode: "insensitive" } } },
+        { owner: { email: { contains: searchTerm, mode: "insensitive" } } },
+      ];
+    }
+
+    const [total, invitations] = await Promise.all([
+      prisma.invitation.count({ where }),
+      prisma.invitation.findMany({
+        where,
+        skip: (params.page - 1) * params.limit,
+        take: params.limit,
+        orderBy: { createdAt: "desc" },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              planTier: true,
+            },
+          },
+          template: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              previewImageUrl: true,
+            },
+          },
+          _count: {
+            select: {
+              guests: true,
+              rsvps: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    return { total, invitations };
+  }
+
+  static async findByIdForAdmin(id: string) {
+    return await prisma.invitation.findUnique({
+      where: { id },
+      include: {
+        ...includeRelations,
+        owner: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            planTier: true,
+          },
+        },
+        _count: {
+          select: {
+            guests: true,
+            rsvps: true,
+          },
+        },
+      },
+    });
+  }
+
+  static async updateStatusByAdmin(id: string, status: InvitationStatusType, publishedAt?: Date | null) {
+    const data: Prisma.InvitationUncheckedUpdateInput = { status };
+    if (publishedAt !== undefined) {
+      data.publishedAt = publishedAt;
+    }
+
+    return await prisma.invitation.update({
+      where: { id },
+      data,
+      include: includeRelations,
+    });
+  }
+}
+
+export interface AdminInvitationFilterParams {
+  page: number;
+  limit: number;
+  search?: string | undefined;
+  status?: InvitationStatusType | undefined;
+  eventCategory?: EventCategory | undefined;
 }

@@ -126,5 +126,71 @@ function deactivateTemplateResponse(): DeactivateTemplateRes {
   };
 }
 
-export type { CreateTemplateReq, UpdateTemplateReq, TemplateData, CreateTemplateRes, GetTemplateRes, ListTemplateRes, UpdateTemplateRes, DeactivateTemplateRes };
-export { createTemplateResponse, getTemplateResponse, listTemplateResponse, updateTemplateResponse, deactivateTemplateResponse };
+// ── Admin Template Management Types ─────────────────────────────────
+
+export interface AdminTemplateFilterParams {
+  isActive?: boolean | undefined;
+  tier?: PlanTier | undefined;
+  eventCategory?: EventCategory | undefined;
+  search?: string | undefined;
+}
+
+export interface AdminTemplateListItem {
+  id: string;
+  name: string;
+  slug: string;
+  tier: PlanTier;
+  eventCategory: EventCategory;
+  previewImageUrl: string;
+  isActive: boolean;
+  usageCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AdminTemplateListRes {
+  message: string;
+  status: number;
+  data: AdminTemplateListItem[];
+}
+
+export interface RestoreTemplateRes {
+  message: string;
+  status: number;
+  data: TemplateData;
+}
+
+export function adminTemplateListResponse(templates: AdminTemplateListItem[]): AdminTemplateListRes {
+  return {
+    message: "Daftar seluruh template berhasil diambil",
+    status: 200,
+    data: templates,
+  };
+}
+
+export function restoreTemplateResponse(template: Template, requesterTier: PlanTier): RestoreTemplateRes {
+  return {
+    message: "Template berhasil diaktifkan kembali",
+    status: 200,
+    data: toTemplateData(template, requesterTier),
+  };
+}
+
+export type {
+  CreateTemplateReq,
+  UpdateTemplateReq,
+  TemplateData,
+  CreateTemplateRes,
+  GetTemplateRes,
+  ListTemplateRes,
+  UpdateTemplateRes,
+  DeactivateTemplateRes,
+};
+export {
+  createTemplateResponse,
+  getTemplateResponse,
+  listTemplateResponse,
+  updateTemplateResponse,
+  deactivateTemplateResponse,
+};
+

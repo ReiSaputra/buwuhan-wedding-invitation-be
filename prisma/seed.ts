@@ -201,7 +201,7 @@ async function main() {
     },
   });
 
-  await prisma.rsvp.upsert({
+  await prisma.rSVP.upsert({
     where: {
       invitationId_guestId: {
         invitationId: weddingInvitation.id,
@@ -241,7 +241,7 @@ async function main() {
     },
   });
 
-  await prisma.rsvp.upsert({
+  await prisma.rSVP.upsert({
     where: {
       invitationId_guestId: {
         invitationId: weddingInvitation.id,

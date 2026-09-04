@@ -1480,7 +1480,7 @@
  *   patch:
  *     tags: [Admin - Invitation]
  *     summary: Moderasi status undangan secara sepihak (admin)
- *     description: Mengubah status undangan (misal: mentakedown/menonaktifkan undangan menjadi DRAFT jika ada konten melanggar, atau menandai COMPLETED). Hanya dapat diakses oleh ADMIN.
+ *     description: "Mengubah status undangan (misal: mentakedown/menonaktifkan undangan menjadi DRAFT jika ada konten melanggar, atau menandai COMPLETED). Hanya dapat diakses oleh ADMIN."
  *     security:
  *       - bearerAuth: []
  *     parameters:

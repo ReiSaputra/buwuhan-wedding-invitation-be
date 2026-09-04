@@ -428,7 +428,7 @@
  *   patch:
  *     tags: [Admin - Template]
  *     summary: Aktifkan kembali template yang dinonaktifkan (admin)
- *     description: Mengembalikan template yang sebelumnya berstatus `isActive: false` (akibat soft delete) menjadi aktif kembali (`isActive: true`). Hanya dapat diakses oleh ADMIN.
+ *     description: "Mengembalikan template yang sebelumnya berstatus `isActive: false` (akibat soft delete) menjadi aktif kembali (`isActive: true`). Hanya dapat diakses oleh ADMIN."
  *     security:
  *       - bearerAuth: []
  *     parameters:

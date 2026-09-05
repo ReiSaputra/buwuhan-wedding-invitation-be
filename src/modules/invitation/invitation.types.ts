@@ -1,10 +1,11 @@
-import type { Couple, GalleryPhoto, Invitation, InvitationStatus, LoveStory, Prisma, Template, EventCategory, PlanTier } from "../../generated/prisma/client";
+import type { Couple, GalleryPhoto, GiftAccount, Invitation, InvitationStatus, LoveStory, Prisma, Template, EventCategory, PlanTier } from "../../generated/prisma/client";
 
 export type InvitationWithRelations = Invitation & {
   couples: Couple[];
   template: Template | null;
   galleryPhotos: GalleryPhoto[];
   loveStories: LoveStory[];
+  giftAccounts?: GiftAccount[];
 };
 
 export type CoupleType = "BRIDE" | "GROOM";
@@ -26,6 +27,7 @@ export interface CreateInvitationReq {
   eventTime?: string | undefined;
   venue?: string | undefined;
   address?: string | undefined;
+  giftAddress?: string | null | undefined;
   additionalInfo?: Prisma.InputJsonValue | undefined;
   templateId?: string | undefined;
 }
@@ -39,6 +41,7 @@ export interface UpdateInvitationReq {
   eventTime?: string | null | undefined;
   venue?: string | null | undefined;
   address?: string | null | undefined;
+  giftAddress?: string | null | undefined;
   additionalInfo?: Prisma.InputJsonValue | undefined;
   templateId?: string | undefined;
 }
@@ -105,6 +108,7 @@ export interface InvitationData {
   eventTime: string | null;
   venue: string | null;
   address: string | null;
+  giftAddress: string | null;
   additionalInfo: unknown;
   couples: {
     type: string;
@@ -119,6 +123,14 @@ export interface InvitationData {
   } | null;
   galleryPhotos: GalleryPhotoData[];
   loveStories: LoveStoryData[];
+  giftAccounts: {
+    id: string;
+    bankName: string;
+    accountNumber: string;
+    accountHolder: string;
+    type: string;
+    order: number;
+  }[];
 }
 
 export interface CreateInvitationRes {
@@ -181,6 +193,7 @@ export function toInvitationData(invitation: InvitationWithRelations): Invitatio
     eventTime: invitation.eventTime,
     venue: invitation.venue,
     address: invitation.address,
+    giftAddress: invitation.giftAddress,
     additionalInfo: invitation.additionalInfo,
     couples: (invitation.couples ?? []).map((c) => ({
       type: c.type,
@@ -210,6 +223,14 @@ export function toInvitationData(invitation: InvitationWithRelations): Invitatio
       imageUrl: s.imageUrl,
       order: s.order,
       createdAt: s.createdAt,
+    })),
+    giftAccounts: (invitation.giftAccounts ?? []).map((ga) => ({
+      id: ga.id,
+      bankName: ga.bankName,
+      accountNumber: ga.accountNumber,
+      accountHolder: ga.accountHolder,
+      type: ga.type,
+      order: ga.order,
     })),
   };
 }

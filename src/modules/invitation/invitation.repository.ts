@@ -11,6 +11,9 @@ const includeRelations = {
   loveStories: {
     orderBy: { order: "asc" as const },
   },
+  giftAccounts: {
+    orderBy: { order: "asc" as const },
+  },
 } as const;
 
 export class InvitationRepository {
@@ -49,6 +52,7 @@ export class InvitationRepository {
           eventTime: request.eventTime ?? null,
           venue: request.venue ?? null,
           address: request.address ?? null,
+          giftAddress: request.giftAddress ?? null,
           templateId: request.templateId ?? null,
           additionalInfo: request.additionalInfo ?? {},
           ...(request.couples && request.couples.length > 0
@@ -92,6 +96,7 @@ export class InvitationRepository {
         if (request.eventTime !== undefined) data.eventTime = request.eventTime;
         if (request.venue !== undefined) data.venue = request.venue;
         if (request.address !== undefined) data.address = request.address;
+        if (request.giftAddress !== undefined) data.giftAddress = request.giftAddress;
         if (request.additionalInfo !== undefined) data.additionalInfo = request.additionalInfo;
         if (request.templateId !== undefined) data.templateId = request.templateId;
         if (request.couples !== undefined) {

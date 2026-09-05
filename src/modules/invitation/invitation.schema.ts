@@ -34,6 +34,7 @@ export const createInvitationSchema = z.object({
   eventTime: z.string().trim().max(100).optional().nullable(),
   venue: z.string().trim().max(255).optional().nullable(),
   address: z.string().trim().max(1000).optional().nullable(),
+  giftAddress: z.string().trim().max(1000).optional().nullable(),
   additionalInfo: z.record(z.string(), z.unknown()).optional(),
   templateId: z.string().trim().min(1).optional(),
 });
@@ -54,6 +55,7 @@ export const updateInvitationSchema = z
     eventTime: z.string().trim().max(100).optional().nullable(),
     venue: z.string().trim().max(255).optional().nullable(),
     address: z.string().trim().max(1000).optional().nullable(),
+    giftAddress: z.string().trim().max(1000).optional().nullable(),
     additionalInfo: z.record(z.string(), z.unknown()).optional(),
     templateId: z.string().trim().min(1).optional(),
   })

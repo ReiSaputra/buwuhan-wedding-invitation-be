@@ -162,6 +162,7 @@ describe("template test: Validasi format slug POST /templates", () => {
   });
 
   it("menerima slug kebab-case valid (201)", async () => {
+    (TemplateRepository.findBySlug as Mock).mockResolvedValue(null);
     (TemplateRepository.create as Mock).mockResolvedValue({
       ...mockTemplate,
       slug: "rustic-modern",

@@ -39,6 +39,18 @@ export class InvitationRepository {
     });
   }
 
+  static async countActiveByOwner(ownerId: string): Promise<number> {
+    return await prisma.invitation.count({
+      where: { ownerId, status: "ACTIVE" },
+    });
+  }
+
+  static async countGalleryPhotos(invitationId: string): Promise<number> {
+    return await prisma.galleryPhoto.count({
+      where: { invitationId },
+    });
+  }
+
   static async create(ownerId: string, request: CreateInvitationReq) {
     try {
       return await prisma.invitation.create({

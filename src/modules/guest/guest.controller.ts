@@ -1,15 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 
 import { GuestService } from "./guest.service";
-import type {
-  BulkCreateGuestReq,
-  BulkSendGuestEmailReq,
-  CheckInGuestReq,
-  CheckOutGuestReq,
-  CreateGuestReq,
-  GuestFilterQuery,
-  UpdateGuestReq,
-} from "./guest.types";
+import type { BulkCreateGuestReq, BulkSendGuestEmailReq, CheckInGuestReq, CheckOutGuestReq, CreateGuestReq, GuestFilterQuery, UpdateGuestReq } from "./guest.types";
 
 export class GuestController {
   static async create(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -18,7 +10,7 @@ export class GuestController {
       const ownerId = req.user!.id;
       const request = req.body as CreateGuestReq;
 
-      const response = await GuestService.create(invitationId, ownerId, request);
+      const response = await GuestService.create(invitationId, ownerId, req.user!.planTier, request);
       res.status(201).json(response);
     } catch (error) {
       next(error);
@@ -31,7 +23,7 @@ export class GuestController {
       const ownerId = req.user!.id;
       const request = req.body as BulkCreateGuestReq;
 
-      const response = await GuestService.bulkCreate(invitationId, ownerId, request);
+      const response = await GuestService.bulkCreate(invitationId, ownerId, req.user!.planTier, request);
       res.status(201).json(response);
     } catch (error) {
       next(error);

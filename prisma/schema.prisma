@@ -23,6 +23,29 @@ enum PlanTier {
   MAX
 }
 
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+}
+
+enum BillingPeriod {
+  MONTHLY
+  YEARLY
+}
+
+enum PaymentProvider {
+  MIDTRANS
+}
+
 model User {
   id String @id @default(cuid())
 
@@ -32,8 +55,9 @@ model User {
   role         PlatformRole @default(USER)
   planTier     PlanTier     @default(FREE)
 
-  invitations Invitation[]
-  sessions    Session[]
+  invitations   Invitation[]
+  sessions      Session[]
+  subscriptions Subscription[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -324,4 +348,74 @@ model Gift {
 
   @@index([invitationId])
   @@map("gifts")
+}
+
+// ── Subscription System ──────────────────────────────────────────────────────
+
+model Plan {
+  code     String        @id // "FREE" | "PRO" | "MAX"
+  name     String
+  price    Decimal       @db.Decimal(12, 2)
+  currency String        @default("IDR")
+  period   BillingPeriod
+  features Json // string[] — daftar fitur yang ditampilkan di UI
+  isActive Boolean       @default(true)
+  tier     PlanTier      @unique
+
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("plans")
+}
+
+model Subscription {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  planCode String
+  plan     Plan   @relation(fields: [planCode], references: [code])
+
+  status    SubscriptionStatus @default(PENDING)
+  startedAt DateTime?
+  expiresAt DateTime?
+
+  provider    PaymentProvider?
+  providerRef String? // order_id dari Midtrans
+
+  invoices Invoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id             String @id @default(cuid())
+  subscriptionId String
+  userId         String
+
+  amount   Decimal @db.Decimal(12, 2)
+  currency String  @default("IDR")
+
+  status     InvoiceStatus @default(PENDING)
+  paidAt     DateTime?
+  rawPayload Json? // payload mentah dari webhook gateway
+
+  // Kunci idempotency — sama dengan order_id Midtrans; cegah double-processing
+  idempotencyKey String @unique
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@map("invoices")
 }

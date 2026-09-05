@@ -36,6 +36,7 @@ import {
 } from "./invitation.types";
 
 import { ConflictError, ForbiddenError, NotFoundError } from "../../errors/app.error";
+import { checkQuota, PLAN_QUOTA } from "../../lib/plan-quota";
 
 async function ensureTemplateAccessible(templateId: string, requesterTier: PlanTier): Promise<void> {
   const template = await TemplateRepository.findActiveById(templateId);
@@ -105,10 +106,17 @@ export class InvitationService {
     return updateInvitationResponse(updated);
   }
 
-  static async updateStatus(id: string, ownerId: string, request: UpdateInvitationStatusReq): Promise<UpdateInvitationStatusRes> {
+  static async updateStatus(id: string, ownerId: string, requesterTier: PlanTier, request: UpdateInvitationStatusReq): Promise<UpdateInvitationStatusRes> {
     const existing = await InvitationRepository.findByIdAndOwner(id, ownerId);
 
     if (!existing) throw new NotFoundError("Undangan tidak ditemukan");
+
+    // Jika ingin mengaktifkan undangan (status ACTIVE) dan sebelumnya belum ACTIVE, cek kuota
+    if (request.status === "ACTIVE" && existing.status !== "ACTIVE") {
+      const activeCount = await InvitationRepository.countActiveByOwner(ownerId);
+      const quota = PLAN_QUOTA[requesterTier];
+      checkQuota(activeCount, quota.maxActiveInvitations, "undangan aktif");
+    }
 
     let publishedAt: Date | undefined = undefined;
     if (request.status === "ACTIVE" && !existing.publishedAt) {
@@ -132,10 +140,15 @@ export class InvitationService {
 
   // ── Galeri Foto ──────────────────────────────────────────────────────
 
-  static async addGalleryPhoto(invitationId: string, ownerId: string, request: AddGalleryPhotoReq): Promise<GalleryPhotoRes> {
+  static async addGalleryPhoto(invitationId: string, ownerId: string, requesterTier: PlanTier, request: AddGalleryPhotoReq): Promise<GalleryPhotoRes> {
     const invitation = await InvitationRepository.findByIdAndOwner(invitationId, ownerId);
 
     if (!invitation) throw new NotFoundError("Undangan tidak ditemukan");
+
+    // Cek kuota foto galeri per undangan
+    const photoCount = await InvitationRepository.countGalleryPhotos(invitationId);
+    const quota = PLAN_QUOTA[requesterTier];
+    checkQuota(photoCount, quota.maxGalleryPhotos, "foto galeri");
 
     const photo = await InvitationRepository.addGalleryPhoto(invitationId, request);
 

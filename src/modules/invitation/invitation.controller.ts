@@ -73,7 +73,7 @@ export class InvitationController {
   static async updateStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const request: UpdateInvitationStatusReq = req.body as UpdateInvitationStatusReq;
-      const response: UpdateInvitationStatusRes = await InvitationService.updateStatus(req.params.id as string, req.user!.id, request);
+      const response: UpdateInvitationStatusRes = await InvitationService.updateStatus(req.params.id as string, req.user!.id, req.user!.planTier, request);
       res.status(200).json(response);
     } catch (error) {
       next(error);
@@ -95,7 +95,7 @@ export class InvitationController {
     try {
       const invitationId = req.params.invitationId as string;
       const request = req.body as AddGalleryPhotoReq;
-      const response: GalleryPhotoRes = await InvitationService.addGalleryPhoto(invitationId, req.user!.id, request);
+      const response: GalleryPhotoRes = await InvitationService.addGalleryPhoto(invitationId, req.user!.id, req.user!.planTier, request);
       res.status(201).json(response);
     } catch (error) {
       next(error);

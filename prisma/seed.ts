@@ -5,6 +5,57 @@ import { prisma } from "../src/lib/prisma";
 async function main() {
   console.log("🌱 Memulai seeding database Buwuhan Platform...");
 
+  // 0. Seed Plans (FREE, PRO, MAX)
+  const plans = [
+    {
+      code: "FREE",
+      name: "Paket Gratis",
+      price: 0,
+      currency: "IDR",
+      period: "MONTHLY" as const,
+      features: ["1 undangan aktif", "Maksimal 50 tamu per undangan", "10 foto galeri", "Template standar", "RSVP & buku tamu"],
+      isActive: true,
+      tier: "FREE" as const,
+    },
+    {
+      code: "PRO",
+      name: "Paket Pro",
+      price: 49000,
+      currency: "IDR",
+      period: "MONTHLY" as const,
+      features: ["Hingga 5 undangan aktif", "Maksimal 500 tamu per undangan", "50 foto galeri", "Template eksklusif Pro", "Kirim undangan WhatsApp/Email", "Export data tamu (Excel)"],
+      isActive: true,
+      tier: "PRO" as const,
+    },
+    {
+      code: "MAX",
+      name: "Paket Unlimited Max",
+      price: 99000,
+      currency: "IDR",
+      period: "MONTHLY" as const,
+      features: ["Undangan aktif tanpa batas", "Tamu per undangan tanpa batas", "Foto galeri tanpa batas", "Akses ke seluruh template (termasuk Max)", "Fitur amplop digital & QR check-in VIP", "Prioritas bantuan support 24/7"],
+      isActive: true,
+      tier: "MAX" as const,
+    },
+  ];
+
+  for (const plan of plans) {
+    await prisma.plan.upsert({
+      where: { code: plan.code },
+      update: {
+        name: plan.name,
+        price: plan.price,
+        currency: plan.currency,
+        period: plan.period,
+        features: plan.features,
+        isActive: plan.isActive,
+        tier: plan.tier,
+      },
+      create: plan,
+    });
+    console.log(`✅ Plan: ${plan.name} (${plan.code}) - Rp ${plan.price.toLocaleString("id-ID")}`);
+  }
+
   // 1. Seed Templates Terlebih Dahulu (diperlukan untuk relasi undangan)
   const templates = [
     {

@@ -1,11 +1,5 @@
 import { prisma } from "../../lib/prisma";
-import type {
-  CreateGiftAccountReq,
-  CreateGiftReq,
-  GiftSummaryData,
-  UpdateGiftAccountReq,
-  UpdateGiftReq,
-} from "./gift.types";
+import type { CreateGiftAccountReq, CreateGiftReq, GiftSummaryData, UpdateGiftAccountReq, UpdateGiftReq } from "./gift.types";
 
 export class GiftRepository {
   static async findInvitationById(id: string) {
@@ -46,7 +40,13 @@ export class GiftRepository {
   static async updateGiftAccount(id: string, data: UpdateGiftAccountReq) {
     return await prisma.giftAccount.update({
       where: { id },
-      data,
+      data: {
+        ...(data.bankName !== undefined && { bankName: data.bankName }),
+        ...(data.accountNumber !== undefined && { accountNumber: data.accountNumber }),
+        ...(data.accountHolder !== undefined && { accountHolder: data.accountHolder }),
+        ...(data.type !== undefined && { type: data.type }),
+        ...(data.order !== undefined && { order: data.order }),
+      },
     });
   }
 
@@ -79,7 +79,7 @@ export class GiftRepository {
         amount: data.amount,
         method: data.method ?? "TRANSFER",
         note: data.note ?? null,
-        receivedAt: data.receivedAt ? new Date(data.receivedAt) : undefined,
+        ...(data.receivedAt ? { receivedAt: new Date(data.receivedAt) } : {}),
       },
     });
   }
@@ -132,4 +132,3 @@ export class GiftRepository {
     };
   }
 }
-

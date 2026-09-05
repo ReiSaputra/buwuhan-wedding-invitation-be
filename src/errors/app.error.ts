@@ -43,6 +43,12 @@ export class ForbiddenError extends AppError {
   }
 }
 
+export class QuotaExceededError extends AppError {
+  constructor(message = "Kuota paket kamu sudah habis") {
+    super(message, 403, "QUOTA_EXCEEDED");
+  }
+}
+
 export class EmailDeliveryError extends AppError {
   constructor(message = "Gagal mengirim email, pastikan alamat email valid atau coba beberapa saat lagi") {
     super(message, 502, "EMAIL_DELIVERY_FAILED");

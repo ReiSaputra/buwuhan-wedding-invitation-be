@@ -39,6 +39,8 @@ import { EmailDeliveryError, NotFoundError, ValidationError } from "../../errors
 import { mailer } from "../../lib/mailer";
 import { generateInvitationEmailHtml, generateInvitationEmailText } from "./guest.mail";
 import { logger } from "../../utils/log";
+import type { PlanTier } from "../../generated/prisma/client";
+import { checkQuota, PLAN_QUOTA } from "../../lib/plan-quota";
 
 function generateQrToken(): string {
   // Generate random token 12 karakter hex huruf besar (contoh: 7B3A9C12E4F0)
@@ -51,12 +53,17 @@ function formatCoupleNames(couples?: { name: string }[]): string | undefined {
 }
 
 export class GuestService {
-  static async create(invitationId: string, ownerId: string, request: CreateGuestReq): Promise<CreateGuestRes> {
+  static async create(invitationId: string, ownerId: string, requesterTier: PlanTier, request: CreateGuestReq): Promise<CreateGuestRes> {
     const invitation = await GuestRepository.findInvitationByIdAndOwner(invitationId, ownerId);
 
     if (!invitation) {
       throw new NotFoundError("Undangan tidak ditemukan");
     }
+
+    // Cek kuota tamu per undangan
+    const guestCount = await GuestRepository.countByInvitationId(invitationId);
+    const quota = PLAN_QUOTA[requesterTier];
+    checkQuota(guestCount, quota.maxGuestsPerInvitation, "tamu per undangan");
 
     const qrCode = generateQrToken();
     const guest = await GuestRepository.create(invitationId, request, qrCode);
@@ -65,11 +72,18 @@ export class GuestService {
     return createGuestResponse(guest, invitation.slug, coupleNames);
   }
 
-  static async bulkCreate(invitationId: string, ownerId: string, request: BulkCreateGuestReq): Promise<BulkCreateGuestRes> {
+  static async bulkCreate(invitationId: string, ownerId: string, requesterTier: PlanTier, request: BulkCreateGuestReq): Promise<BulkCreateGuestRes> {
     const invitation = await GuestRepository.findInvitationByIdAndOwner(invitationId, ownerId);
 
     if (!invitation) {
       throw new NotFoundError("Undangan tidak ditemukan");
+    }
+
+    // Cek kuota tamu per undangan dengan batch
+    const currentGuestCount = await GuestRepository.countByInvitationId(invitationId);
+    const quota = PLAN_QUOTA[requesterTier];
+    if (quota.maxGuestsPerInvitation !== -1 && currentGuestCount + request.guests.length > quota.maxGuestsPerInvitation) {
+      checkQuota(quota.maxGuestsPerInvitation, quota.maxGuestsPerInvitation, "tamu per undangan");
     }
 
     const guestsWithQr = request.guests.map((g) => ({

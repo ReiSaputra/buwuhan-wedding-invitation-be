@@ -23,6 +23,12 @@ export class GuestRepository {
     });
   }
 
+  static async countByInvitationId(invitationId: string): Promise<number> {
+    return await prisma.guest.count({
+      where: { invitationId },
+    });
+  }
+
   static async create(invitationId: string, request: CreateGuestReq, qrCode: string) {
     return await prisma.guest.create({
       data: {
@@ -53,8 +59,8 @@ export class GuestRepository {
             paxCount: g.paxCount ?? 1,
             qrCode: g.qrCode,
           },
-        })
-      )
+        }),
+      ),
     );
   }
 

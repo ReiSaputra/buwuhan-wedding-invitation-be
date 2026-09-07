@@ -178,7 +178,7 @@ export interface GetGuestShareRes {
 
 export function buildInvitationUrl(invitationSlug: string, qrCode: string): string {
   const baseUrl = process.env.FRONTEND_URL || "https://buwuhan.com";
-  return `${baseUrl}/invitation/${invitationSlug}?to=${encodeURIComponent(qrCode)}`;
+  return `${baseUrl}/undangan/${invitationSlug}?to=${encodeURIComponent(qrCode)}`;
 }
 
 export function buildInvitationShareMessage(guestName: string, invitationSlug: string, qrCode: string, coupleNames?: string): string {
@@ -328,12 +328,7 @@ export function sendGuestEmailResponse(guest: Guest): SendGuestEmailRes {
   };
 }
 
-export function bulkSendGuestEmailResponse(
-  totalTargeted: number,
-  totalSent: number,
-  totalFailed: number,
-  results: { guestId: string; guestName: string; email: string; success: boolean; error?: string }[],
-): BulkSendGuestEmailRes {
+export function bulkSendGuestEmailResponse(totalTargeted: number, totalSent: number, totalFailed: number, results: { guestId: string; guestName: string; email: string; success: boolean; error?: string }[]): BulkSendGuestEmailRes {
   return {
     message: `Proses pengiriman email selesai: ${totalSent} berhasil, ${totalFailed} gagal`,
     status: 200,

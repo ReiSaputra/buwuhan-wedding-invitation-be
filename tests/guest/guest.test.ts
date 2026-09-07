@@ -449,12 +449,17 @@ describe("guest test: send email & share links", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data.guestName).toBe("Rizky Ramadhan");
-    expect(res.body.data.invitationUrl).toContain("ayu-dan-budi");
+    // URL harus memakai prefix /undangan/ (bukan /invitation/)
+    expect(res.body.data.invitationUrl).toBe(`http://localhost:5173/undangan/${mockInvitation.slug}?to=${mockGuest.qrCode}`);
+    expect(res.body.data.invitationUrl).not.toContain("/invitation/");
     expect(res.body.data.shareMessage).toContain("Rizky Ramadhan");
-    expect(res.body.data.shareMessage).toContain(mockGuest.qrCode);
-    // WhatsApp direct link harus memiliki format 628xxx (bukan 08xxx)
+    expect(res.body.data.shareMessage).toContain(`/undangan/${mockInvitation.slug}?to=${mockGuest.qrCode}`);
+    expect(res.body.data.shareMessage).not.toContain("/invitation/");
+    // WhatsApp direct link harus memiliki format 628xxx (bukan 08xxx) dan menyertakan rute /undangan/
     expect(res.body.data.whatsappShareUrl).toContain("phone=6281234567890");
+    expect(res.body.data.whatsappShareUrl).toContain(encodeURIComponent(`/undangan/${mockInvitation.slug}?to=${mockGuest.qrCode}`));
     // WhatsApp universal share URL harus ada (tanpa parameter phone)
     expect(res.body.data.whatsappUniversalShareUrl).toContain("api.whatsapp.com/send?text=");
+    expect(res.body.data.whatsappUniversalShareUrl).toContain(encodeURIComponent(`/undangan/${mockInvitation.slug}?to=${mockGuest.qrCode}`));
   });
 });

@@ -211,7 +211,7 @@ Lokasi: `src/modules/guest/`. Terdaftar di `v1Router`.
 
 > **Fitur Share & Email Tamu:**
 >
-> - **WhatsApp Share URL**: Tautan langsung chat WA (`https://api.whatsapp.com/send?phone=628xxx&text=...`) maupun share universal (`?text=...`) yang memuat link personal tamu (`/invitation/:slug?to=:qrCode`).
+> - **WhatsApp Share URL**: Tautan langsung chat WA (`https://api.whatsapp.com/send?phone=628xxx&text=...`) maupun share universal (`?text=...`) yang memuat link personal tamu (`/undangan/:slug?to=:qrCode`).
 > - **Email Provider**: Pengiriman email undangan digital + kode tiket presensi personal menggunakan SMTP/Nodemailer (single & bulk).
 
 - Testing: **24 test lolos** di `tests/guest/guest.test.ts`.

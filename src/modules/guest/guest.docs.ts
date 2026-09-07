@@ -155,7 +155,7 @@
  *         invitationUrl:
  *           type: string
  *           description: URL personal undangan yang membawa token tamu.
- *           example: "https://buwuhan.com/invitation/ayu-dan-budi?to=7B3A9C12E4F0"
+ *           example: "https://buwuhan.com/undangan/ayu-dan-budi?to=7B3A9C12E4F0"
  *         whatsappShareUrl:
  *           type: string
  *           nullable: true
@@ -587,7 +587,7 @@
  *                 checkedInAt: "2026-08-26T14:30:00.000Z"
  *                 checkedOutAt: "2026-08-26T17:00:00.000Z"
  *                 invitationId: "cly3k8a1b0000v8og3f1a1111"
- *                 invitationUrl: "https://buwuhan.com/invitation/ayu-dan-budi?to=7B3A9C12E4F0"
+ *                 invitationUrl: "https://buwuhan.com/undangan/ayu-dan-budi?to=7B3A9C12E4F0"
  *                 whatsappShareUrl: "https://api.whatsapp.com/send?phone=6281234567890&text=Halo%20Rizky..."
  *                 createdAt: "2026-08-26T10:00:00.000Z"
  *                 updatedAt: "2026-08-26T17:00:00.000Z"
@@ -660,7 +660,7 @@
  *                 checkedInAt: null
  *                 checkedOutAt: null
  *                 invitationId: "cly3k8a1b0000v8og3f1a1111"
- *                 invitationUrl: "https://buwuhan.com/invitation/ayu-dan-budi?to=7B3A9C12E4F0"
+ *                 invitationUrl: "https://buwuhan.com/undangan/ayu-dan-budi?to=7B3A9C12E4F0"
  *                 whatsappShareUrl: "https://api.whatsapp.com/send?phone=6281234567890&text=Halo%20Rizky..."
  *                 whatsappUniversalShareUrl: "https://api.whatsapp.com/send?text=Halo%20Rizky..."
  *                 createdAt: "2026-08-26T10:00:00.000Z"
@@ -790,7 +790,7 @@
  *                 phone: "081234567890"
  *                 email: "rizky@example.com"
  *                 qrCode: "7B3A9C12E4F0"
- *                 invitationUrl: "https://buwuhan.com/invitation/ayu-dan-budi?to=7B3A9C12E4F0"
+ *                 invitationUrl: "https://buwuhan.com/undangan/ayu-dan-budi?to=7B3A9C12E4F0"
  *                 shareMessage: "Halo Rizky Ramadhan,\n\nKami mengundang Anda..."
  *                 whatsappShareUrl: "https://api.whatsapp.com/send?phone=6281234567890&text=Halo..."
  *                 whatsappUniversalShareUrl: "https://api.whatsapp.com/send?text=Halo..."

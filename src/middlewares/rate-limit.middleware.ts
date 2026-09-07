@@ -38,3 +38,13 @@ export const refreshTokenRateLimiter = rateLimit({
   skip: skipInTest,
   message: { success: false, message: "Terlalu banyak percobaan, coba lagi nanti" },
 });
+
+// Upload: batasi upload berkas untuk mencegah abuse penyimpanan & bandwidth.
+export const uploadRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTest,
+  message: { success: false, message: "Terlalu banyak unggahan berkas, coba lagi nanti" },
+});

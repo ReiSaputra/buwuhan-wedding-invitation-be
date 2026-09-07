@@ -11,6 +11,7 @@ import { buwuhanRouter } from "../../modules/buwuhan/buwuhan.routes";
 import { giftRouter } from "../../modules/gift/gift.routes";
 import { memberRouter } from "../../modules/member/member.routes";
 import { subscriptionRouter } from "../../modules/subscription/subscription.routes";
+import { uploadRouter } from "../../modules/upload/upload.routes";
 import { checkSubscriptionExpiry } from "../../middlewares/subscription.middleware";
 
 const v1Router = Router();
@@ -28,5 +29,6 @@ v1Router.use("/api", dashboardRouter);
 v1Router.use("/api", buwuhanRouter);
 v1Router.use("/api", giftRouter);
 v1Router.use("/api", memberRouter);
+v1Router.use("/api", uploadRouter);
 
 export { v1Router };

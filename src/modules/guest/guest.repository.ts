@@ -15,7 +15,18 @@ export class GuestRepository {
     return await prisma.invitation.findFirst({
       where: {
         id: invitationId,
-        ownerId,
+        OR: [
+          { ownerId },
+          {
+            members: {
+              some: {
+                userId: ownerId,
+                acceptedAt: { not: null },
+                revokedAt: null,
+              },
+            },
+          },
+        ],
       },
       include: {
         couples: true,

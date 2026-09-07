@@ -55,9 +55,10 @@ model User {
   role         PlatformRole @default(USER)
   planTier     PlanTier     @default(FREE)
 
-  invitations   Invitation[]
-  sessions      Session[]
-  subscriptions Subscription[]
+  invitations        Invitation[]
+  invitationMembers  InvitationMember[]
+  sessions           Session[]
+  subscriptions      Subscription[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -119,6 +120,7 @@ model Invitation {
   ownerId String
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
+  members       InvitationMember[]
   couples       Couple[]
   guests        Guest[]
   rsvps         RSVP[]
@@ -132,6 +134,41 @@ model Invitation {
   updatedAt DateTime @updatedAt
 
   @@map("invitations")
+}
+
+enum InvitationRole {
+  OWNER
+  ADMIN
+  USER
+}
+
+model InvitationMember {
+  id String @id @default(cuid())
+
+  invitationId String
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  email String         @db.Citext
+  name  String
+  role  InvitationRole @default(USER)
+
+  inviteTokenHash      String?   @unique
+  inviteTokenExpiresAt DateTime?
+
+  invitedAt  DateTime  @default(now())
+  acceptedAt DateTime?
+  revokedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([invitationId, email])
+  @@index([invitationId])
+  @@index([userId])
+  @@map("invitation_members")
 }
 
 enum CoupleType {

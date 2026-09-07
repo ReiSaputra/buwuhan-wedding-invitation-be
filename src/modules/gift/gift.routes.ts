@@ -8,6 +8,7 @@ import {
 } from "./gift.schema";
 import { validate } from "../../middlewares/validate.middleware";
 import { requireAuth } from "../../middlewares/auth.middleware";
+import { requireInvitationRole } from "../../middlewares/invitation-role.middleware";
 
 export const giftRouter = Router();
 
@@ -15,12 +16,14 @@ export const giftRouter = Router();
 giftRouter.get(
   "/invitations/:invitationId/gift-accounts",
   requireAuth,
+  requireInvitationRole("OWNER", "ADMIN"),
   GiftController.listAccounts
 );
 
 giftRouter.post(
   "/invitations/:invitationId/gift-accounts",
   requireAuth,
+  requireInvitationRole("OWNER", "ADMIN"),
   validate(createGiftAccountSchema),
   GiftController.createAccount
 );
@@ -43,18 +46,21 @@ giftRouter.delete(
 giftRouter.get(
   "/invitations/:invitationId/gifts/summary",
   requireAuth,
+  requireInvitationRole("OWNER", "ADMIN"),
   GiftController.getGiftsSummary
 );
 
 giftRouter.get(
   "/invitations/:invitationId/gifts",
   requireAuth,
+  requireInvitationRole("OWNER", "ADMIN"),
   GiftController.listGifts
 );
 
 giftRouter.post(
   "/invitations/:invitationId/gifts",
   requireAuth,
+  requireInvitationRole("OWNER", "ADMIN"),
   validate(createGiftSchema),
   GiftController.createGift
 );

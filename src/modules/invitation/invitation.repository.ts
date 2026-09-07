@@ -26,14 +26,41 @@ export class InvitationRepository {
 
   static async findByIdAndOwner(id: string, ownerId: string) {
     return await prisma.invitation.findFirst({
-      where: { id, ownerId },
+      where: {
+        id,
+        OR: [
+          { ownerId },
+          {
+            members: {
+              some: {
+                userId: ownerId,
+                acceptedAt: { not: null },
+                revokedAt: null,
+              },
+            },
+          },
+        ],
+      },
       include: includeRelations,
     });
   }
 
   static async findManyByOwner(ownerId: string) {
     return await prisma.invitation.findMany({
-      where: { ownerId },
+      where: {
+        OR: [
+          { ownerId },
+          {
+            members: {
+              some: {
+                userId: ownerId,
+                acceptedAt: { not: null },
+                revokedAt: null,
+              },
+            },
+          },
+        ],
+      },
       include: includeRelations,
       orderBy: { createdAt: "desc" },
     });

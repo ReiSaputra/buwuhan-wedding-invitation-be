@@ -5,11 +5,14 @@ import jwt from "jsonwebtoken";
 
 import { rsvpRouter } from "../../src/modules/rsvp/rsvp.routes";
 import { RSVPRepository } from "../../src/modules/rsvp/rsvp.repository";
+import { MemberRepository } from "../../src/modules/member/member.repository";
 import { errorHandler } from "../../src/middlewares/error.middleware";
 
 process.env.JWT_SECRET = "test-jwt-secret";
 
 beforeAll(() => {
+  vi.spyOn(MemberRepository, "findInvitationById");
+  vi.spyOn(MemberRepository, "findMemberRole");
   vi.spyOn(RSVPRepository, "findPublishedInvitationBySlug");
   vi.spyOn(RSVPRepository, "findInvitationByIdAndOwner");
   vi.spyOn(RSVPRepository, "findGuestByQrCode");
@@ -93,6 +96,8 @@ const mockRSVP = {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  (MemberRepository.findInvitationById as Mock).mockResolvedValue(mockInvitation);
+  (MemberRepository.findMemberRole as Mock).mockResolvedValue("OWNER");
 });
 
 describe("rsvp test: submit RSVP (Public)", () => {

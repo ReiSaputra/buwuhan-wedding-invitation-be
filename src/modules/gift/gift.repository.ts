@@ -5,7 +5,18 @@ export class GiftRepository {
   static async findInvitationById(id: string) {
     return await prisma.invitation.findUnique({
       where: { id },
-      select: { id: true, ownerId: true },
+      select: {
+        id: true,
+        ownerId: true,
+        members: {
+          select: {
+            userId: true,
+            role: true,
+            acceptedAt: true,
+            revokedAt: true,
+          },
+        },
+      },
     });
   }
 
@@ -20,7 +31,22 @@ export class GiftRepository {
   static async findGiftAccountById(id: string) {
     return await prisma.giftAccount.findUnique({
       where: { id },
-      include: { invitation: { select: { id: true, ownerId: true } } },
+      include: {
+        invitation: {
+          select: {
+            id: true,
+            ownerId: true,
+            members: {
+              select: {
+                userId: true,
+                role: true,
+                acceptedAt: true,
+                revokedAt: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -67,7 +93,22 @@ export class GiftRepository {
   static async findGiftById(id: string) {
     return await prisma.gift.findUnique({
       where: { id },
-      include: { invitation: { select: { id: true, ownerId: true } } },
+      include: {
+        invitation: {
+          select: {
+            id: true,
+            ownerId: true,
+            members: {
+              select: {
+                userId: true,
+                role: true,
+                acceptedAt: true,
+                revokedAt: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 

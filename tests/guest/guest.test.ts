@@ -5,12 +5,15 @@ import jwt from "jsonwebtoken";
 
 import { guestRouter } from "../../src/modules/guest/guest.routes";
 import { GuestRepository } from "../../src/modules/guest/guest.repository";
+import { MemberRepository } from "../../src/modules/member/member.repository";
 import { errorHandler } from "../../src/middlewares/error.middleware";
 import { mailer } from "../../src/lib/mailer";
 
 process.env.JWT_SECRET = "test-jwt-secret";
 
 beforeAll(() => {
+  vi.spyOn(MemberRepository, "findInvitationById");
+  vi.spyOn(MemberRepository, "findMemberRole");
   vi.spyOn(GuestRepository, "findInvitationByIdAndOwner");
   vi.spyOn(GuestRepository, "findInvitationWithCouples");
   vi.spyOn(GuestRepository, "create");
@@ -91,6 +94,8 @@ const mockGuest = {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  (MemberRepository.findInvitationById as Mock).mockResolvedValue(mockInvitation);
+  (MemberRepository.findMemberRole as Mock).mockResolvedValue("OWNER");
   mailer.setTransporter({
     sendMail: vi.fn().mockResolvedValue({ messageId: "mock-msg-id", accepted: [], rejected: [] }),
   } as never);

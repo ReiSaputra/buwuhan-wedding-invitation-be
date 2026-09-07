@@ -5,29 +5,30 @@ import { addGalleryPhotoSchema, addLoveStorySchema, createInvitationSchema, upda
 import { validate } from "../../middlewares/validate.middleware";
 import { requireAuth } from "../../middlewares/auth.middleware";
 import { requireRole } from "../../middlewares/role.middleware";
+import { requireInvitationRole } from "../../middlewares/invitation-role.middleware";
 
 export const invitationRouter = Router();
 
 // Publik -- dibuka tamu lewat link undangan
 invitationRouter.get("/public/invitations/:slug", InvitationController.getPublicBySlug);
 
-// Protected -- Pengelolaan undangan oleh pemilik
+// Protected -- Pengelolaan undangan
 invitationRouter.post("/invitations", requireAuth, validate(createInvitationSchema), InvitationController.create);
 invitationRouter.get("/invitations", requireAuth, InvitationController.listMine);
-invitationRouter.get("/invitations/:id", requireAuth, InvitationController.getOwned);
-invitationRouter.patch("/invitations/:id", requireAuth, validate(updateInvitationSchema), InvitationController.update);
-invitationRouter.patch("/invitations/:id/status", requireAuth, validate(updateInvitationStatusSchema), InvitationController.updateStatus);
-invitationRouter.delete("/invitations/:id", requireAuth, InvitationController.remove);
+invitationRouter.get("/invitations/:id", requireAuth, requireInvitationRole("OWNER", "ADMIN", "USER"), InvitationController.getOwned);
+invitationRouter.patch("/invitations/:id", requireAuth, requireInvitationRole("OWNER", "ADMIN"), validate(updateInvitationSchema), InvitationController.update);
+invitationRouter.patch("/invitations/:id/status", requireAuth, requireInvitationRole("OWNER", "ADMIN"), validate(updateInvitationStatusSchema), InvitationController.updateStatus);
+invitationRouter.delete("/invitations/:id", requireAuth, requireInvitationRole("OWNER"), InvitationController.remove);
 
 // Galeri Foto
-invitationRouter.post("/invitations/:invitationId/gallery", requireAuth, validate(addGalleryPhotoSchema), InvitationController.addGalleryPhoto);
-invitationRouter.patch("/invitations/:invitationId/gallery/:id", requireAuth, validate(updateGalleryPhotoSchema), InvitationController.updateGalleryPhoto);
-invitationRouter.delete("/invitations/:invitationId/gallery/:id", requireAuth, InvitationController.removeGalleryPhoto);
+invitationRouter.post("/invitations/:invitationId/gallery", requireAuth, requireInvitationRole("OWNER", "ADMIN"), validate(addGalleryPhotoSchema), InvitationController.addGalleryPhoto);
+invitationRouter.patch("/invitations/:invitationId/gallery/:id", requireAuth, requireInvitationRole("OWNER", "ADMIN"), validate(updateGalleryPhotoSchema), InvitationController.updateGalleryPhoto);
+invitationRouter.delete("/invitations/:invitationId/gallery/:id", requireAuth, requireInvitationRole("OWNER", "ADMIN"), InvitationController.removeGalleryPhoto);
 
 // Kisah Cinta (Love Story)
-invitationRouter.post("/invitations/:invitationId/stories", requireAuth, validate(addLoveStorySchema), InvitationController.addLoveStory);
-invitationRouter.patch("/invitations/:invitationId/stories/:id", requireAuth, validate(updateLoveStorySchema), InvitationController.updateLoveStory);
-invitationRouter.delete("/invitations/:invitationId/stories/:id", requireAuth, InvitationController.removeLoveStory);
+invitationRouter.post("/invitations/:invitationId/stories", requireAuth, requireInvitationRole("OWNER", "ADMIN"), validate(addLoveStorySchema), InvitationController.addLoveStory);
+invitationRouter.patch("/invitations/:invitationId/stories/:id", requireAuth, requireInvitationRole("OWNER", "ADMIN"), validate(updateLoveStorySchema), InvitationController.updateLoveStory);
+invitationRouter.delete("/invitations/:invitationId/stories/:id", requireAuth, requireInvitationRole("OWNER", "ADMIN"), InvitationController.removeLoveStory);
 
 // ── Admin-only -- Monitoring & Moderasi Seluruh Undangan ──────────────
 invitationRouter.get("/admin/invitations", requireAuth, requireRole("ADMIN"), InvitationController.listAdminInvitations);

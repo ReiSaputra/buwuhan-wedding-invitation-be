@@ -5,11 +5,14 @@ import jwt from "jsonwebtoken";
 
 import { giftRouter } from "../../src/modules/gift/gift.routes";
 import { GiftRepository } from "../../src/modules/gift/gift.repository";
+import { MemberRepository } from "../../src/modules/member/member.repository";
 import { errorHandler } from "../../src/middlewares/error.middleware";
 
 process.env.JWT_SECRET = "test-jwt-secret";
 
 beforeAll(() => {
+  vi.spyOn(MemberRepository, "findInvitationById");
+  vi.spyOn(MemberRepository, "findMemberRole");
   vi.spyOn(GiftRepository, "findInvitationById");
   vi.spyOn(GiftRepository, "findGiftAccountsByInvitationId");
   vi.spyOn(GiftRepository, "findGiftAccountById");
@@ -86,6 +89,8 @@ describe("POST /v1/api/invitations/:invitationId/gift-accounts", () => {
   };
 
   beforeEach(() => {
+    (MemberRepository.findInvitationById as Mock).mockResolvedValue(mockInvitation);
+    (MemberRepository.findMemberRole as Mock).mockResolvedValue("OWNER");
     (GiftRepository.findInvitationById as Mock).mockResolvedValue(mockInvitation);
     (GiftRepository.createGiftAccount as Mock).mockResolvedValue(mockGiftAccount);
   });

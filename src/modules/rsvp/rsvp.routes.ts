@@ -1,9 +1,10 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 
 import { RSVPController } from "./rsvp.controller";
 import { submitRSVPSchema } from "./rsvp.schema";
 import { validate } from "../../middlewares/validate.middleware";
 import { requireAuth } from "../../middlewares/auth.middleware";
+import { requireInvitationRole } from "../../middlewares/invitation-role.middleware";
 
 export const rsvpRouter = Router();
 
@@ -15,3 +16,6 @@ rsvpRouter.get("/public/invitations/:slug/wishes", RSVPController.listWishes);
 rsvpRouter.get("/invitations/:invitationId/rsvps", requireAuth, RSVPController.listByInvitation);
 rsvpRouter.get("/invitations/:invitationId/rsvps/stats", requireAuth, RSVPController.getStats);
 rsvpRouter.delete("/invitations/:invitationId/rsvps/:id", requireAuth, RSVPController.delete);
+rsvpRouter.get("/invitations/:invitationId/rsvps", requireAuth, requireInvitationRole("OWNER", "ADMIN", "USER"), RSVPController.listByInvitation);
+rsvpRouter.get("/invitations/:invitationId/rsvps/stats", requireAuth, requireInvitationRole("OWNER", "ADMIN", "USER"), RSVPController.getStats);
+rsvpRouter.delete("/invitations/:invitationId/rsvps/:id", requireAuth, requireInvitationRole("OWNER", "ADMIN"), RSVPController.delete);

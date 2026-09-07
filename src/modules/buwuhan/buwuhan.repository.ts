@@ -4,7 +4,21 @@ import type { CreateBuwuhanReq, UpdateBuwuhanReq } from "./buwuhan.types";
 export class BuwuhanRepository {
   static async findInvitationByIdAndOwner(invitationId: string, ownerId: string) {
     return await prisma.invitation.findFirst({
-      where: { id: invitationId, ownerId },
+      where: {
+        id: invitationId,
+        OR: [
+          { ownerId },
+          {
+            members: {
+              some: {
+                userId: ownerId,
+                acceptedAt: { not: null },
+                revokedAt: null,
+              },
+            },
+          },
+        ],
+      },
     });
   }
 
@@ -129,10 +143,7 @@ export class BuwuhanRepository {
     }
 
     // Temukan top item berdasarkan totalQuantity tertinggi
-    const topItem = Object.values(itemAggr).reduce<{ itemName: string; unit: string; totalQuantity: number } | null>(
-      (max, curr) => (max === null || curr.totalQuantity > max.totalQuantity ? curr : max),
-      null
-    );
+    const topItem = Object.values(itemAggr).reduce<{ itemName: string; unit: string; totalQuantity: number } | null>((max, curr) => (max === null || curr.totalQuantity > max.totalQuantity ? curr : max), null);
 
     return {
       totalItems,

@@ -6,12 +6,15 @@ import jwt from "jsonwebtoken";
 import { invitationRouter } from "../../src/modules/invitation/invitation.routes";
 import { InvitationRepository } from "../../src/modules/invitation/invitation.repository";
 import { TemplateRepository } from "../../src/modules/template/template.repository";
+import { MemberRepository } from "../../src/modules/member/member.repository";
 import { errorHandler } from "../../src/middlewares/error.middleware";
 import { Prisma } from "../../src/generated/prisma/client";
 
 process.env.JWT_SECRET = "test-jwt-secret";
 
 beforeAll(() => {
+  vi.spyOn(MemberRepository, "findInvitationById");
+  vi.spyOn(MemberRepository, "findMemberRole");
   vi.spyOn(InvitationRepository, "findBySlug");
   vi.spyOn(InvitationRepository, "findByIdAndOwner");
   vi.spyOn(InvitationRepository, "findManyByOwner");
@@ -107,6 +110,8 @@ const mockInvitation = {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  (MemberRepository.findInvitationById as Mock).mockResolvedValue(mockInvitation);
+  (MemberRepository.findMemberRole as Mock).mockResolvedValue("OWNER");
 });
 
 describe("invitation test: CRUD & Public", () => {

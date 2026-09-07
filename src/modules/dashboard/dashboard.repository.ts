@@ -14,7 +14,20 @@ export class DashboardRepository {
 
   static async findInvitationsWithStats(userId: string) {
     return await prisma.invitation.findMany({
-      where: { ownerId: userId },
+      where: {
+        OR: [
+          { ownerId: userId },
+          {
+            members: {
+              some: {
+                userId,
+                acceptedAt: { not: null },
+                revokedAt: null,
+              },
+            },
+          },
+        ],
+      },
       include: {
         template: {
           select: {
@@ -35,16 +48,7 @@ export class DashboardRepository {
   // ── Admin Platform Global Analytics ──────────────────────────────────
 
   static async getPlatformStats() {
-    const [
-      usersByTier,
-      usersByRole,
-      invitationsByStatus,
-      invitationsByCategory,
-      totalGuests,
-      totalCheckedIn,
-      rsvpsByStatus,
-      topTemplates,
-    ] = await Promise.all([
+    const [usersByTier, usersByRole, invitationsByStatus, invitationsByCategory, totalGuests, totalCheckedIn, rsvpsByStatus, topTemplates] = await Promise.all([
       prisma.user.groupBy({
         by: ["planTier"],
         _count: { _all: true },

@@ -5,11 +5,14 @@ import jwt from "jsonwebtoken";
 
 import { buwuhanRouter } from "../../src/modules/buwuhan/buwuhan.routes";
 import { BuwuhanRepository } from "../../src/modules/buwuhan/buwuhan.repository";
+import { MemberRepository } from "../../src/modules/member/member.repository";
 import { errorHandler } from "../../src/middlewares/error.middleware";
 
 process.env.JWT_SECRET = "test-jwt-secret";
 
 beforeAll(() => {
+  vi.spyOn(MemberRepository, "findInvitationById");
+  vi.spyOn(MemberRepository, "findMemberRole");
   vi.spyOn(BuwuhanRepository, "findInvitationByIdAndOwner");
   vi.spyOn(BuwuhanRepository, "create");
   vi.spyOn(BuwuhanRepository, "findManyByInvitationId");
@@ -88,6 +91,8 @@ describe("POST /v1/api/invitations/:invitationId/buwuhans", () => {
   };
 
   beforeEach(() => {
+    (MemberRepository.findInvitationById as Mock).mockResolvedValue(mockInvitation);
+    (MemberRepository.findMemberRole as Mock).mockResolvedValue("OWNER");
     (BuwuhanRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
     (BuwuhanRepository.create as Mock).mockResolvedValue(mockBuwuhan);
   });

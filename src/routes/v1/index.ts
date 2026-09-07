@@ -9,6 +9,7 @@ import { userRouter } from "../../modules/user/user.routes";
 import { dashboardRouter } from "../../modules/dashboard/dashboard.routes";
 import { buwuhanRouter } from "../../modules/buwuhan/buwuhan.routes";
 import { giftRouter } from "../../modules/gift/gift.routes";
+import { memberRouter } from "../../modules/member/member.routes";
 import { subscriptionRouter } from "../../modules/subscription/subscription.routes";
 import { checkSubscriptionExpiry } from "../../middlewares/subscription.middleware";
 
@@ -26,5 +27,6 @@ v1Router.use("/api", userRouter);
 v1Router.use("/api", dashboardRouter);
 v1Router.use("/api", buwuhanRouter);
 v1Router.use("/api", giftRouter);
+v1Router.use("/api", memberRouter);
 
 export { v1Router };

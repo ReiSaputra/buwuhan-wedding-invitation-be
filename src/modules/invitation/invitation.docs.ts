@@ -29,6 +29,45 @@
  *           description: Nama ibu kandung.
  *           example: "Siti Aminah"
  *
+ *     CelebrantInput:
+ *       type: object
+ *       required: [name, fatherName, motherName]
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Nama lengkap anak / orang yang dirayakan (khitanan, rasulan, atau aqiqah).
+ *           example: "Rayyan Al-Fatih"
+ *         nickname:
+ *           type: string
+ *           nullable: true
+ *           description: Nama panggilan.
+ *           example: "Rayyan"
+ *         fatherName:
+ *           type: string
+ *           description: Nama ayah kandung.
+ *           example: "Hendra Wijaya"
+ *         motherName:
+ *           type: string
+ *           description: Nama ibu kandung.
+ *           example: "Siti Rahmawati"
+ *         gender:
+ *           type: string
+ *           enum: [MALE, FEMALE]
+ *           nullable: true
+ *           description: Jenis kelamin subjek acara (MALE / FEMALE).
+ *           example: "MALE"
+ *         birthDate:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *           description: Tanggal lahir anak.
+ *           example: "2020-05-15T00:00:00.000Z"
+ *         childOrder:
+ *           type: integer
+ *           nullable: true
+ *           description: Urutan kelahiran anak (contoh anak ke-1).
+ *           example: 1
+ *
  *     CreateInvitationRequestBody:
  *       type: object
  *       required: [title, slug]
@@ -51,6 +90,8 @@
  *           description: Opsional. Tepat 2 data mempelai (satu BRIDE dan satu GROOM). Hanya relevan untuk kategori WEDDING.
  *           items:
  *             $ref: '#/components/schemas/CoupleInput'
+ *         celebrant:
+ *           $ref: '#/components/schemas/CelebrantInput'
  *         eventDate:
  *           type: string
  *           format: date-time
@@ -97,6 +138,8 @@
  *           description: Jika disertakan, akan menggantikan seluruh pasangan mempelai sebelumnya.
  *           items:
  *             $ref: '#/components/schemas/CoupleInput'
+ *         celebrant:
+ *           $ref: '#/components/schemas/CelebrantInput'
  *         eventDate:
  *           type: string
  *           format: date-time
@@ -285,6 +328,13 @@
  *           type: boolean
  *           description: Menunjukkan apakah bagian mempelai relevan ditampilkan (true hanya jika eventCategory adalah WEDDING).
  *           example: true
+ *         showCelebrant:
+ *           type: boolean
+ *           description: Menunjukkan apakah bagian data subjek acara non-pernikahan relevan ditampilkan (true jika eventCategory bukan WEDDING).
+ *           example: false
+ *         celebrant:
+ *           $ref: '#/components/schemas/CelebrantInput'
+ *           nullable: true
  *         publishedAt:
  *           type: string
  *           format: date-time

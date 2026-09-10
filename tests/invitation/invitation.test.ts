@@ -102,6 +102,7 @@ const mockInvitation = {
     { id: "c-1", name: "Ayu", type: "BRIDE" as const, fatherName: "Bambang", motherName: "Siti", invitationId: "inv-123" },
     { id: "c-2", name: "Budi", type: "GROOM" as const, fatherName: "Joko", motherName: "Sri", invitationId: "inv-123" },
   ],
+  celebrant: null,
   galleryPhotos: [mockPhoto],
   loveStories: [mockStory],
   createdAt: new Date(),
@@ -142,6 +143,7 @@ describe("invitation test: CRUD & Public", () => {
     expect(res.body.data.status).toBe("ACTIVE");
     expect(res.body.data.eventCategory).toBe("WEDDING");
     expect(res.body.data.showCouples).toBe(true);
+    expect(res.body.data.showCelebrant).toBe(false);
     expect(res.body.data.venue).toBe("Grand Ballroom Hotel Indonesia");
   });
 
@@ -167,9 +169,24 @@ describe("invitation test: CRUD & Public", () => {
     expect(res.body.message).toBe("Undangan berhasil dibuat");
     expect(res.body.data.slug).toBe(mockInvitation.slug);
     expect(res.body.data.showCouples).toBe(true);
+    expect(res.body.data.showCelebrant).toBe(false);
   });
 
-  it("berhasil membuat undangan non-pernikahan (KHITANAN) dengan showCouples false (201)", async () => {
+  it("berhasil membuat undangan non-pernikahan (KHITANAN) dengan celebrant dan showCelebrant true (201)", async () => {
+    const mockCelebrant = {
+      id: "cel-1",
+      name: "Muhammad Farel",
+      nickname: "Farel",
+      fatherName: "Hendra",
+      motherName: "Siti",
+      gender: "MALE",
+      birthDate: new Date("2018-05-15T00:00:00.000Z"),
+      childOrder: 1,
+      invitationId: "inv-123",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
     (InvitationRepository.findBySlug as Mock).mockResolvedValue(null);
     (InvitationRepository.create as Mock).mockResolvedValue({
       ...mockInvitation,
@@ -177,19 +194,89 @@ describe("invitation test: CRUD & Public", () => {
       title: "Khitanan Muhammad Farel",
       slug: "khitanan-muhammad-farel",
       couples: [],
+      celebrant: mockCelebrant,
     });
 
-    const res = await request(app).post("/v1/api/invitations").set("Authorization", `Bearer ${validAuthToken}`).send({
-      title: "Khitanan Muhammad Farel",
-      slug: "khitanan-muhammad-farel",
-      eventCategory: "KHITANAN",
-      eventDate: "2026-11-15T00:00:00.000Z",
-    });
+    const res = await request(app)
+      .post("/v1/api/invitations")
+      .set("Authorization", `Bearer ${validAuthToken}`)
+      .send({
+        title: "Khitanan Muhammad Farel",
+        slug: "khitanan-muhammad-farel",
+        eventCategory: "KHITANAN",
+        eventDate: "2026-11-15T00:00:00.000Z",
+        celebrant: {
+          name: "Muhammad Farel",
+          nickname: "Farel",
+          fatherName: "Hendra",
+          motherName: "Siti",
+          gender: "MALE",
+          childOrder: 1,
+        },
+      });
 
     expect(res.status).toBe(201);
     expect(res.body.message).toBe("Undangan berhasil dibuat");
     expect(res.body.data.eventCategory).toBe("KHITANAN");
     expect(res.body.data.showCouples).toBe(false);
+    expect(res.body.data.showCelebrant).toBe(true);
+    expect(res.body.data.celebrant).toMatchObject({
+      name: "Muhammad Farel",
+      nickname: "Farel",
+      fatherName: "Hendra",
+      motherName: "Siti",
+      gender: "MALE",
+      childOrder: 1,
+    });
+  });
+
+  it("berhasil update detail undangan dengan data celebrant (200)", async () => {
+    const updatedCelebrant = {
+      id: "cel-1",
+      name: "Muhammad Farel Al-Fatih",
+      nickname: "Farel",
+      fatherName: "Hendra Wijaya",
+      motherName: "Siti Rahmawati",
+      gender: "MALE",
+      birthDate: new Date("2018-05-15T00:00:00.000Z"),
+      childOrder: 1,
+      invitationId: mockInvitation.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue({
+      ...mockInvitation,
+      eventCategory: "KHITANAN",
+      couples: [],
+    });
+    (InvitationRepository.update as Mock).mockResolvedValue({
+      ...mockInvitation,
+      eventCategory: "KHITANAN",
+      title: "Walimatul Khitan Farel",
+      couples: [],
+      celebrant: updatedCelebrant,
+    });
+
+    const res = await request(app)
+      .patch(`/v1/api/invitations/${mockInvitation.id}`)
+      .set("Authorization", `Bearer ${validAuthToken}`)
+      .send({
+        title: "Walimatul Khitan Farel",
+        celebrant: {
+          name: "Muhammad Farel Al-Fatih",
+          nickname: "Farel",
+          fatherName: "Hendra Wijaya",
+          motherName: "Siti Rahmawati",
+          gender: "MALE",
+        },
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Undangan berhasil diperbarui");
+    expect(res.body.data.title).toBe("Walimatul Khitan Farel");
+    expect(res.body.data.showCelebrant).toBe(true);
+    expect(res.body.data.celebrant.name).toBe("Muhammad Farel Al-Fatih");
   });
 
   it("berhasil melihat daftar undangan milik sendiri (200)", async () => {

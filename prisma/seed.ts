@@ -327,6 +327,28 @@ async function main() {
       venue: "Kediaman Keluarga Bapak Hendra",
       address: "Jl. Anggrek No. 25, Bandung",
       additionalInfo: {},
+      celebrant: {
+        upsert: {
+          create: {
+            name: "Rayyan Al-Fatih",
+            nickname: "Rayyan",
+            fatherName: "Hendra Wijaya",
+            motherName: "Siti Rahmawati",
+            gender: "MALE",
+            birthDate: new Date("2018-05-15T00:00:00.000Z"),
+            childOrder: 1,
+          },
+          update: {
+            name: "Rayyan Al-Fatih",
+            nickname: "Rayyan",
+            fatherName: "Hendra Wijaya",
+            motherName: "Siti Rahmawati",
+            gender: "MALE",
+            birthDate: new Date("2018-05-15T00:00:00.000Z"),
+            childOrder: 1,
+          },
+        },
+      },
     },
     create: {
       title: "Syukuran Walimatul Khitan Rayyan",
@@ -340,6 +362,17 @@ async function main() {
       venue: "Kediaman Keluarga Bapak Hendra",
       address: "Jl. Anggrek No. 25, Bandung",
       additionalInfo: {},
+      celebrant: {
+        create: {
+          name: "Rayyan Al-Fatih",
+          nickname: "Rayyan",
+          fatherName: "Hendra Wijaya",
+          motherName: "Siti Rahmawati",
+          gender: "MALE",
+          birthDate: new Date("2018-05-15T00:00:00.000Z"),
+          childOrder: 1,
+        },
+      },
     },
   });
   console.log(`✅ Sample Undangan Draft: ${khitanInvitation.title} (${khitanInvitation.slug})`);

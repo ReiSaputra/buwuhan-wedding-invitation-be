@@ -4,6 +4,7 @@ import type { AddGalleryPhotoReq, AddLoveStoryReq, CreateInvitationReq, Invitati
 
 const includeRelations = {
   couples: true,
+  celebrant: true,
   template: true,
   galleryPhotos: {
     orderBy: { order: "asc" as const },
@@ -106,6 +107,21 @@ export class InvitationRepository {
                 },
               }
             : {}),
+          ...(request.celebrant
+            ? {
+                celebrant: {
+                  create: {
+                    name: request.celebrant.name,
+                    nickname: request.celebrant.nickname ?? null,
+                    fatherName: request.celebrant.fatherName,
+                    motherName: request.celebrant.motherName,
+                    gender: request.celebrant.gender ?? null,
+                    birthDate: request.celebrant.birthDate ? new Date(request.celebrant.birthDate) : null,
+                    childOrder: request.celebrant.childOrder ?? null,
+                  },
+                },
+              }
+            : {}),
         },
         include: includeRelations,
       });
@@ -122,6 +138,32 @@ export class InvitationRepository {
       return await prisma.$transaction(async (tx) => {
         if (request.couples) {
           await tx.couple.deleteMany({ where: { invitationId: id } });
+        }
+        if (request.celebrant === null) {
+          await tx.celebrant.deleteMany({ where: { invitationId: id } });
+        } else if (request.celebrant !== undefined) {
+          await tx.celebrant.upsert({
+            where: { invitationId: id },
+            create: {
+              invitationId: id,
+              name: request.celebrant.name,
+              nickname: request.celebrant.nickname ?? null,
+              fatherName: request.celebrant.fatherName,
+              motherName: request.celebrant.motherName,
+              gender: request.celebrant.gender ?? null,
+              birthDate: request.celebrant.birthDate ? new Date(request.celebrant.birthDate) : null,
+              childOrder: request.celebrant.childOrder ?? null,
+            },
+            update: {
+              name: request.celebrant.name,
+              nickname: request.celebrant.nickname ?? null,
+              fatherName: request.celebrant.fatherName,
+              motherName: request.celebrant.motherName,
+              gender: request.celebrant.gender ?? null,
+              birthDate: request.celebrant.birthDate ? new Date(request.celebrant.birthDate) : null,
+              childOrder: request.celebrant.childOrder ?? null,
+            },
+          });
         }
 
         const data: Prisma.InvitationUncheckedUpdateInput = {};

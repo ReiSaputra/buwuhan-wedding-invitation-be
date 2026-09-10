@@ -122,6 +122,7 @@ model Invitation {
 
   members       InvitationMember[]
   couples       Couple[]
+  celebrant     Celebrant?
   guests        Guest[]
   rsvps         RSVP[]
   galleryPhotos GalleryPhoto[]
@@ -192,6 +193,26 @@ model Couple {
   invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
 
   @@map("bride_and_grooms")
+}
+
+model Celebrant {
+  id String @id @default(cuid())
+
+  name       String
+  nickname   String?
+  fatherName String
+  motherName String
+  gender     String?
+  birthDate  DateTime?
+  childOrder Int?
+
+  invitationId String     @unique
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("celebrants")
 }
 
 model Guest {

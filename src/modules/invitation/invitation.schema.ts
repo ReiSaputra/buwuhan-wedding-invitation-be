@@ -15,6 +15,16 @@ const coupleSchema = z.object({
   motherName: z.string().trim().min(1, "Nama ibu wajib diisi").max(255),
 });
 
+const celebrantSchema = z.object({
+  name: z.string().trim().min(1, "Nama subjek acara wajib diisi").max(255),
+  nickname: z.string().trim().max(100).optional().nullable(),
+  fatherName: z.string().trim().min(1, "Nama ayah wajib diisi").max(255),
+  motherName: z.string().trim().min(1, "Nama ibu wajib diisi").max(255),
+  gender: z.enum(["MALE", "FEMALE"]).optional().nullable(),
+  birthDate: z.coerce.date().optional().nullable(),
+  childOrder: z.number().int().min(1, "Urutan anak minimal 1").optional().nullable(),
+});
+
 function refineCouplesPair(couples: z.infer<typeof coupleSchema>[]) {
   return new Set(couples.map((c) => c.type)).size === 2;
 }
@@ -30,6 +40,7 @@ export const createInvitationSchema = z.object({
       message: "Tipe mempelai harus terdiri dari BRIDE dan GROOM, tidak boleh duplikat",
     })
     .optional(),
+  celebrant: celebrantSchema.optional(),
   eventDate: z.coerce.date().optional().nullable(),
   eventTime: z.string().trim().max(100).optional().nullable(),
   venue: z.string().trim().max(255).optional().nullable(),
@@ -51,6 +62,7 @@ export const updateInvitationSchema = z
         message: "Tipe mempelai harus terdiri dari BRIDE dan GROOM, tidak boleh duplikat",
       })
       .optional(),
+    celebrant: celebrantSchema.optional().nullable(),
     eventDate: z.coerce.date().optional().nullable(),
     eventTime: z.string().trim().max(100).optional().nullable(),
     venue: z.string().trim().max(255).optional().nullable(),

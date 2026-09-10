@@ -1,7 +1,8 @@
-import type { Couple, GalleryPhoto, GiftAccount, Invitation, InvitationStatus, LoveStory, Prisma, Template, EventCategory, PlanTier } from "../../generated/prisma/client";
+import type { Celebrant, Couple, GalleryPhoto, GiftAccount, Invitation, InvitationStatus, LoveStory, Prisma, Template, EventCategory, PlanTier } from "../../generated/prisma/client";
 
 export type InvitationWithRelations = Invitation & {
   couples: Couple[];
+  celebrant?: Celebrant | null;
   template: Template | null;
   galleryPhotos: GalleryPhoto[];
   loveStories: LoveStory[];
@@ -18,11 +19,22 @@ export interface CoupleInput {
   motherName: string;
 }
 
+export interface CelebrantInput {
+  name: string;
+  nickname?: string | null | undefined;
+  fatherName: string;
+  motherName: string;
+  gender?: "MALE" | "FEMALE" | null | undefined;
+  birthDate?: Date | string | null | undefined;
+  childOrder?: number | null | undefined;
+}
+
 export interface CreateInvitationReq {
   title: string;
   slug: string;
   eventCategory?: EventCategory | undefined;
   couples?: CoupleInput[] | undefined;
+  celebrant?: CelebrantInput | undefined;
   eventDate?: Date | string | undefined;
   eventTime?: string | undefined;
   venue?: string | undefined;
@@ -37,6 +49,7 @@ export interface UpdateInvitationReq {
   slug?: string | undefined;
   eventCategory?: EventCategory | undefined;
   couples?: CoupleInput[] | undefined;
+  celebrant?: CelebrantInput | null | undefined;
   eventDate?: Date | string | null | undefined;
   eventTime?: string | null | undefined;
   venue?: string | null | undefined;
@@ -96,6 +109,17 @@ export interface LoveStoryData {
   createdAt: Date;
 }
 
+export interface CelebrantData {
+  id: string;
+  name: string;
+  nickname: string | null;
+  fatherName: string;
+  motherName: string;
+  gender: string | null;
+  birthDate: Date | null;
+  childOrder: number | null;
+}
+
 export interface InvitationData {
   id: string;
   title: string;
@@ -103,6 +127,8 @@ export interface InvitationData {
   status: InvitationStatusType;
   eventCategory: EventCategory;
   showCouples: boolean;
+  showCelebrant: boolean;
+  celebrant: CelebrantData | null;
   publishedAt: Date | null;
   eventDate: Date | null;
   eventTime: string | null;
@@ -188,6 +214,19 @@ export function toInvitationData(invitation: InvitationWithRelations): Invitatio
     status: invitation.status as InvitationStatusType,
     eventCategory: invitation.eventCategory,
     showCouples: invitation.eventCategory === "WEDDING",
+    showCelebrant: invitation.eventCategory !== "WEDDING",
+    celebrant: invitation.celebrant
+      ? {
+          id: invitation.celebrant.id,
+          name: invitation.celebrant.name,
+          nickname: invitation.celebrant.nickname,
+          fatherName: invitation.celebrant.fatherName,
+          motherName: invitation.celebrant.motherName,
+          gender: invitation.celebrant.gender,
+          birthDate: invitation.celebrant.birthDate,
+          childOrder: invitation.celebrant.childOrder,
+        }
+      : null,
     publishedAt: invitation.publishedAt,
     eventDate: invitation.eventDate,
     eventTime: invitation.eventTime,

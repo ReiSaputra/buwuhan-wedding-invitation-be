@@ -1,18 +1,6 @@
-﻿import * as z from "zod";
+import * as z from "zod";
 
-export const ALLOWED_UNITS = [
-  "transaksi",
-  "kg",
-  "gram",
-  "liter",
-  "karung",
-  "ekor",
-  "unit",
-  "pack",
-  "box",
-  "orang",
-  "jasa",
-] as const;
+export const ALLOWED_UNITS = ["transaksi", "kg", "gram", "liter", "karung", "ekor", "unit", "pack", "box", "orang", "jasa"] as const;
 
 export const buwuhanItemSchema = z.object({
   itemName: z.string().trim().min(1, "Nama bantuan wajib diisi").max(255, "Nama bantuan maksimal 255 karakter"),
@@ -24,6 +12,7 @@ export const buwuhanItemSchema = z.object({
 
 export const createBuwuhanSchema = z.object({
   giverName: z.string().trim().min(1, "Nama pemberi wajib diisi").max(255, "Nama pemberi maksimal 255 karakter"),
+  giverAddress: z.string().trim().max(500, "Alamat maksimal 500 karakter").optional().nullable(),
   note: z.string().trim().max(1000, "Catatan maksimal 1000 karakter").optional().nullable(),
   receivedAt: z.string().datetime({ message: "Format tanggal tidak valid (gunakan ISO 8601)" }).optional(),
   items: z.array(buwuhanItemSchema).min(1, "Minimal 1 item bantuan"),
@@ -32,6 +21,7 @@ export const createBuwuhanSchema = z.object({
 export const updateBuwuhanSchema = z
   .object({
     giverName: z.string().trim().min(1, "Nama pemberi wajib diisi").max(255).optional(),
+    giverAddress: z.string().trim().max(500, "Alamat maksimal 500 karakter").optional().nullable(),
     note: z.string().trim().max(1000).optional().nullable(),
     receivedAt: z.string().datetime({ message: "Format tanggal tidak valid" }).optional(),
     items: z.array(buwuhanItemSchema).min(1, "Minimal 1 item bantuan").optional(),

@@ -68,6 +68,7 @@ const mockBuwuhan = {
   id: mockBuwuhanId,
   invitationId: mockInvitationId,
   giverName: "Ahmad",
+  giverAddress: "Ds. Kedungwaru, Kec. Tulungagung",
   note: "Semoga berkah",
   receivedAt: new Date("2026-08-21T20:15:00.000Z"),
   createdAt: new Date("2026-08-21T20:15:00.000Z"),
@@ -82,6 +83,7 @@ const mockBuwuhan = {
 describe("POST /v1/api/invitations/:invitationId/buwuhans", () => {
   const validBody = {
     giverName: "Ahmad",
+    giverAddress: "Ds. Kedungwaru, Kec. Tulungagung",
     note: "Semoga berkah",
     receivedAt: "2026-08-21T20:15:00.000Z",
     items: [
@@ -102,6 +104,7 @@ describe("POST /v1/api/invitations/:invitationId/buwuhans", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.data.giverName).toBe("Ahmad");
+    expect(res.body.data.giverAddress).toBe("Ds. Kedungwaru, Kec. Tulungagung");
     expect(res.body.data.items).toHaveLength(2);
   });
 
@@ -238,12 +241,14 @@ describe("GET /v1/api/buwuhans/:id", () => {
 describe("PATCH /v1/api/buwuhans/:id", () => {
   const updateBody = {
     giverName: "Ahmad Updated",
+    giverAddress: "Jl. Baru No. 123",
     items: [{ itemName: "Gula", quantity: 5, unit: "kg", estimatedValue: 75000 }],
   };
 
   const updatedMock = {
     ...mockBuwuhan,
     giverName: "Ahmad Updated",
+    giverAddress: "Jl. Baru No. 123",
     items: [
       {
         id: "item-003",
@@ -268,6 +273,7 @@ describe("PATCH /v1/api/buwuhans/:id", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data.giverName).toBe("Ahmad Updated");
+    expect(res.body.data.giverAddress).toBe("Jl. Baru No. 123");
     expect(res.body.data.items).toHaveLength(1);
     expect(res.body.data.items[0].itemName).toBe("Gula");
   });
@@ -325,6 +331,7 @@ describe("GET /v1/api/buwuhans", () => {
     id: "buwuhan-001",
     invitationId: "inv-001",
     giverName: "H. Ahmad & Keluarga",
+    giverAddress: "Jl. Merdeka No. 1",
     note: "Selamat menempuh hidup baru",
     receivedAt: new Date("2026-08-22T10:00:00.000Z"),
     createdAt: new Date("2026-08-22T10:00:00.000Z"),
@@ -352,6 +359,7 @@ describe("GET /v1/api/buwuhans", () => {
     id: "buwuhan-002",
     invitationId: "inv-002",
     giverName: "Budi Santoso",
+    giverAddress: null,
     note: "Semoga samawa",
     receivedAt: new Date("2026-08-20T08:00:00.000Z"),
     createdAt: new Date("2026-08-20T08:00:00.000Z"),
@@ -406,6 +414,7 @@ describe("GET /v1/api/buwuhans", () => {
     expect(res.body.data[0].invitationTitle).toBe("Han & Saputra");
     expect(res.body.data[0].invitationSlug).toBe("han-saputra");
     expect(res.body.data[0].giverName).toBe("H. Ahmad & Keluarga");
+    expect(res.body.data[0].giverAddress).toBe("Jl. Merdeka No. 1");
 
     // Verifikasi data undangan kedua
     expect(res.body.data[1].id).toBe("buwuhan-002");
@@ -413,6 +422,7 @@ describe("GET /v1/api/buwuhans", () => {
     expect(res.body.data[1].invitationTitle).toBe("Resepsi Putri & Dimas");
     expect(res.body.data[1].invitationSlug).toBe("putri-dimas");
     expect(res.body.data[1].giverName).toBe("Budi Santoso");
+    expect(res.body.data[1].giverAddress).toBeNull();
   });
 
   it("memanggil repository dengan ownerId pengguna yang login (tidak menyertakan catatan milik orang lain)", async () => {
@@ -450,31 +460,11 @@ describe("GET /v1/api/buwuhans", () => {
 
 describe("Petugas Buwuhan: Otorisasi & Audit Log Pencatatan", () => {
   const mockPetugasMemberId = "member-petugas-001";
-  const mockPetugasToken = jwt.sign(
-    {
-      id: "user-petugas-1",
-      role: "USER",
-      planTier: "FREE",
-      memberId: mockPetugasMemberId,
-      invitationId: mockInvitationId,
-      invitationRole: "USER",
-    },
-    process.env.JWT_SECRET as string,
-    { expiresIn: "1d" }
-  );
+  const mockPetugasToken = jwt.sign({ id: "user-petugas-1", role: "USER", planTier: "FREE", memberId: mockPetugasMemberId, invitationId: mockInvitationId, invitationRole: "USER" }, process.env.JWT_SECRET as string, { expiresIn: "1d" });
 
-  const mockOtherPetugasToken = jwt.sign(
-    {
-      id: "user-petugas-2",
-      role: "USER",
-      planTier: "FREE",
-      memberId: "member-petugas-002",
-      invitationId: mockInvitationId,
-      invitationRole: "USER",
-    },
-    process.env.JWT_SECRET as string,
-    { expiresIn: "1d" }
-  );
+  const mockOtherPetugasToken = jwt.sign({ id: "user-petugas-2", role: "USER", planTier: "FREE", memberId: "member-petugas-002", invitationId: mockInvitationId, invitationRole: "USER" }, process.env.JWT_SECRET as string, {
+    expiresIn: "1d",
+  });
 
   it("Petugas (role USER) berhasil menginput buwuhan dan data recordedBy tersimpan", async () => {
     (BuwuhanRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
@@ -516,12 +506,7 @@ describe("Petugas Buwuhan: Otorisasi & Audit Log Pencatatan", () => {
     expect(res.body.message).toBe("Catatan buwuh berhasil ditambahkan");
     expect(res.body.data.recordedBy.memberId).toBe(mockPetugasMemberId);
     expect(res.body.data.recordedBy.name).toBe("Budi Meja 1");
-    expect(BuwuhanRepository.create).toHaveBeenCalledWith(
-      mockInvitationId,
-      expect.anything(),
-      mockPetugasMemberId,
-      "Budi Meja 1"
-    );
+    expect(BuwuhanRepository.create).toHaveBeenCalledWith(mockInvitationId, expect.anything(), mockPetugasMemberId, "Budi Meja 1");
   });
 
   it("Petugas diizinkan mengedit buwuhan yang dicatat oleh dirinya sendiri", async () => {
@@ -544,10 +529,7 @@ describe("Petugas Buwuhan: Otorisasi & Audit Log Pencatatan", () => {
       items: [],
     });
 
-    const res = await request(app)
-      .patch("/v1/api/buwuhans/buwuhan-recorded-01")
-      .set("Authorization", `Bearer ${mockPetugasToken}`)
-      .send({ giverName: "Pak Camat Revisi" });
+    const res = await request(app).patch("/v1/api/buwuhans/buwuhan-recorded-01").set("Authorization", `Bearer ${mockPetugasToken}`).send({ giverName: "Pak Camat Revisi" });
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Catatan buwuh berhasil diperbarui");
@@ -578,9 +560,7 @@ describe("Petugas Buwuhan: Otorisasi & Audit Log Pencatatan", () => {
       invitation: { ownerId: mockOwnerId },
     });
 
-    const res = await request(app)
-      .delete("/v1/api/buwuhans/buwuhan-recorded-01")
-      .set("Authorization", `Bearer ${mockPetugasToken}`);
+    const res = await request(app).delete("/v1/api/buwuhans/buwuhan-recorded-01").set("Authorization", `Bearer ${mockPetugasToken}`);
 
     expect(res.status).toBe(403);
     expect(res.body.message).toContain("Petugas tidak diizinkan menghapus");

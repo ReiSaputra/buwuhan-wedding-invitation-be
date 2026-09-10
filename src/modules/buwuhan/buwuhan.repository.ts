@@ -31,6 +31,7 @@ export class BuwuhanRepository {
       data: {
         invitationId,
         giverName: req.giverName,
+        giverAddress: req.giverAddress ?? null,
         note: req.note ?? null,
         receivedAt: req.receivedAt ? new Date(req.receivedAt) : new Date(),
         recordedByMemberId,
@@ -78,6 +79,7 @@ export class BuwuhanRepository {
         where: { id },
         data: {
           ...(req.giverName !== undefined ? { giverName: req.giverName } : {}),
+          ...(req.giverAddress !== undefined ? { giverAddress: req.giverAddress } : {}),
           ...(req.note !== undefined ? { note: req.note } : {}),
           ...(req.receivedAt !== undefined ? { receivedAt: new Date(req.receivedAt) } : {}),
           ...(req.items !== undefined

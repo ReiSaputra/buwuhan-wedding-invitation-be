@@ -12,6 +12,7 @@ export interface BuwuhanItemReq {
 
 export interface CreateBuwuhanReq {
   giverName: string;
+  giverAddress?: string | null;
   note?: string | null;
   receivedAt?: string;
   items: BuwuhanItemReq[];
@@ -19,6 +20,7 @@ export interface CreateBuwuhanReq {
 
 export interface UpdateBuwuhanReq {
   giverName?: string;
+  giverAddress?: string | null;
   note?: string | null;
   receivedAt?: string;
   items?: BuwuhanItemReq[];
@@ -41,6 +43,7 @@ export interface BuwuhanData {
   id: string;
   invitationId: string;
   giverName: string;
+  giverAddress: string | null;
   note: string | null;
   receivedAt: Date;
   // Audit: info petugas/owner yang mencatat buwuhan ini
@@ -141,6 +144,7 @@ export function formatBuwuhan(buwuhan: {
   id: string;
   invitationId: string;
   giverName: string;
+  giverAddress?: string | null;
   note: string | null;
   receivedAt: Date;
   recordedByMemberId: string | null;
@@ -153,6 +157,7 @@ export function formatBuwuhan(buwuhan: {
     id: buwuhan.id,
     invitationId: buwuhan.invitationId,
     giverName: buwuhan.giverName,
+    giverAddress: buwuhan.giverAddress ?? null,
     note: buwuhan.note,
     receivedAt: buwuhan.receivedAt,
     recordedBy: {

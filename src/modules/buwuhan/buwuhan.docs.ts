@@ -38,6 +38,11 @@
  *           type: string
  *           description: Nama pemberi hadiah / buwuhan.
  *           example: "Ahmad Subarjo"
+ *         giverAddress:
+ *           type: string
+ *           nullable: true
+ *           description: Alamat / asal domisili pemberi hadiah.
+ *           example: "Ds. Kedungwaru, Kec. Tulungagung"
  *         note:
  *           type: string
  *           nullable: true
@@ -75,6 +80,10 @@
  *         giverName:
  *           type: string
  *           example: "Ahmad Subarjo"
+ *         giverAddress:
+ *           type: string
+ *           nullable: true
+ *           example: "Ds. Kedungwaru, Kec. Tulungagung"
  *         note:
  *           type: string
  *           nullable: true
@@ -132,6 +141,10 @@
  *         giverName:
  *           type: string
  *           example: "Ahmad Subarjo"
+ *         giverAddress:
+ *           type: string
+ *           nullable: true
+ *           example: "Ds. Kedungwaru, Kec. Tulungagung"
  *         note:
  *           type: string
  *           nullable: true

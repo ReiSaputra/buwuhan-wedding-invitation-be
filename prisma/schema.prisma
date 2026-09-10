@@ -331,9 +331,10 @@ model Buwuhan {
   id           String @id @default(cuid())
   invitationId String
 
-  giverName  String
-  note       String?
-  receivedAt DateTime @default(now())
+  giverName    String
+  giverAddress String?
+  note         String?
+  receivedAt   DateTime @default(now())
 
   // Audit: anggota/petugas yang mencatat buwuhan ini
   recordedByMemberId String?

@@ -22,13 +22,19 @@ export class BuwuhanRepository {
     });
   }
 
-  static async create(invitationId: string, req: CreateBuwuhanReq) {
+  /**
+   * @param recordedByMemberId - ID InvitationMember yang mencatat (null jika owner langsung)
+   * @param recordedByName     - Snapshot nama pencatat untuk riwayat historis
+   */
+  static async create(invitationId: string, req: CreateBuwuhanReq, recordedByMemberId: string | null = null, recordedByName: string | null = null) {
     return await prisma.buwuhan.create({
       data: {
         invitationId,
         giverName: req.giverName,
         note: req.note ?? null,
         receivedAt: req.receivedAt ? new Date(req.receivedAt) : new Date(),
+        recordedByMemberId,
+        recordedByName,
         items: {
           create: req.items.map((item) => ({
             itemName: item.itemName,

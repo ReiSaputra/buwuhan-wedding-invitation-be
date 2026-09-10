@@ -23,6 +23,7 @@ beforeAll(() => {
   vi.spyOn(MemberRepository, "findByTokenHash");
   vi.spyOn(MemberRepository, "findManyByInvitationId");
   vi.spyOn(MemberRepository, "create");
+  vi.spyOn(MemberRepository, "createInstantMember");
   vi.spyOn(MemberRepository, "update");
   vi.spyOn(MemberRepository, "updateToken");
   vi.spyOn(MemberRepository, "acceptInvite");
@@ -498,6 +499,79 @@ describe("Matriks Izin Role (RBAC Matrix Verification)", () => {
 
       expect(res.status).toBe(200);
     });
+  });
+});
+
+describe("Member Service: Instant Access (Magic Link Tanpa Password)", () => {
+  it("OWNER dapat membuat magic link untuk petugas tanpa butuh email", async () => {
+    (MemberRepository.createInstantMember as Mock).mockResolvedValue({
+      id: "instant-member-001",
+      invitationId: mockInvitation.id,
+      name: "Siti Penerima Tamu",
+      role: "USER",
+    });
+
+    const res = await request(app)
+      .post(`/v1/api/invitations/${mockInvitation.id}/members/instant-link`)
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ name: "Siti Penerima Tamu", role: "USER" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.message).toBe("Link akses petugas berhasil dibuat");
+    expect(res.body.data.name).toBe("Siti Penerima Tamu");
+    expect(res.body.data.role).toBe("USER");
+    expect(res.body.data.accessLink).toContain("/petugas/akses?token=");
+  });
+
+  it("Petugas dapat menukar token magic link menjadi session JWT instan", async () => {
+    (MemberRepository.findByTokenHash as Mock).mockResolvedValue({
+      id: "instant-member-001",
+      invitationId: mockInvitation.id,
+      name: "Siti Penerima Tamu",
+      role: "USER",
+      inviteTokenExpiresAt: new Date(Date.now() + 86400000),
+      revokedAt: null,
+      invitation: {
+        id: mockInvitation.id,
+        title: mockInvitation.title,
+        slug: mockInvitation.slug,
+      },
+    });
+
+    const res = await request(app)
+      .post("/v1/api/members/instant-access")
+      .send({ token: "sample-valid-magic-token" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toContain("Selamat bertugas");
+    expect(res.body.data.sessionToken).toBeDefined();
+    expect(res.body.data.member.name).toBe("Siti Penerima Tamu");
+    expect(res.body.data.invitation.id).toBe(mockInvitation.id);
+
+    // Verifikasi JWT payload berisi memberId dan role
+    const decoded = jwt.decode(res.body.data.sessionToken) as any;
+    expect(decoded.memberId).toBe("instant-member-001");
+    expect(decoded.invitationId).toBe(mockInvitation.id);
+    expect(decoded.invitationRole).toBe("USER");
+  });
+
+  it("Menolak token instan jika token kedaluwarsa (422)", async () => {
+    (MemberRepository.findByTokenHash as Mock).mockResolvedValue({
+      id: "instant-member-001",
+      invitationId: mockInvitation.id,
+      name: "Siti Penerima Tamu",
+      role: "USER",
+      inviteTokenExpiresAt: new Date(Date.now() - 10000),
+      revokedAt: null,
+      invitation: mockInvitation,
+    });
+
+    const res = await request(app)
+      .post("/v1/api/members/instant-access")
+      .send({ token: "expired-magic-token" });
+
+    expect(res.status).toBe(422);
+    expect(res.body.message).toContain("kedaluwarsa");
   });
 });
 

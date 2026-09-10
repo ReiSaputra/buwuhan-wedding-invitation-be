@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { MemberService } from "./member.service";
-import type { AcceptInviteReq, InviteMemberReq, UpdateMemberRoleReq } from "./member.types";
+import type { AcceptInviteReq, InstantAccessReq, InstantLinkReq, InviteMemberReq, UpdateMemberRoleReq } from "./member.types";
 
 export class MemberController {
   static async invite(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -87,5 +87,29 @@ export class MemberController {
       next(error);
     }
   }
-}
 
+  /** Owner: Generate magic link untuk petugas tanpa akun */
+  static async generateInstantLink(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const invitationId = req.params.invitationId as string;
+      const request = req.body as InstantLinkReq;
+
+      const response = await MemberService.generateInstantLink(invitationId, request);
+      res.status(201).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /** Publik: Petugas menukar token magic link → JWT session */
+  static async instantAccess(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const request = req.body as InstantAccessReq;
+
+      const response = await MemberService.instantAccess(request);
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+}

@@ -55,10 +55,10 @@ model User {
   role         PlatformRole @default(USER)
   planTier     PlanTier     @default(FREE)
 
-  invitations        Invitation[]
-  invitationMembers  InvitationMember[]
-  sessions           Session[]
-  subscriptions      Subscription[]
+  invitations       Invitation[]
+  invitationMembers InvitationMember[]
+  sessions          Session[]
+  subscriptions     Subscription[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -161,6 +161,9 @@ model InvitationMember {
   invitedAt  DateTime  @default(now())
   acceptedAt DateTime?
   revokedAt  DateTime?
+
+  buwuhans Buwuhan[]
+  gifts    Gift[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -311,11 +314,17 @@ model Buwuhan {
   note       String?
   receivedAt DateTime @default(now())
 
+  // Audit: anggota/petugas yang mencatat buwuhan ini
+  recordedByMemberId String?
+  recordedByName     String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Cascade: Catatan buwuhan terhapus saat undangan dihapus
-  invitation Invitation    @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  invitation Invitation        @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  // SetNull: Jika petugas dihapus, catatan tetap ada tapi relasi diputus
+  recordedBy InvitationMember? @relation(fields: [recordedByMemberId], references: [id], onDelete: SetNull)
   items      BuwuhanItem[]
 
   @@index([invitationId])
@@ -377,11 +386,17 @@ model Gift {
   note       String?
   receivedAt DateTime   @default(now())
 
+  // Audit: anggota/petugas yang mencatat kado/hadiah ini
+  recordedByMemberId String?
+  recordedByName     String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Cascade: Catatan hadiah terhapus saat undangan dihapus
-  invitation Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  invitation Invitation        @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  // SetNull: Jika petugas dihapus, catatan tetap ada tapi relasi diputus
+  recordedBy InvitationMember? @relation(fields: [recordedByMemberId], references: [id], onDelete: SetNull)
 
   @@index([invitationId])
   @@map("gifts")

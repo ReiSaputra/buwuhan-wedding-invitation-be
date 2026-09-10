@@ -43,6 +43,11 @@ export interface BuwuhanData {
   giverName: string;
   note: string | null;
   receivedAt: Date;
+  // Audit: info petugas/owner yang mencatat buwuhan ini
+  recordedBy: {
+    memberId: string | null;
+    name: string | null;
+  };
   createdAt: Date;
   updatedAt: Date;
   items: BuwuhanItemData[];
@@ -132,24 +137,28 @@ export function formatBuwuhanItem(item: BuwuhanItem): BuwuhanItemData {
   };
 }
 
-export function formatBuwuhan(
-  buwuhan: {
-    id: string;
-    invitationId: string;
-    giverName: string;
-    note: string | null;
-    receivedAt: Date;
-    createdAt: Date;
-    updatedAt: Date;
-    items: BuwuhanItem[];
-  }
-): BuwuhanData {
+export function formatBuwuhan(buwuhan: {
+  id: string;
+  invitationId: string;
+  giverName: string;
+  note: string | null;
+  receivedAt: Date;
+  recordedByMemberId: string | null;
+  recordedByName: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  items: BuwuhanItem[];
+}): BuwuhanData {
   return {
     id: buwuhan.id,
     invitationId: buwuhan.invitationId,
     giverName: buwuhan.giverName,
     note: buwuhan.note,
     receivedAt: buwuhan.receivedAt,
+    recordedBy: {
+      memberId: buwuhan.recordedByMemberId,
+      name: buwuhan.recordedByName,
+    },
     createdAt: buwuhan.createdAt,
     updatedAt: buwuhan.updatedAt,
     items: buwuhan.items.map(formatBuwuhanItem),
@@ -196,7 +205,7 @@ export interface ListOwnerBuwuhanRes {
 export function formatOwnerBuwuhan(
   buwuhan: Parameters<typeof formatBuwuhan>[0] & {
     invitation: { id: string; title: string; slug: string };
-  }
+  },
 ): OwnerBuwuhanData {
   return {
     ...formatBuwuhan(buwuhan),
@@ -205,9 +214,7 @@ export function formatOwnerBuwuhan(
   };
 }
 
-export function listOwnerBuwuhanResponse(
-  buwuhans: Parameters<typeof formatOwnerBuwuhan>[0][]
-): ListOwnerBuwuhanRes {
+export function listOwnerBuwuhanResponse(buwuhans: Parameters<typeof formatOwnerBuwuhan>[0][]): ListOwnerBuwuhanRes {
   return {
     message: "Daftar buwuh berhasil diambil",
     status: 200,

@@ -14,6 +14,17 @@ export interface AcceptInviteReq {
   token: string;
 }
 
+// Request untuk generate instant link petugas (tanpa email / registrasi akun)
+export interface InstantLinkReq {
+  name: string;
+  role?: "ADMIN" | "USER";
+}
+
+// Request untuk menukar token instan → session JWT
+export interface InstantAccessReq {
+  token: string;
+}
+
 export interface MemberItemData {
   id: string;
   invitationId: string;
@@ -78,6 +89,38 @@ export interface AcceptInviteRes {
     invitationSlug: string;
     invitationTitle: string;
     role: InvitationRole;
+  };
+}
+
+// Response untuk generate instant link
+export interface InstantLinkRes {
+  message: string;
+  status: number;
+  data: {
+    memberId: string;
+    name: string;
+    role: InvitationRole;
+    accessLink: string;
+    expiresAt: Date;
+  };
+}
+
+// Response untuk instant access (penukaran token → JWT)
+export interface InstantAccessRes {
+  message: string;
+  status: number;
+  data: {
+    sessionToken: string;
+    member: {
+      id: string;
+      name: string;
+      role: InvitationRole;
+    };
+    invitation: {
+      id: string;
+      title: string;
+      slug: string;
+    };
   };
 }
 

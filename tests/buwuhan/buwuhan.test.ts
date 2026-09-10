@@ -447,3 +447,142 @@ describe("GET /v1/api/buwuhans", () => {
     expect(date1).toBeGreaterThan(date2);
   });
 });
+
+describe("Petugas Buwuhan: Otorisasi & Audit Log Pencatatan", () => {
+  const mockPetugasMemberId = "member-petugas-001";
+  const mockPetugasToken = jwt.sign(
+    {
+      id: "user-petugas-1",
+      role: "USER",
+      planTier: "FREE",
+      memberId: mockPetugasMemberId,
+      invitationId: mockInvitationId,
+      invitationRole: "USER",
+    },
+    process.env.JWT_SECRET as string,
+    { expiresIn: "1d" }
+  );
+
+  const mockOtherPetugasToken = jwt.sign(
+    {
+      id: "user-petugas-2",
+      role: "USER",
+      planTier: "FREE",
+      memberId: "member-petugas-002",
+      invitationId: mockInvitationId,
+      invitationRole: "USER",
+    },
+    process.env.JWT_SECRET as string,
+    { expiresIn: "1d" }
+  );
+
+  it("Petugas (role USER) berhasil menginput buwuhan dan data recordedBy tersimpan", async () => {
+    (BuwuhanRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (BuwuhanRepository.create as Mock).mockResolvedValue({
+      id: "buwuhan-recorded-01",
+      invitationId: mockInvitationId,
+      giverName: "Pak Camat",
+      note: "Titip dari warga",
+      receivedAt: new Date(),
+      recordedByMemberId: mockPetugasMemberId,
+      recordedByName: "Budi Meja 1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      items: [
+        {
+          id: "item-rec-1",
+          buwuhanId: "buwuhan-recorded-01",
+          itemName: "Amplop",
+          quantity: { toNumber: () => 1 },
+          unit: "transaksi",
+          category: null,
+          estimatedValue: { toNumber: () => 500000 },
+          createdAt: new Date(),
+        },
+      ],
+    });
+
+    const res = await request(app)
+      .post(`/v1/api/invitations/${mockInvitationId}/buwuhans`)
+      .set("Authorization", `Bearer ${mockPetugasToken}`)
+      .set("X-Actor-Name", "Budi Meja 1")
+      .send({
+        giverName: "Pak Camat",
+        note: "Titip dari warga",
+        items: [{ itemName: "Amplop", quantity: 1, unit: "transaksi", estimatedValue: 500000 }],
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.message).toBe("Catatan buwuh berhasil ditambahkan");
+    expect(res.body.data.recordedBy.memberId).toBe(mockPetugasMemberId);
+    expect(res.body.data.recordedBy.name).toBe("Budi Meja 1");
+    expect(BuwuhanRepository.create).toHaveBeenCalledWith(
+      mockInvitationId,
+      expect.anything(),
+      mockPetugasMemberId,
+      "Budi Meja 1"
+    );
+  });
+
+  it("Petugas diizinkan mengedit buwuhan yang dicatat oleh dirinya sendiri", async () => {
+    (BuwuhanRepository.findById as Mock).mockResolvedValue({
+      id: "buwuhan-recorded-01",
+      invitationId: mockInvitationId,
+      recordedByMemberId: mockPetugasMemberId,
+      invitation: { ownerId: mockOwnerId },
+    });
+    (BuwuhanRepository.update as Mock).mockResolvedValue({
+      id: "buwuhan-recorded-01",
+      invitationId: mockInvitationId,
+      giverName: "Pak Camat Revisi",
+      note: "Revisi catatan",
+      receivedAt: new Date(),
+      recordedByMemberId: mockPetugasMemberId,
+      recordedByName: "Budi Meja 1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      items: [],
+    });
+
+    const res = await request(app)
+      .patch("/v1/api/buwuhans/buwuhan-recorded-01")
+      .set("Authorization", `Bearer ${mockPetugasToken}`)
+      .send({ giverName: "Pak Camat Revisi" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Catatan buwuh berhasil diperbarui");
+  });
+
+  it("Petugas DITOLAK (403 Forbidden) saat mencoba mengedit buwuhan milik petugas lain", async () => {
+    (BuwuhanRepository.findById as Mock).mockResolvedValue({
+      id: "buwuhan-recorded-01",
+      invitationId: mockInvitationId,
+      recordedByMemberId: mockPetugasMemberId, // Dibuat oleh Petugas 1
+      invitation: { ownerId: mockOwnerId },
+    });
+
+    const res = await request(app)
+      .patch("/v1/api/buwuhans/buwuhan-recorded-01")
+      .set("Authorization", `Bearer ${mockOtherPetugasToken}`) // Dicoba edit oleh Petugas 2
+      .send({ giverName: "Pak Camat Diretas" });
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toContain("Anda hanya dapat mengedit catatan yang Anda buat sendiri");
+  });
+
+  it("Petugas DITOLAK (403 Forbidden) saat mencoba menghapus buwuhan", async () => {
+    (BuwuhanRepository.findById as Mock).mockResolvedValue({
+      id: "buwuhan-recorded-01",
+      invitationId: mockInvitationId,
+      recordedByMemberId: mockPetugasMemberId,
+      invitation: { ownerId: mockOwnerId },
+    });
+
+    const res = await request(app)
+      .delete("/v1/api/buwuhans/buwuhan-recorded-01")
+      .set("Authorization", `Bearer ${mockPetugasToken}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toContain("Petugas tidak diizinkan menghapus");
+  });
+});

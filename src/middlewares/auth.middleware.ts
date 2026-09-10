@@ -1,17 +1,17 @@
-// Taruh file ini di: src/middlewares/auth.middleware.ts
-// PERUBAHAN dari versi sebelumnya: AuthUser sekarang punya `role`, di-decode
-// dari payload JWT (lihat signAccessToken() di auth.service.ts).
-
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
 import { UnauthorizedError } from "../errors/app.error";
-import type { PlanTier, PlatformRole } from "../generated/prisma/client";
+import type { InvitationRole, PlanTier, PlatformRole } from "../generated/prisma/client";
 
 export interface AuthUser {
   id: string;
   role: PlatformRole;
   planTier: PlanTier;
+  // Diisi hanya untuk sesi petugas instan (magic link)
+  memberId?: string | undefined;
+  invitationId?: string | undefined;
+  invitationRole?: InvitationRole | undefined;
 }
 
 declare global {
@@ -34,9 +34,23 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
   const token = authHeader.slice("Bearer ".length).trim();
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET as string) as { id: string; role: PlatformRole; planTier: PlanTier };
+    const payload = jwt.verify(token, process.env.JWT_SECRET as string) as {
+      id: string;
+      role: PlatformRole;
+      planTier: PlanTier;
+      memberId?: string | undefined;
+      invitationId?: string | undefined;
+      invitationRole?: InvitationRole | undefined;
+    };
 
-    req.user = { id: payload.id, role: payload.role, planTier: payload.planTier };
+    req.user = {
+      id: payload.id,
+      role: payload.role,
+      planTier: payload.planTier,
+      memberId: payload.memberId,
+      invitationId: payload.invitationId,
+      invitationRole: payload.invitationRole,
+    };
 
     next();
   } catch {

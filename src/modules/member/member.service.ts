@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import { MemberRepository } from "./member.repository";
 import {
   acceptInviteResponse,
@@ -11,6 +12,10 @@ import {
   type AcceptInviteRes,
   type DeleteMemberRes,
   type GetMemberRes,
+  type InstantAccessReq,
+  type InstantAccessRes,
+  type InstantLinkReq,
+  type InstantLinkRes,
   type InviteMemberReq,
   type InviteMemberRes,
   type ListMemberRes,
@@ -22,6 +27,7 @@ import { ConflictError, EmailDeliveryError, ForbiddenError, NotFoundError, Valid
 import { mailer } from "../../lib/mailer";
 import { generateMemberInviteEmailHtml, generateMemberInviteEmailText } from "./member.mail";
 import { logger } from "../../utils/log";
+
 
 function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
@@ -215,6 +221,101 @@ export class MemberService {
 
     await MemberRepository.delete(memberId);
     return deleteMemberResponse();
+  }
+
+  /**
+   * Generate magic link untuk petugas tanpa akun platform.
+   * Owner memanggil endpoint ini dari dashboard, lalu membagikan link ke petugas via WhatsApp.
+   */
+  static async generateInstantLink(invitationId: string, request: InstantLinkReq): Promise<InstantLinkRes> {
+    const invitation = await MemberRepository.findInvitationById(invitationId);
+    if (!invitation) {
+      throw new NotFoundError("Undangan tidak ditemukan");
+    }
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = hashToken(rawToken);
+    // Token berlaku 30 hari — cukup untuk persiapan + hari-H
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    const member = await MemberRepository.createInstantMember({
+      invitationId,
+      name: request.name,
+      role: request.role ?? "USER",
+      tokenHash,
+      expiresAt,
+    });
+
+    const baseUrl = process.env.FRONTEND_URL || "https://buwuhan.com";
+    const accessLink = `${baseUrl}/petugas/akses?token=${rawToken}`;
+
+    return {
+      message: "Link akses petugas berhasil dibuat",
+      status: 201,
+      data: {
+        memberId: member.id,
+        name: member.name,
+        role: member.role,
+        accessLink,
+        expiresAt,
+      },
+    };
+  }
+
+  /**
+   * Petugas menukar token dari magic link menjadi JWT session.
+   * Tidak membutuhkan akun platform — cukup token yang valid.
+   */
+  static async instantAccess(request: InstantAccessReq): Promise<InstantAccessRes> {
+    const tokenHash = hashToken(request.token);
+    const member = await MemberRepository.findByTokenHash(tokenHash);
+
+    if (!member) {
+      throw new NotFoundError("Token akses tidak valid atau tidak ditemukan");
+    }
+
+    if (member.inviteTokenExpiresAt && member.inviteTokenExpiresAt < new Date()) {
+      throw new ValidationError("Token akses sudah kedaluwarsa");
+    }
+
+    if (member.revokedAt) {
+      throw new ForbiddenError("Akses ini telah dicabut");
+    }
+
+    // Terbitkan JWT khusus petugas — berisi memberId & invitationId untuk otorisasi di middleware
+    const sessionToken = jwt.sign(
+      {
+        // id diisi memberId agar middleware requireAuth tetap punya req.user.id
+        id: member.id,
+        role: "USER" as const,
+        planTier: "FREE" as const,
+        // Field khusus sesi petugas instan
+        memberId: member.id,
+        invitationId: member.invitationId,
+        invitationRole: member.role,
+      },
+      process.env.JWT_SECRET as string,
+      // Token petugas berlaku 2 hari (cukup untuk sebelum + hari-H acara)
+      { expiresIn: "2d" },
+    );
+
+    return {
+      message: "Akses petugas berhasil. Selamat bertugas!",
+      status: 200,
+      data: {
+        sessionToken,
+        member: {
+          id: member.id,
+          name: member.name,
+          role: member.role,
+        },
+        invitation: {
+          id: member.invitation.id,
+          title: member.invitation.title,
+          slug: member.invitation.slug,
+        },
+      },
+    };
   }
 }
 

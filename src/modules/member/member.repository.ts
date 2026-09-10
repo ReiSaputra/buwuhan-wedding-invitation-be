@@ -115,6 +115,35 @@ export class MemberRepository {
     });
   }
 
+  /**
+   * Membuat petugas instan tanpa akun platform (magic link).
+   * Email di-generate secara internal dengan prefix `instant-` agar tetap
+   * memenuhi constraint unique(invitationId, email).
+   */
+  static async createInstantMember(data: {
+    invitationId: string;
+    name: string;
+    role: InvitationRole;
+    tokenHash: string;
+    expiresAt: Date;
+  }) {
+    // Email placeholder unik per petugas, tidak dipakai untuk pengiriman email nyata
+    const placeholderEmail = `instant-${Date.now()}-${Math.random().toString(36).slice(2)}@petugas.internal`;
+    return await prisma.invitationMember.create({
+      data: {
+        invitationId: data.invitationId,
+        email: placeholderEmail,
+        name: data.name,
+        role: data.role,
+        inviteTokenHash: data.tokenHash,
+        inviteTokenExpiresAt: data.expiresAt,
+        // Langsung accepted — petugas instan tidak perlu konfirmasi email
+        acceptedAt: new Date(),
+        userId: null,
+      },
+    });
+  }
+
   static async update(id: string, data: Prisma.InvitationMemberUpdateInput) {
     return await prisma.invitationMember.update({
       where: { id },

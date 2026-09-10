@@ -38,7 +38,7 @@ export const handleImageUpload = (req: Request, res: Response, next: NextFunctio
     const parseResult = uploadImageSchema.safeParse(req.body);
     if (!parseResult.success) {
       const issue = parseResult.error.issues[0];
-      return next(new ValidationError(`Folder tidak valid: ${issue.message}`));
+      return next(new ValidationError(`Folder tidak valid: ${issue?.message ?? "Format tidak valid"}`));
     }
 
     req.body = parseResult.data;

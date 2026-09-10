@@ -50,9 +50,42 @@ export class BuwuhanRepository {
     });
   }
 
+  static async createStandalone(userId: string, req: CreateBuwuhanReq, recordedByName: string | null = null) {
+    return await prisma.buwuhan.create({
+      data: {
+        userId,
+        invitationId: null,
+        giverName: req.giverName,
+        giverAddress: req.giverAddress ?? null,
+        note: req.note ?? null,
+        receivedAt: req.receivedAt ? new Date(req.receivedAt) : new Date(),
+        recordedByMemberId: null,
+        recordedByName,
+        items: {
+          create: req.items.map((item) => ({
+            itemName: item.itemName,
+            quantity: item.quantity,
+            unit: item.unit,
+            category: item.category ?? null,
+            estimatedValue: item.estimatedValue ?? null,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+  }
+
   static async findManyByInvitationId(invitationId: string) {
     return await prisma.buwuhan.findMany({
       where: { invitationId },
+      include: { items: true },
+      orderBy: { receivedAt: "desc" },
+    });
+  }
+
+  static async findManyStandaloneByUserId(userId: string) {
+    return await prisma.buwuhan.findMany({
+      where: { userId, invitationId: null },
       include: { items: true },
       orderBy: { receivedAt: "desc" },
     });
@@ -64,6 +97,7 @@ export class BuwuhanRepository {
       include: {
         items: true,
         invitation: { select: { ownerId: true } },
+        user: { select: { id: true } },
       },
     });
   }

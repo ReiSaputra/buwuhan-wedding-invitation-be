@@ -18,11 +18,15 @@ buwuhanRouter.get("/invitations/:invitationId/buwuhans/summary", requireAuth, re
 // ── Rute Flat (operasi per transaksi) ────────────────────────────────────────
 // PENTING: rute tanpa parameter didaftarkan sebelum /buwuhans/:id
 buwuhanRouter.get("/buwuhans", requireAuth, BuwuhanController.listByOwner);
+
+// ── Rute Standalone (catatan buwuh mandiri tanpa undangan) ─────────────────────
+buwuhanRouter.post("/buwuhans/standalone", requireAuth, validate(createBuwuhanSchema), BuwuhanController.createStandalone);
+buwuhanRouter.get("/buwuhans/standalone", requireAuth, BuwuhanController.listStandalone);
+
 buwuhanRouter.get("/buwuhans/:id", requireAuth, BuwuhanController.getById);
 
 // PATCH: semua role boleh akses, tapi otorisasi per-entri dicek di service
-// requireInvitationRole dipasang agar req.invitationRole terisi untuk service
 buwuhanRouter.patch("/buwuhans/:id", requireAuth, validate(updateBuwuhanSchema), BuwuhanController.update);
 
-// DELETE: hanya OWNER & ADMIN (dicek ganda: di routes + di service)
+// DELETE: otorisasi dicek di service (OWNER/ADMIN untuk undangan, user pemilik untuk standalone)
 buwuhanRouter.delete("/buwuhans/:id", requireAuth, BuwuhanController.remove);

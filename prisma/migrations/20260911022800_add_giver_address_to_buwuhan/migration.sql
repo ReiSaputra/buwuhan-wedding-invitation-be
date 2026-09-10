@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE " buwuhans\ ADD COLUMN \giverAddress\ TEXT;
+ALTER TABLE "buwuhans" ADD COLUMN "giverAddress" TEXT;

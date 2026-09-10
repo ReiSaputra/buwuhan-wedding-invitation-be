@@ -89,4 +89,26 @@ export class BuwuhanController {
       next(err);
     }
   }
+
+  static async createStandalone(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const actorUserId = req.user!.id;
+      const actorName = (req.headers["x-actor-name"] as string) ?? null;
+
+      const result = await BuwuhanService.createStandalone(actorUserId, actorName, req.body as CreateBuwuhanReq);
+      res.status(result.status).json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async listStandalone(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const actorUserId = req.user!.id;
+      const result = await BuwuhanService.listStandalone(actorUserId);
+      res.status(result.status).json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
 }

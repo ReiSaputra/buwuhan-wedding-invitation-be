@@ -137,7 +137,14 @@
  *           example: "cly3k9h2p0000v8og3f1a9x00"
  *         invitationId:
  *           type: string
+ *           nullable: true
+ *           description: ID undangan. Bernilai null untuk catatan buwuh mandiri (standalone).
  *           example: "cly3k8a1b0000v8og3f1a1111"
+ *         userId:
+ *           type: string
+ *           nullable: true
+ *           description: ID pengguna pemilik. Terisi hanya untuk catatan buwuh mandiri (standalone).
+ *           example: "usr9k8a1b0000v8og3f1a0001"
  *         giverName:
  *           type: string
  *           example: "Ahmad Subarjo"
@@ -628,6 +635,122 @@
  *               $ref: '#/components/schemas/ErrorEnvelope'
  *       404:
  *         description: Catatan buwuh tidak ditemukan.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorEnvelope'
+ */
+
+/**
+ * @openapi
+ * /buwuhans/standalone:
+ *   post:
+ *     tags: [Buwuhan]
+ *     summary: Tambah catatan buwuh mandiri
+ *     description: >
+ *       Mencatat buwuhan secara mandiri tanpa terikat pada undangan digital.
+ *       Berguna untuk pengguna yang ingin mencatat sumbangan secara personal di luar konteks undangan.
+ *       Catatan akan terikat langsung ke akun pengguna yang sedang login.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateBuwuhanRequestBody'
+ *     responses:
+ *       201:
+ *         description: Catatan buwuh mandiri berhasil ditambahkan.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/BuwuhanResponseData'
+ *             example:
+ *               message: "Catatan buwuh berhasil ditambahkan"
+ *               status: 201
+ *               data:
+ *                 id: "cly3k9h2p0000v8og3f1a9x00"
+ *                 invitationId: null
+ *                 userId: "usr9k8a1b0000v8og3f1a0001"
+ *                 giverName: "Ahmad Subarjo"
+ *                 giverAddress: "Ds. Kedungwaru, Kec. Tulungagung"
+ *                 note: "Semoga berkah"
+ *                 receivedAt: "2026-08-21T20:15:00.000Z"
+ *                 createdAt: "2026-08-21T20:15:00.000Z"
+ *                 updatedAt: "2026-08-21T20:15:00.000Z"
+ *                 items:
+ *                   - id: "item-001"
+ *                     buwuhanId: "cly3k9h2p0000v8og3f1a9x00"
+ *                     itemName: "Uang Tunai"
+ *                     quantity: 1
+ *                     unit: "transaksi"
+ *                     category: null
+ *                     estimatedValue: 100000
+ *                     createdAt: "2026-08-21T20:15:00.000Z"
+ *       400:
+ *         description: Validasi gagal.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorEnvelope'
+ *       401:
+ *         description: Unauthorized.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorEnvelope'
+ *   get:
+ *     tags: [Buwuhan]
+ *     summary: Ambil semua catatan buwuh mandiri milik user login
+ *     description: >
+ *       Mengambil seluruh catatan buwuhan mandiri (standalone) yang dimiliki oleh pengguna yang sedang login
+ *       (yaitu catatan dengan `invitationId IS NULL` dan `userId = req.user.id`).
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Daftar catatan buwuh mandiri berhasil diambil.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/BuwuhanResponseData'
+ *             example:
+ *               message: "Daftar buwuh berhasil diambil"
+ *               status: 200
+ *               data:
+ *                 - id: "cly3k9h2p0000v8og3f1a9x00"
+ *                   invitationId: null
+ *                   userId: "usr9k8a1b0000v8og3f1a0001"
+ *                   giverName: "Ahmad Subarjo"
+ *                   giverAddress: "Ds. Kedungwaru, Kec. Tulungagung"
+ *                   note: "Semoga berkah"
+ *                   receivedAt: "2026-08-21T20:15:00.000Z"
+ *                   createdAt: "2026-08-21T20:15:00.000Z"
+ *                   updatedAt: "2026-08-21T20:15:00.000Z"
+ *                   items:
+ *                     - id: "item-001"
+ *                       buwuhanId: "cly3k9h2p0000v8og3f1a9x00"
+ *                       itemName: "Uang Tunai"
+ *                       quantity: 1
+ *                       unit: "transaksi"
+ *                       category: null
+ *                       estimatedValue: 100000
+ *                       createdAt: "2026-08-21T20:15:00.000Z"
+ *       401:
+ *         description: Unauthorized.
  *         content:
  *           application/json:
  *             schema:

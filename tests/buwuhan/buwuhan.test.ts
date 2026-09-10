@@ -566,3 +566,160 @@ describe("Petugas Buwuhan: Otorisasi & Audit Log Pencatatan", () => {
     expect(res.body.message).toContain("Petugas tidak diizinkan menghapus");
   });
 });
+
+// ─────────────────────────────────────────────────
+// POST /v1/api/buwuhans/standalone
+// ─────────────────────────────────────────────────
+describe("POST /v1/api/buwuhans/standalone", () => {
+  const validBody = {
+    giverName: "Ahmad Mandiri",
+    giverAddress: "Ds. Kedungwaru",
+    note: "Catatan mandiri",
+    receivedAt: "2026-08-21T20:15:00.000Z",
+    items: [{ itemName: "Uang Tunai", quantity: 1, unit: "transaksi", estimatedValue: 200000 }],
+  };
+
+  const mockStandaloneBuwuhan = {
+    id: "buwuhan-standalone-001",
+    invitationId: null,
+    userId: mockOwnerId,
+    giverName: "Ahmad Mandiri",
+    giverAddress: "Ds. Kedungwaru",
+    note: "Catatan mandiri",
+    receivedAt: new Date("2026-08-21T20:15:00.000Z"),
+    recordedByMemberId: null,
+    recordedByName: null,
+    createdAt: new Date("2026-08-21T20:15:00.000Z"),
+    updatedAt: new Date("2026-08-21T20:15:00.000Z"),
+    items: [
+      {
+        id: "item-standalone-001",
+        buwuhanId: "buwuhan-standalone-001",
+        itemName: "Uang Tunai",
+        quantity: { toNumber: () => 1 } as any,
+        unit: "transaksi",
+        category: null,
+        estimatedValue: { toNumber: () => 200000 } as any,
+        createdAt: new Date("2026-08-21T20:15:00.000Z"),
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    vi.spyOn(BuwuhanRepository, "createStandalone").mockResolvedValue(mockStandaloneBuwuhan as any);
+  });
+
+  it("BERHASIL (201) membuat catatan buwuh mandiri", async () => {
+    const res = await request(app).post("/v1/api/buwuhans/standalone").set("Authorization", `Bearer ${validAuthToken}`).send(validBody);
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.invitationId).toBeNull();
+    expect(res.body.data.userId).toBe(mockOwnerId);
+    expect(res.body.data.giverName).toBe("Ahmad Mandiri");
+  });
+
+  it("GAGAL (400) jika validasi gagal (items kosong)", async () => {
+    const res = await request(app).post("/v1/api/buwuhans/standalone").set("Authorization", `Bearer ${validAuthToken}`).send({ giverName: "Ahmad", items: [] });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("GAGAL (401) jika tidak ada token", async () => {
+    const res = await request(app).post("/v1/api/buwuhans/standalone").send(validBody);
+    expect(res.status).toBe(401);
+  });
+});
+
+// ─────────────────────────────────────────────────
+// GET /v1/api/buwuhans/standalone
+// ─────────────────────────────────────────────────
+describe("GET /v1/api/buwuhans/standalone", () => {
+  const mockStandaloneBuwuhan = {
+    id: "buwuhan-standalone-001",
+    invitationId: null,
+    userId: mockOwnerId,
+    giverName: "Ahmad Mandiri",
+    giverAddress: null,
+    note: null,
+    receivedAt: new Date("2026-08-21T20:15:00.000Z"),
+    recordedByMemberId: null,
+    recordedByName: null,
+    createdAt: new Date("2026-08-21T20:15:00.000Z"),
+    updatedAt: new Date("2026-08-21T20:15:00.000Z"),
+    items: [],
+  };
+
+  beforeEach(() => {
+    vi.spyOn(BuwuhanRepository, "findManyStandaloneByUserId").mockResolvedValue([mockStandaloneBuwuhan] as any);
+  });
+
+  it("BERHASIL (200) mengambil daftar catatan buwuh mandiri", async () => {
+    const res = await request(app).get("/v1/api/buwuhans/standalone").set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data[0].invitationId).toBeNull();
+    expect(res.body.data[0].userId).toBe(mockOwnerId);
+  });
+
+  it("GAGAL (401) jika tidak ada token", async () => {
+    const res = await request(app).get("/v1/api/buwuhans/standalone");
+    expect(res.status).toBe(401);
+  });
+});
+
+// ─────────────────────────────────────────────────
+// PATCH & DELETE /buwuhans/:id — Standalone mode
+// ─────────────────────────────────────────────────
+describe("PATCH & DELETE /v1/api/buwuhans/:id (Standalone)", () => {
+  const mockStandaloneBuwuhan = {
+    id: "buwuhan-standalone-001",
+    invitationId: null,
+    userId: mockOwnerId,
+    giverName: "Ahmad Mandiri",
+    giverAddress: null,
+    note: null,
+    receivedAt: new Date("2026-08-21T20:15:00.000Z"),
+    recordedByMemberId: null,
+    recordedByName: null,
+    createdAt: new Date("2026-08-21T20:15:00.000Z"),
+    updatedAt: new Date("2026-08-21T20:15:00.000Z"),
+    items: [],
+    invitation: null,
+    user: { id: mockOwnerId },
+  };
+
+  const anotherUserId = "user-other-999";
+  const anotherUserToken = jwt.sign({ id: anotherUserId, role: "USER", planTier: "FREE" }, process.env.JWT_SECRET as string, { expiresIn: "1d" });
+
+  beforeEach(() => {
+    (BuwuhanRepository.findById as Mock).mockResolvedValue(mockStandaloneBuwuhan);
+    (BuwuhanRepository.update as Mock).mockResolvedValue(mockStandaloneBuwuhan);
+  });
+
+  it("BERHASIL (200) pemilik dapat mengedit catatan buwuh mandiri", async () => {
+    const res = await request(app).patch("/v1/api/buwuhans/buwuhan-standalone-001").set("Authorization", `Bearer ${validAuthToken}`).send({ giverName: "Ahmad Diperbarui" });
+
+    expect(res.status).toBe(200);
+  });
+
+  it("DITOLAK (403) user lain tidak dapat mengedit catatan buwuh mandiri orang lain", async () => {
+    const res = await request(app).patch("/v1/api/buwuhans/buwuhan-standalone-001").set("Authorization", `Bearer ${anotherUserToken}`).send({ giverName: "Hack Attempt" });
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toContain("Anda tidak memiliki akses");
+  });
+
+  it("BERHASIL (200) pemilik dapat menghapus catatan buwuh mandiri", async () => {
+    const res = await request(app).delete("/v1/api/buwuhans/buwuhan-standalone-001").set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(200);
+  });
+
+  it("DITOLAK (403) user lain tidak dapat menghapus catatan buwuh mandiri orang lain", async () => {
+    const res = await request(app).delete("/v1/api/buwuhans/buwuhan-standalone-001").set("Authorization", `Bearer ${anotherUserToken}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toContain("Anda tidak memiliki akses");
+  });
+});

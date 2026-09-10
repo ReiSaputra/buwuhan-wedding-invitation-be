@@ -41,7 +41,8 @@ export interface BuwuhanItemData {
 
 export interface BuwuhanData {
   id: string;
-  invitationId: string;
+  invitationId: string | null;
+  userId?: string | null;
   giverName: string;
   giverAddress: string | null;
   note: string | null;
@@ -142,7 +143,8 @@ export function formatBuwuhanItem(item: BuwuhanItem): BuwuhanItemData {
 
 export function formatBuwuhan(buwuhan: {
   id: string;
-  invitationId: string;
+  invitationId: string | null;
+  userId?: string | null;
   giverName: string;
   giverAddress?: string | null;
   note: string | null;
@@ -156,6 +158,7 @@ export function formatBuwuhan(buwuhan: {
   return {
     id: buwuhan.id,
     invitationId: buwuhan.invitationId,
+    userId: buwuhan.userId ?? null,
     giverName: buwuhan.giverName,
     giverAddress: buwuhan.giverAddress ?? null,
     note: buwuhan.note,
@@ -209,13 +212,13 @@ export interface ListOwnerBuwuhanRes {
 
 export function formatOwnerBuwuhan(
   buwuhan: Parameters<typeof formatBuwuhan>[0] & {
-    invitation: { id: string; title: string; slug: string };
+    invitation: { id: string; title: string; slug: string } | null;
   },
 ): OwnerBuwuhanData {
   return {
     ...formatBuwuhan(buwuhan),
-    invitationTitle: buwuhan.invitation.title,
-    invitationSlug: buwuhan.invitation.slug,
+    invitationTitle: buwuhan.invitation?.title ?? "",
+    invitationSlug: buwuhan.invitation?.slug ?? "",
   };
 }
 

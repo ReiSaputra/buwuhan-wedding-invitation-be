@@ -47,16 +47,38 @@ export class BuwuhanService {
     return listBuwuhanResponse(buwuhans);
   }
 
+  /**
+   * Membuat catatan buwuhan mandiri baru (tidak terikat undangan).
+   */
+  static async createStandalone(actorUserId: string, actorName: string | null, req: CreateBuwuhanReq): Promise<CreateBuwuhanRes> {
+    const buwuhan = await BuwuhanRepository.createStandalone(actorUserId, req, actorName);
+    return createBuwuhanResponse(buwuhan);
+  }
+
+  /**
+   * Mengambil daftar catatan buwuhan mandiri milik user login.
+   */
+  static async listStandalone(actorUserId: string): Promise<ListBuwuhanRes> {
+    const buwuhans = await BuwuhanRepository.findManyStandaloneByUserId(actorUserId);
+    return listBuwuhanResponse(buwuhans);
+  }
+
   static async getById(id: string, actorUserId: string): Promise<GetBuwuhanRes> {
     const buwuhan = await BuwuhanRepository.findById(id);
     if (!buwuhan) {
       throw new NotFoundError("Catatan buwuh tidak ditemukan");
     }
 
-    const effectiveRole = (buwuhan.invitation.ownerId === actorUserId ? "OWNER" : null) ?? (await MemberRepository.findMemberRole(buwuhan.invitationId, actorUserId));
+    if (buwuhan.invitationId) {
+      const effectiveRole = (buwuhan.invitation?.ownerId === actorUserId ? "OWNER" : null) ?? (await MemberRepository.findMemberRole(buwuhan.invitationId, actorUserId));
 
-    if (!effectiveRole) {
-      throw new ForbiddenError("Anda tidak memiliki akses ke catatan buwuh ini");
+      if (!effectiveRole) {
+        throw new ForbiddenError("Anda tidak memiliki akses ke catatan buwuh ini");
+      }
+    } else {
+      if (buwuhan.userId !== actorUserId) {
+        throw new ForbiddenError("Anda tidak memiliki akses ke catatan buwuh ini");
+      }
     }
 
     return getBuwuhanResponse(buwuhan);
@@ -64,8 +86,8 @@ export class BuwuhanService {
 
   /**
    * Memperbarui catatan buwuhan.
-   * - OWNER / ADMIN : boleh edit semua entri.
-   * - USER (petugas): hanya boleh edit entri yang dia buat sendiri.
+   * - Standalone: hanya user pemilik yang boleh mengedit.
+   * - Undangan: OWNER / ADMIN boleh edit semua entri, USER (petugas) hanya entri yang dibuat sendiri.
    */
   static async update(id: string, actorUserId: string, actorMemberId: string | null, invitationRole: InvitationRole | undefined, req: UpdateBuwuhanReq): Promise<UpdateBuwuhanRes> {
     const existing = await BuwuhanRepository.findById(id);
@@ -73,16 +95,22 @@ export class BuwuhanService {
       throw new NotFoundError("Catatan buwuh tidak ditemukan");
     }
 
-    const effectiveRole = invitationRole ?? (existing.invitation.ownerId === actorUserId ? "OWNER" : null) ?? (await MemberRepository.findMemberRole(existing.invitationId, actorUserId));
+    if (existing.invitationId) {
+      const effectiveRole = invitationRole ?? (existing.invitation?.ownerId === actorUserId ? "OWNER" : null) ?? (await MemberRepository.findMemberRole(existing.invitationId, actorUserId));
 
-    if (!effectiveRole) {
-      throw new ForbiddenError("Anda tidak memiliki akses ke catatan buwuh ini");
-    }
+      if (!effectiveRole) {
+        throw new ForbiddenError("Anda tidak memiliki akses ke catatan buwuh ini");
+      }
 
-    // Petugas USER hanya boleh edit entri miliknya sendiri
-    if (effectiveRole === "USER") {
-      if (!actorMemberId || existing.recordedByMemberId !== actorMemberId) {
-        throw new ForbiddenError("Anda hanya dapat mengedit catatan yang Anda buat sendiri");
+      // Petugas USER hanya boleh edit entri miliknya sendiri
+      if (effectiveRole === "USER") {
+        if (!actorMemberId || existing.recordedByMemberId !== actorMemberId) {
+          throw new ForbiddenError("Anda hanya dapat mengedit catatan yang Anda buat sendiri");
+        }
+      }
+    } else {
+      if (existing.userId !== actorUserId) {
+        throw new ForbiddenError("Anda tidak memiliki akses ke catatan buwuh ini");
       }
     }
 
@@ -92,7 +120,8 @@ export class BuwuhanService {
 
   /**
    * Menghapus catatan buwuhan.
-   * Hanya OWNER dan ADMIN yang diizinkan. Petugas USER dilarang keras.
+   * - Standalone: hanya user pemilik yang boleh menghapus.
+   * - Undangan: Hanya OWNER dan ADMIN yang diizinkan. Petugas USER dilarang keras.
    */
   static async remove(id: string, actorUserId: string, invitationRole: InvitationRole | undefined): Promise<DeleteBuwuhanRes> {
     const existing = await BuwuhanRepository.findById(id);
@@ -100,15 +129,21 @@ export class BuwuhanService {
       throw new NotFoundError("Catatan buwuh tidak ditemukan");
     }
 
-    const effectiveRole = invitationRole ?? (existing.invitation.ownerId === actorUserId ? "OWNER" : null) ?? (await MemberRepository.findMemberRole(existing.invitationId, actorUserId));
+    if (existing.invitationId) {
+      const effectiveRole = invitationRole ?? (existing.invitation?.ownerId === actorUserId ? "OWNER" : null) ?? (await MemberRepository.findMemberRole(existing.invitationId, actorUserId));
 
-    // Petugas USER tidak diizinkan menghapus data apapun
-    if (effectiveRole === "USER") {
-      throw new ForbiddenError("Petugas tidak diizinkan menghapus catatan buwuhan");
-    }
+      // Petugas USER tidak diizinkan menghapus data apapun
+      if (effectiveRole === "USER") {
+        throw new ForbiddenError("Petugas tidak diizinkan menghapus catatan buwuhan");
+      }
 
-    if (!effectiveRole || (effectiveRole !== "OWNER" && effectiveRole !== "ADMIN")) {
-      throw new ForbiddenError("Anda tidak memiliki akses ke catatan buwuh ini");
+      if (!effectiveRole || (effectiveRole !== "OWNER" && effectiveRole !== "ADMIN")) {
+        throw new ForbiddenError("Anda tidak memiliki akses ke catatan buwuh ini");
+      }
+    } else {
+      if (existing.userId !== actorUserId) {
+        throw new ForbiddenError("Anda tidak memiliki akses ke catatan buwuh ini");
+      }
     }
 
     await BuwuhanRepository.delete(id);

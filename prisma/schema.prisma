@@ -59,6 +59,7 @@ model User {
   invitationMembers InvitationMember[]
   sessions          Session[]
   subscriptions     Subscription[]
+  buwuhans          Buwuhan[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -328,8 +329,9 @@ model LoveStory {
 }
 
 model Buwuhan {
-  id           String @id @default(cuid())
-  invitationId String
+  id           String  @id @default(cuid())
+  invitationId String?
+  userId       String?
 
   giverName    String
   giverAddress String?
@@ -343,13 +345,15 @@ model Buwuhan {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Cascade: Catatan buwuhan terhapus saat undangan dihapus
-  invitation Invitation        @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  // Cascade: Catatan buwuhan terhapus saat undangan atau user pemilik dihapus
+  invitation Invitation?       @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  user       User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
   // SetNull: Jika petugas dihapus, catatan tetap ada tapi relasi diputus
   recordedBy InvitationMember? @relation(fields: [recordedByMemberId], references: [id], onDelete: SetNull)
   items      BuwuhanItem[]
 
   @@index([invitationId])
+  @@index([userId])
   @@map("buwuhans")
 }
 

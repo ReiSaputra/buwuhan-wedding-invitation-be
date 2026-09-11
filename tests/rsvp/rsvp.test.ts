@@ -285,3 +285,45 @@ describe("rsvp test: delete RSVP", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("rsvp test: export RSVP", () => {
+  it("berhasil mengekspor data RSVP ke format CSV (200)", async () => {
+    (MemberRepository.findInvitationById as Mock).mockResolvedValue(mockInvitation);
+    (MemberRepository.findMemberRole as Mock).mockResolvedValue("OWNER");
+    (RSVPRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (RSVPRepository.findManyByInvitationId as Mock).mockResolvedValue([mockRSVP]);
+
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/rsvps/export?format=csv`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/csv");
+    expect(res.headers["content-disposition"]).toContain(`attachment; filename="${mockInvitation.slug}-rsvps-`);
+    expect(res.headers["content-disposition"]).toContain(".csv");
+    expect(res.text).toContain("Nama Tamu");
+    expect(res.text).toContain("Rizky Ramadhan");
+  });
+
+  it("berhasil mengekspor data RSVP ke format XLSX (200)", async () => {
+    (MemberRepository.findInvitationById as Mock).mockResolvedValue(mockInvitation);
+    (MemberRepository.findMemberRole as Mock).mockResolvedValue("OWNER");
+    (RSVPRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (RSVPRepository.findManyByInvitationId as Mock).mockResolvedValue([mockRSVP]);
+
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/rsvps/export?format=xlsx`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("spreadsheetml.sheet");
+    expect(res.headers["content-disposition"]).toContain(`attachment; filename="${mockInvitation.slug}-rsvps-`);
+    expect(res.headers["content-disposition"]).toContain(".xlsx");
+  });
+
+  it("gagal jika format ekspor tidak valid (422)", async () => {
+    (MemberRepository.findInvitationById as Mock).mockResolvedValue(mockInvitation);
+    (MemberRepository.findMemberRole as Mock).mockResolvedValue("OWNER");
+
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/rsvps/export?format=docx`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
+  });
+});

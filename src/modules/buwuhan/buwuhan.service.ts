@@ -20,6 +20,7 @@ import {
 } from "./buwuhan.types";
 import { ForbiddenError, NotFoundError } from "../../errors/app.error";
 import type { InvitationRole } from "../../generated/prisma/client";
+import { generateExportFileName, setExportHeaders, streamCsvExport, streamXlsxExport, type ColumnDefinition } from "../../utils/export.util";
 
 export class BuwuhanService {
   /**
@@ -163,5 +164,89 @@ export class BuwuhanService {
   static async listByOwner(ownerId: string): Promise<ListOwnerBuwuhanRes> {
     const buwuhans = await BuwuhanRepository.findManyByOwnerId(ownerId);
     return listOwnerBuwuhanResponse(buwuhans);
+  }
+
+  // ── Streaming Export (CSV & XLSX) ──────────────────────────────────
+
+  static async export(invitationId: string, actorUserId: string, filter: { category?: string; search?: string }, format: "csv" | "xlsx", res: import("express").Response): Promise<void> {
+    const invitation = await BuwuhanRepository.findInvitationByIdAndOwner(invitationId, actorUserId);
+    if (!invitation) {
+      throw new NotFoundError("Undangan tidak ditemukan");
+    }
+
+    const buwuhans = await BuwuhanRepository.findManyByInvitationId(invitationId, filter);
+
+    const filename = generateExportFileName(invitation.slug, "buwuhans", format);
+    setExportHeaders(res, filename, format);
+
+    interface BuwuhanExportRow {
+      giverName: string;
+      giverAddress: string | null;
+      itemName: string;
+      category: string | null;
+      quantity: string;
+      unit: string;
+      estimatedValue: string;
+      note: string | null;
+      receivedAt: Date;
+      recordedByName: string | null;
+    }
+
+    const flatRows: BuwuhanExportRow[] = [];
+    for (const b of buwuhans) {
+      if (b.items && b.items.length > 0) {
+        for (const item of b.items) {
+          flatRows.push({
+            giverName: b.giverName,
+            giverAddress: b.giverAddress,
+            itemName: item.itemName,
+            category: item.category,
+            quantity: item.quantity != null ? item.quantity.toString() : "-",
+            unit: item.unit,
+            estimatedValue: item.estimatedValue != null ? item.estimatedValue.toString() : "-",
+            note: b.note,
+            receivedAt: b.receivedAt,
+            recordedByName: b.recordedByName,
+          });
+        }
+      } else {
+        flatRows.push({
+          giverName: b.giverName,
+          giverAddress: b.giverAddress,
+          itemName: "-",
+          category: "-",
+          quantity: "-",
+          unit: "-",
+          estimatedValue: "-",
+          note: b.note,
+          receivedAt: b.receivedAt,
+          recordedByName: b.recordedByName,
+        });
+      }
+    }
+
+    const columns: ColumnDefinition<BuwuhanExportRow>[] = [
+      { header: "Nama Pemberi", key: "giverName", width: 25 },
+      { header: "Alamat Pemberi", key: "giverAddress", width: 30, format: (r) => r.giverAddress ?? "-" },
+      { header: "Nama Bantuan / Item", key: "itemName", width: 25 },
+      { header: "Kategori", key: "category", width: 15, format: (r) => r.category ?? "-" },
+      { header: "Jumlah", key: "quantity", width: 15 },
+      { header: "Satuan", key: "unit", width: 15 },
+      { header: "Estimasi Nilai (Rp)", key: "estimatedValue", width: 20 },
+      { header: "Catatan", key: "note", width: 30, format: (r) => r.note ?? "-" },
+      {
+        header: "Tanggal Terima",
+        key: "receivedAt",
+        width: 22,
+        format: (r) => (r.receivedAt ? new Date(r.receivedAt).toLocaleString("id-ID") : "-"),
+      },
+      { header: "Pencatat", key: "recordedByName", width: 20, format: (r) => r.recordedByName ?? "-" },
+    ];
+
+    if (format === "csv") {
+      await streamCsvExport(res, columns, flatRows);
+    } else {
+      await streamXlsxExport(res, "Catatan Buwuh", columns, flatRows);
+    }
   }
 }

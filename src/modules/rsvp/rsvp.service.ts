@@ -1,4 +1,4 @@
-﻿import crypto from "crypto";
+import crypto from "crypto";
 
 import { RSVPRepository } from "./rsvp.repository";
 import {
@@ -17,6 +17,7 @@ import {
   type WishesQuery,
 } from "./rsvp.types";
 import { NotFoundError } from "../../errors/app.error";
+import { generateExportFileName, setExportHeaders, streamCsvExport, streamXlsxExport, type ColumnDefinition } from "../../utils/export.util";
 
 function generateQrToken(): string {
   return crypto.randomBytes(6).toString("hex").toUpperCase();
@@ -123,5 +124,45 @@ export class RSVPService {
     await RSVPRepository.delete(rsvpId);
 
     return deleteRSVPResponse();
+  }
+
+  // ── Streaming Export (CSV & XLSX) ──────────────────────────────────
+
+  static async export(invitationId: string, ownerId: string, filter: RSVPFilterQuery | undefined, format: "csv" | "xlsx", res: import("express").Response): Promise<void> {
+    const invitation = await RSVPRepository.findInvitationByIdAndOwner(invitationId, ownerId);
+    if (!invitation) {
+      throw new NotFoundError("Undangan tidak ditemukan");
+    }
+
+    const rsvps = await RSVPRepository.findManyByInvitationId(invitationId, filter);
+
+    const filename = generateExportFileName(invitation.slug, "rsvps", format);
+    setExportHeaders(res, filename, format);
+
+    const columns: ColumnDefinition<(typeof rsvps)[0]>[] = [
+      { header: "Nama Tamu", key: "guestName", width: 25, format: (r) => r.guest?.name ?? "-" },
+      { header: "No. WhatsApp / Telepon", key: "phone", width: 20, format: (r) => r.guest?.phone ?? "-" },
+      { header: "Email", key: "email", width: 25, format: (r) => r.guest?.email ?? "-" },
+      {
+        header: "Status Kehadiran",
+        key: "status",
+        width: 18,
+        format: (r) => (r.status === "CONFIRMED" ? "Hadir" : "Tidak Hadir"),
+      },
+      { header: "Jumlah Reservasi (Pax)", key: "reservation", width: 22, format: (r) => r.reservation },
+      { header: "Ucapan & Doa", key: "message", width: 35, format: (r) => r.message ?? "-" },
+      {
+        header: "Waktu Konfirmasi",
+        key: "createdAt",
+        width: 22,
+        format: (r) => (r.createdAt ? new Date(r.createdAt).toLocaleString("id-ID") : "-"),
+      },
+    ];
+
+    if (format === "csv") {
+      await streamCsvExport(res, columns, rsvps);
+    } else {
+      await streamXlsxExport(res, "Daftar RSVP", columns, rsvps);
+    }
   }
 }

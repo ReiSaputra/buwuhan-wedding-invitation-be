@@ -755,4 +755,59 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorEnvelope'
+ *
+ * /invitations/{invitationId}/buwuhans/export:
+ *   get:
+ *     tags: [Buwuhan]
+ *     summary: Export data catatan buwuhan ke CSV atau XLSX
+ *     description: Streaming export seluruh catatan buwuh beserta item bantuan dan nilai nominal dalam format berkas CSV atau Excel (XLSX).
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: invitationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID undangan.
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [csv, xlsx]
+ *           default: csv
+ *         description: Format berkas ekspor.
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filter berdasarkan kategori item bantuan.
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Pencarian nama pemberi, alamat, catatan, atau nama item.
+ *     responses:
+ *       200:
+ *         description: Berkas CSV atau XLSX streaming.
+ *         headers:
+ *           Content-Disposition:
+ *             schema:
+ *               type: string
+ *             description: attachment; filename="{slug}-buwuhans-{date}.{format}"
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       422:
+ *         description: Format query tidak valid.
  */

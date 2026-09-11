@@ -1,4 +1,4 @@
-﻿import type { NextFunction, Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import { RSVPService } from "./rsvp.service";
 import type { RSVPFilterQuery, SubmitRSVPReq, WishesQuery } from "./rsvp.types";
@@ -69,6 +69,25 @@ export class RSVPController {
 
       const response = await RSVPService.delete(invitationId, rsvpId, ownerId);
       res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ── Streaming Export Handler ────────────────────────────────────────
+
+  static async export(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const invitationId = req.params.invitationId as string;
+      const ownerId = req.user!.id;
+      const format = (req.query.format as "csv" | "xlsx") || "csv";
+
+      const filter: RSVPFilterQuery = {
+        status: req.query.status as RSVPStatus | undefined,
+        search: req.query.search as string | undefined,
+      };
+
+      await RSVPService.export(invitationId, ownerId, filter, format, res);
     } catch (error) {
       next(error);
     }

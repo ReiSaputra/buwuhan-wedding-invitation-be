@@ -41,6 +41,7 @@ import { generateInvitationEmailHtml, generateInvitationEmailText } from "./gues
 import { logger } from "../../utils/log";
 import type { PlanTier } from "../../generated/prisma/client";
 import { checkQuota, PLAN_QUOTA } from "../../lib/plan-quota";
+import { generateExportFileName, setExportHeaders, streamCsvExport, streamXlsxExport, type ColumnDefinition } from "../../utils/export.util";
 
 function generateQrToken(): string {
   // Generate random token 12 karakter hex huruf besar (contoh: 7B3A9C12E4F0)
@@ -378,5 +379,39 @@ export class GuestService {
     const coupleNames = formatCoupleNames(invitation.couples);
 
     return getGuestShareResponse(guest, invitation.slug, coupleNames);
+  }
+
+  // ── Streaming Export (CSV & XLSX) ──────────────────────────────────
+
+  static async export(invitationId: string, ownerId: string, filter: GuestFilterQuery, format: "csv" | "xlsx", res: import("express").Response): Promise<void> {
+    const invitation = await GuestRepository.findInvitationByIdAndOwner(invitationId, ownerId);
+    if (!invitation) {
+      throw new NotFoundError("Undangan tidak ditemukan");
+    }
+
+    const guests = await GuestRepository.findManyByInvitationId(invitationId, filter);
+
+    const filename = generateExportFileName(invitation.slug, "guests", format);
+    setExportHeaders(res, filename, format);
+
+    const columns: ColumnDefinition<(typeof guests)[0]>[] = [
+      { header: "Nama Tamu", key: "name", width: 25 },
+      { header: "Kategori", key: "category", width: 15, format: (g) => g.category ?? "-" },
+      { header: "No. WhatsApp / Telepon", key: "phone", width: 20, format: (g) => g.phone ?? "-" },
+      { header: "Email", key: "email", width: 25, format: (g) => g.email ?? "-" },
+      { header: "Estimasi Pax", key: "paxCount", width: 15, format: (g) => g.paxCount },
+      { header: "Pax Hadir", key: "paxActual", width: 15, format: (g) => g.paxActual ?? "-" },
+      { header: "Status Kehadiran", key: "isAttended", width: 18, format: (g) => (g.isAttended ? "Hadir" : "Belum Hadir") },
+      { header: "Waktu Check-In", key: "checkedInAt", width: 22, format: (g) => (g.checkedInAt ? new Date(g.checkedInAt).toLocaleString("id-ID") : "-") },
+      { header: "Waktu Check-Out", key: "checkedOutAt", width: 22, format: (g) => (g.checkedOutAt ? new Date(g.checkedOutAt).toLocaleString("id-ID") : "-") },
+      { header: "QR Code", key: "qrCode", width: 20 },
+      { header: "Catatan", key: "notes", width: 30, format: (g) => g.notes ?? "-" },
+    ];
+
+    if (format === "csv") {
+      await streamCsvExport(res, columns, guests);
+    } else {
+      await streamXlsxExport(res, "Daftar Tamu", columns, guests);
+    }
   }
 }

@@ -1,4 +1,4 @@
-﻿// Taruh file ini di: src/modules/rsvp/rsvp.docs.ts
+// Taruh file ini di: src/modules/rsvp/rsvp.docs.ts
 //
 // File ini murni JSDoc comment block (@openapi) yang di-scan otomatis oleh
 // swagger-jsdoc lewat glob di src/config/swagger.config.ts.
@@ -441,4 +441,60 @@
  *             example:
  *               success: false
  *               message: "Data RSVP tidak ditemukan"
+ *
+ * /invitations/{invitationId}/rsvps/export:
+ *   get:
+ *     tags: [RSVP]
+ *     summary: Export data RSVP ke CSV atau XLSX
+ *     description: Streaming export seluruh konfirmasi kehadiran dan ucapan RSVP sesuai filter dalam format berkas CSV atau Excel (XLSX).
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: invitationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID undangan.
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [csv, xlsx]
+ *           default: csv
+ *         description: Format berkas ekspor.
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [CONFIRMED, DECLINED]
+ *         description: Filter status kehadiran (CONFIRMED / DECLINED).
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Pencarian nama tamu, ucapan, atau nomor HP.
+ *     responses:
+ *       200:
+ *         description: Berkas CSV atau XLSX streaming.
+ *         headers:
+ *           Content-Disposition:
+ *             schema:
+ *               type: string
+ *             description: attachment; filename="{slug}-rsvps-{date}.{format}"
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       422:
+ *         description: Format query tidak valid.
  */

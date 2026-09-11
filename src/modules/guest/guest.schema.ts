@@ -16,10 +16,7 @@ export const createGuestSchema = z.object({
 });
 
 export const bulkCreateGuestSchema = z.object({
-  guests: z
-    .array(createGuestSchema)
-    .min(1, "Daftar tamu minimal 1 orang")
-    .max(500, "Maksimal import 500 tamu sekaligus"),
+  guests: z.array(createGuestSchema).min(1, "Daftar tamu minimal 1 orang").max(500, "Maksimal import 500 tamu sekaligus"),
 });
 
 export const updateGuestSchema = z
@@ -64,9 +61,20 @@ export const bulkSendGuestEmailSchema = z.object({
   guestIds: z.array(z.string().min(1, "Guest ID tidak valid")).optional(),
 });
 
+export const exportGuestQuerySchema = z.object({
+  format: z.enum(["csv", "xlsx"], { message: "Format export harus 'csv' atau 'xlsx'" }).default("csv"),
+  category: z.string().trim().optional(),
+  isAttended: z
+    .enum(["true", "false"])
+    .transform((val) => val === "true")
+    .optional(),
+  search: z.string().trim().optional(),
+});
+
 export type CreateGuestInput = z.infer<typeof createGuestSchema>;
 export type BulkCreateGuestInput = z.infer<typeof bulkCreateGuestSchema>;
 export type UpdateGuestInput = z.infer<typeof updateGuestSchema>;
 export type CheckInGuestInput = z.infer<typeof checkInGuestSchema>;
 export type CheckOutGuestInput = z.infer<typeof checkOutGuestSchema>;
 export type BulkSendGuestEmailInput = z.infer<typeof bulkSendGuestEmailSchema>;
+export type ExportGuestQueryInput = z.infer<typeof exportGuestQuerySchema>;

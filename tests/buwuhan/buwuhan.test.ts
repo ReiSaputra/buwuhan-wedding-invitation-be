@@ -39,27 +39,27 @@ const mockBuwuhanId = "buwuhan-001";
 
 const validAuthToken = jwt.sign({ id: mockOwnerId, role: "USER", planTier: "FREE" }, process.env.JWT_SECRET as string, { expiresIn: "1d" });
 
-const mockInvitation = { id: mockInvitationId, ownerId: mockOwnerId };
+const mockInvitation = { id: mockInvitationId, ownerId: mockOwnerId, slug: "nikahan-ayu-budi" };
 
 const mockBuwuhanItems = [
   {
     id: "item-001",
     buwuhanId: mockBuwuhanId,
     itemName: "Uang Tunai",
-    quantity: { toNumber: () => 1 } as any,
+    quantity: { toString: () => "1", toNumber: () => 1 } as any,
     unit: "transaksi",
     category: null,
-    estimatedValue: { toNumber: () => 100000 } as any,
+    estimatedValue: { toString: () => "100000", toNumber: () => 100000 } as any,
     createdAt: new Date("2026-08-21T20:15:00.000Z"),
   },
   {
     id: "item-002",
     buwuhanId: mockBuwuhanId,
     itemName: "Beras",
-    quantity: { toNumber: () => 25 } as any,
+    quantity: { toString: () => "25", toNumber: () => 25 } as any,
     unit: "kg",
     category: "Sembako",
-    estimatedValue: { toNumber: () => 350000 } as any,
+    estimatedValue: { toString: () => "350000.75", toNumber: () => 350000.75 } as any,
     createdAt: new Date("2026-08-21T20:15:00.000Z"),
   },
 ];
@@ -721,5 +721,49 @@ describe("PATCH & DELETE /v1/api/buwuhans/:id (Standalone)", () => {
 
     expect(res.status).toBe(403);
     expect(res.body.message).toContain("Anda tidak memiliki akses");
+  });
+});
+
+describe("buwuhan test: export buwuhan", () => {
+  it("berhasil mengekspor data buwuh ke format CSV dengan presisi Decimal terjaga (200)", async () => {
+    (MemberRepository.findInvitationById as Mock).mockResolvedValue(mockInvitation);
+    (MemberRepository.findMemberRole as Mock).mockResolvedValue("OWNER");
+    (BuwuhanRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (BuwuhanRepository.findManyByInvitationId as Mock).mockResolvedValue([mockBuwuhan]);
+
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/buwuhans/export?format=csv`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/csv");
+    expect(res.headers["content-disposition"]).toContain(`attachment; filename="${mockInvitation.slug}-buwuhans-`);
+    expect(res.headers["content-disposition"]).toContain(".csv");
+    expect(res.text).toContain("Nama Pemberi");
+    expect(res.text).toContain("Ahmad");
+    expect(res.text).toContain("Beras");
+    expect(res.text).toContain("350000.75");
+  });
+
+  it("berhasil mengekspor data buwuh ke format XLSX (200)", async () => {
+    (MemberRepository.findInvitationById as Mock).mockResolvedValue(mockInvitation);
+    (MemberRepository.findMemberRole as Mock).mockResolvedValue("OWNER");
+    (BuwuhanRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (BuwuhanRepository.findManyByInvitationId as Mock).mockResolvedValue([mockBuwuhan]);
+
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/buwuhans/export?format=xlsx`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("spreadsheetml.sheet");
+    expect(res.headers["content-disposition"]).toContain(`attachment; filename="${mockInvitation.slug}-buwuhans-`);
+    expect(res.headers["content-disposition"]).toContain(".xlsx");
+  });
+
+  it("gagal jika format ekspor tidak valid (422)", async () => {
+    (MemberRepository.findInvitationById as Mock).mockResolvedValue(mockInvitation);
+    (MemberRepository.findMemberRole as Mock).mockResolvedValue("OWNER");
+
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/buwuhans/export?format=json`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
   });
 });

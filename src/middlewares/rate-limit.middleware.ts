@@ -48,3 +48,13 @@ export const uploadRateLimiter = rateLimit({
   skip: skipInTest,
   message: { success: false, message: "Terlalu banyak unggahan berkas, coba lagi nanti" },
 });
+
+// Export: batasi frekuensi export data untuk mencegah pemborosan resource server.
+export const exportRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTest,
+  message: { success: false, message: "Terlalu banyak permintaan ekspor, coba lagi nanti" },
+});

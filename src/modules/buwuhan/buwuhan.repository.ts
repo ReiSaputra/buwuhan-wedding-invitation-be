@@ -75,9 +75,36 @@ export class BuwuhanRepository {
     });
   }
 
-  static async findManyByInvitationId(invitationId: string) {
+  static async findManyByInvitationId(invitationId: string, filter?: { category?: string; search?: string }) {
     return await prisma.buwuhan.findMany({
-      where: { invitationId },
+      where: {
+        invitationId,
+        ...(filter?.category
+          ? {
+              items: {
+                some: {
+                  category: { equals: filter.category, mode: "insensitive" },
+                },
+              },
+            }
+          : {}),
+        ...(filter?.search
+          ? {
+              OR: [
+                { giverName: { contains: filter.search, mode: "insensitive" } },
+                { giverAddress: { contains: filter.search, mode: "insensitive" } },
+                { note: { contains: filter.search, mode: "insensitive" } },
+                {
+                  items: {
+                    some: {
+                      itemName: { contains: filter.search, mode: "insensitive" },
+                    },
+                  },
+                },
+              ],
+            }
+          : {}),
+      },
       include: { items: true },
       orderBy: { receivedAt: "desc" },
     });

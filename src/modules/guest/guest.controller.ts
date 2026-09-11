@@ -178,4 +178,24 @@ export class GuestController {
       next(error);
     }
   }
+
+  // ── Streaming Export Handler ────────────────────────────────────────
+
+  static async export(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const invitationId = req.params.invitationId as string;
+      const ownerId = req.user!.id;
+      const format = (req.query.format as "csv" | "xlsx") || "csv";
+
+      const filter: GuestFilterQuery = {
+        category: req.query.category as string | undefined,
+        isAttended: req.query.isAttended === undefined ? undefined : req.query.isAttended === "true" || req.query.isAttended === true,
+        search: req.query.search as string | undefined,
+      };
+
+      await GuestService.export(invitationId, ownerId, filter, format, res);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

@@ -30,5 +30,12 @@ export const updateBuwuhanSchema = z
     message: "Minimal satu field harus diisi untuk update",
   });
 
+export const exportBuwuhanQuerySchema = z.object({
+  format: z.enum(["csv", "xlsx"], { message: "Format export harus 'csv' atau 'xlsx'" }).default("csv"),
+  category: z.string().trim().optional(),
+  search: z.string().trim().optional(),
+});
+
 export type CreateBuwuhanInput = z.infer<typeof createBuwuhanSchema>;
 export type UpdateBuwuhanInput = z.infer<typeof updateBuwuhanSchema>;
+export type ExportBuwuhanQueryInput = z.infer<typeof exportBuwuhanQuerySchema>;

@@ -111,4 +111,23 @@ export class BuwuhanController {
       next(err);
     }
   }
+
+  // ── Streaming Export Handler ────────────────────────────────────────
+
+  static async export(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const invitationId = req.params.invitationId as string;
+      const actorUserId = req.user!.id;
+      const format = (req.query.format as "csv" | "xlsx") || "csv";
+
+      const filter = {
+        category: req.query.category as string | undefined,
+        search: req.query.search as string | undefined,
+      };
+
+      await BuwuhanService.export(invitationId, actorUserId, filter, format, res);
+    } catch (err) {
+      next(err);
+    }
+  }
 }

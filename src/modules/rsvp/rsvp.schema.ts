@@ -1,4 +1,4 @@
-﻿import * as z from "zod";
+import * as z from "zod";
 
 export const submitRSVPSchema = z
   .object({
@@ -27,5 +27,12 @@ export const wishesQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional().default(1),
 });
 
+export const exportRSVPQuerySchema = z.object({
+  format: z.enum(["csv", "xlsx"], { message: "Format export harus 'csv' atau 'xlsx'" }).default("csv"),
+  status: z.enum(["CONFIRMED", "DECLINED"]).optional(),
+  search: z.string().trim().optional(),
+});
+
 export type SubmitRSVPInput = z.infer<typeof submitRSVPSchema>;
 export type WishesQueryInput = z.infer<typeof wishesQuerySchema>;
+export type ExportRSVPQueryInput = z.infer<typeof exportRSVPQuerySchema>;

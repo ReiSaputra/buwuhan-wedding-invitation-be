@@ -1,17 +1,11 @@
 import { Router } from "express";
 
 import { GuestController } from "./guest.controller";
-import {
-  bulkCreateGuestSchema,
-  bulkSendGuestEmailSchema,
-  checkInGuestSchema,
-  checkOutGuestSchema,
-  createGuestSchema,
-  updateGuestSchema,
-} from "./guest.schema";
-import { validate } from "../../middlewares/validate.middleware";
+import { bulkCreateGuestSchema, bulkSendGuestEmailSchema, checkInGuestSchema, checkOutGuestSchema, createGuestSchema, exportGuestQuerySchema, updateGuestSchema } from "./guest.schema";
+import { validate, validateQuery } from "../../middlewares/validate.middleware";
 import { requireAuth } from "../../middlewares/auth.middleware";
 import { requireInvitationRole } from "../../middlewares/invitation-role.middleware";
+import { exportRateLimiter } from "../../middlewares/rate-limit.middleware";
 
 export const guestRouter = Router();
 
@@ -23,7 +17,9 @@ guestRouter.post("/invitations/:invitationId/guests", requireAuth, requireInvita
 guestRouter.post("/invitations/:invitationId/guests/bulk", requireAuth, requireInvitationRole("OWNER", "ADMIN"), validate(bulkCreateGuestSchema), GuestController.bulkCreate);
 guestRouter.get("/invitations/:invitationId/guests", requireAuth, requireInvitationRole("OWNER", "ADMIN", "USER"), GuestController.list);
 guestRouter.get("/invitations/:invitationId/guests/stats", requireAuth, requireInvitationRole("OWNER", "ADMIN", "USER"), GuestController.getStats);
+guestRouter.get("/invitations/:invitationId/guests/export", requireAuth, requireInvitationRole("OWNER", "ADMIN", "USER"), exportRateLimiter, validateQuery(exportGuestQuerySchema), GuestController.export);
 guestRouter.get("/invitations/:invitationId/guests/:id", requireAuth, requireInvitationRole("OWNER", "ADMIN", "USER"), GuestController.getById);
+
 guestRouter.patch("/invitations/:invitationId/guests/:id", requireAuth, requireInvitationRole("OWNER", "ADMIN"), validate(updateGuestSchema), GuestController.update);
 guestRouter.delete("/invitations/:invitationId/guests/:id", requireAuth, requireInvitationRole("OWNER", "ADMIN"), GuestController.remove);
 

@@ -1,10 +1,11 @@
 import { Router } from "express";
 
 import { BuwuhanController } from "./buwuhan.controller";
-import { createBuwuhanSchema, updateBuwuhanSchema } from "./buwuhan.schema";
-import { validate } from "../../middlewares/validate.middleware";
+import { createBuwuhanSchema, exportBuwuhanQuerySchema, updateBuwuhanSchema } from "./buwuhan.schema";
+import { validate, validateQuery } from "../../middlewares/validate.middleware";
 import { requireAuth } from "../../middlewares/auth.middleware";
 import { requireInvitationRole } from "../../middlewares/invitation-role.middleware";
+import { exportRateLimiter } from "../../middlewares/rate-limit.middleware";
 
 export const buwuhanRouter = Router();
 
@@ -12,8 +13,9 @@ export const buwuhanRouter = Router();
 // USER (petugas) diizinkan create & list
 buwuhanRouter.post("/invitations/:invitationId/buwuhans", requireAuth, requireInvitationRole("OWNER", "ADMIN", "USER"), validate(createBuwuhanSchema), BuwuhanController.create);
 buwuhanRouter.get("/invitations/:invitationId/buwuhans", requireAuth, requireInvitationRole("OWNER", "ADMIN", "USER"), BuwuhanController.list);
-// PENTING: /summary harus sebelum /:id agar tidak salah tangkap
+// PENTING: /summary dan /export harus sebelum /:id agar tidak salah tangkap
 buwuhanRouter.get("/invitations/:invitationId/buwuhans/summary", requireAuth, requireInvitationRole("OWNER", "ADMIN", "USER"), BuwuhanController.getSummary);
+buwuhanRouter.get("/invitations/:invitationId/buwuhans/export", requireAuth, requireInvitationRole("OWNER", "ADMIN", "USER"), exportRateLimiter, validateQuery(exportBuwuhanQuerySchema), BuwuhanController.export);
 
 // ── Rute Flat (operasi per transaksi) ────────────────────────────────────────
 // PENTING: rute tanpa parameter didaftarkan sebelum /buwuhans/:id

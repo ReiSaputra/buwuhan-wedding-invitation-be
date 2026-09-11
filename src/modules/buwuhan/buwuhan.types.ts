@@ -136,7 +136,7 @@ export function formatBuwuhanItem(item: BuwuhanItem): BuwuhanItemData {
     quantity: toNumeric(item.quantity),
     unit: item.unit,
     category: item.category,
-    estimatedValue: toNullableNumeric(item.estimatedValue),
+    estimatedValue: toNullableNumeric(item.estimatedValue) !== null ? Math.trunc(toNullableNumeric(item.estimatedValue)!) : null,
     createdAt: item.createdAt,
   };
 }

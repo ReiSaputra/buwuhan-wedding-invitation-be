@@ -462,4 +462,46 @@ describe("guest test: send email & share links", () => {
     expect(res.body.data.whatsappUniversalShareUrl).toContain("api.whatsapp.com/send?text=");
     expect(res.body.data.whatsappUniversalShareUrl).toContain(encodeURIComponent(`/undangan/${mockInvitation.slug}?to=${mockGuest.qrCode}`));
   });
+
+  // ── Export Tests ────────────────────────────────────────────────────
+
+  it("berhasil mengekspor data tamu ke format CSV (200)", async () => {
+    (MemberRepository.findInvitationById as Mock).mockResolvedValue(mockInvitation);
+    (MemberRepository.findMemberRole as Mock).mockResolvedValue("OWNER");
+    (GuestRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (GuestRepository.findManyByInvitationId as Mock).mockResolvedValue([mockGuest]);
+
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/guests/export?format=csv`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/csv");
+    expect(res.headers["content-disposition"]).toContain(`attachment; filename="${mockInvitation.slug}-guests-`);
+    expect(res.headers["content-disposition"]).toContain(".csv");
+    expect(res.text).toContain("Nama Tamu");
+    expect(res.text).toContain("Rizky Ramadhan");
+  });
+
+  it("berhasil mengekspor data tamu ke format XLSX (200)", async () => {
+    (MemberRepository.findInvitationById as Mock).mockResolvedValue(mockInvitation);
+    (MemberRepository.findMemberRole as Mock).mockResolvedValue("OWNER");
+    (GuestRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (GuestRepository.findManyByInvitationId as Mock).mockResolvedValue([mockGuest]);
+
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/guests/export?format=xlsx`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("spreadsheetml.sheet");
+    expect(res.headers["content-disposition"]).toContain(`attachment; filename="${mockInvitation.slug}-guests-`);
+    expect(res.headers["content-disposition"]).toContain(".xlsx");
+  });
+
+  it("gagal jika format ekspor tidak valid (422)", async () => {
+    (MemberRepository.findInvitationById as Mock).mockResolvedValue(mockInvitation);
+    (MemberRepository.findMemberRole as Mock).mockResolvedValue("OWNER");
+
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/guests/export?format=pdf`).set("Authorization", `Bearer ${validAuthToken}`);
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
+  });
 });

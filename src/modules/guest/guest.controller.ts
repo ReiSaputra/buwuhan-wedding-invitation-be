@@ -189,7 +189,7 @@ export class GuestController {
 
       const filter: GuestFilterQuery = {
         category: req.query.category as string | undefined,
-        isAttended: req.query.isAttended === undefined ? undefined : req.query.isAttended === "true" || req.query.isAttended === true,
+        isAttended: req.query.isAttended === undefined ? undefined : req.query.isAttended === "true",
         search: req.query.search as string | undefined,
       };
 

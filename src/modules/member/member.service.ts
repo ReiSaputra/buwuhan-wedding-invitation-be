@@ -28,13 +28,12 @@ import { mailer } from "../../lib/mailer";
 import { generateMemberInviteEmailHtml, generateMemberInviteEmailText } from "./member.mail";
 import { logger } from "../../utils/log";
 
-
 function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
 function buildAcceptUrl(rawToken: string): string {
-  const baseUrl = process.env.FRONTEND_URL || "https://buwuhan.com";
+  const baseUrl = process.env.FRONTEND_URL || "https://buwuh.com";
   return `${baseUrl}/dashboard/undangan/join?token=${rawToken}`;
 }
 
@@ -246,7 +245,7 @@ export class MemberService {
       expiresAt,
     });
 
-    const baseUrl = process.env.FRONTEND_URL || "https://buwuhan.com";
+    const baseUrl = process.env.FRONTEND_URL || "https://buwuh.com";
     const accessLink = `${baseUrl}/petugas/akses?token=${rawToken}`;
 
     return {
@@ -318,4 +317,3 @@ export class MemberService {
     };
   }
 }
-

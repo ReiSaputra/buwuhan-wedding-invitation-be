@@ -177,7 +177,7 @@ export interface GetGuestShareRes {
 // ── Helper formatters ────────────────────────────────────────────────
 
 export function buildInvitationUrl(invitationSlug: string, qrCode: string): string {
-  const baseUrl = process.env.FRONTEND_URL || "https://buwuhan.com";
+  const baseUrl = process.env.FRONTEND_URL || "https://buwuh.com";
   return `${baseUrl}/undangan/${invitationSlug}?to=${encodeURIComponent(qrCode)}`;
 }
 

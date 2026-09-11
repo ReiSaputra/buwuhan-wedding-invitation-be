@@ -168,7 +168,7 @@ export class BuwuhanService {
 
   // ── Streaming Export (CSV & XLSX) ──────────────────────────────────
 
-  static async export(invitationId: string, actorUserId: string, filter: { category?: string; search?: string }, format: "csv" | "xlsx", res: import("express").Response): Promise<void> {
+  static async export(invitationId: string, actorUserId: string, filter: { category?: string | undefined; search?: string | undefined }, format: "csv" | "xlsx", res: import("express").Response): Promise<void> {
     const invitation = await BuwuhanRepository.findInvitationByIdAndOwner(invitationId, actorUserId);
     if (!invitation) {
       throw new NotFoundError("Undangan tidak ditemukan");

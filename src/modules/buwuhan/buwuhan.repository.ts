@@ -75,7 +75,7 @@ export class BuwuhanRepository {
     });
   }
 
-  static async findManyByInvitationId(invitationId: string, filter?: { category?: string; search?: string }) {
+  static async findManyByInvitationId(invitationId: string, filter?: { category?: string | undefined; search?: string | undefined }) {
     return await prisma.buwuhan.findMany({
       where: {
         invitationId,

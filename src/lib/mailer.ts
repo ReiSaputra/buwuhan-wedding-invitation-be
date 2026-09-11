@@ -41,7 +41,7 @@ class Mailer {
   }
 
   public async sendMail(payload: MailPayload): Promise<{ messageId?: string; accepted?: string[]; rejected?: string[] }> {
-    const from = process.env.SMTP_FROM || `"Buwuhan Invitation" <noreply@buwuhan.com>`;
+    const from = process.env.SMTP_FROM || `"Buwuhan Invitation" <noreply@buwuh.com>`;
     const transporter = this.getTransporter();
 
     const mailOptions: SendMailOptions = {

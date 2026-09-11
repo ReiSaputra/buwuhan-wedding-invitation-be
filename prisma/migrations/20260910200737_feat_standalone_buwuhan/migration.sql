@@ -22,52 +22,77 @@
 */
 -- CreateEnum
 CREATE TYPE "SubscriptionStatus" AS ENUM ('PENDING', 'ACTIVE', 'EXPIRED', 'CANCELLED');
+DO $$ BEGIN
+    CREATE TYPE "SubscriptionStatus" AS ENUM ('PENDING', 'ACTIVE', 'EXPIRED', 'CANCELLED');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- CreateEnum
 CREATE TYPE "InvoiceStatus" AS ENUM ('PENDING', 'PAID', 'FAILED', 'EXPIRED');
+DO $$ BEGIN
+    CREATE TYPE "InvoiceStatus" AS ENUM ('PENDING', 'PAID', 'FAILED', 'EXPIRED');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- CreateEnum
 CREATE TYPE "BillingPeriod" AS ENUM ('MONTHLY', 'YEARLY');
+DO $$ BEGIN
+    CREATE TYPE "BillingPeriod" AS ENUM ('MONTHLY', 'YEARLY');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- CreateEnum
 CREATE TYPE "PaymentProvider" AS ENUM ('MIDTRANS');
+DO $$ BEGIN
+    CREATE TYPE "PaymentProvider" AS ENUM ('MIDTRANS');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- DropForeignKey
 ALTER TABLE "buwuhans" DROP CONSTRAINT "buwuhans_recorded_by_member_id_fkey";
+ALTER TABLE "buwuhans" DROP CONSTRAINT IF EXISTS "buwuhans_recorded_by_member_id_fkey";
 
 -- DropForeignKey
 ALTER TABLE "gifts" DROP CONSTRAINT "gifts_recorded_by_member_id_fkey";
+ALTER TABLE "gifts" DROP CONSTRAINT IF EXISTS "gifts_recorded_by_member_id_fkey";
 
 -- DropForeignKey
 ALTER TABLE "invitation_members" DROP CONSTRAINT "invitation_members_invitation_id_fkey";
+ALTER TABLE "invitation_members" DROP CONSTRAINT IF EXISTS "invitation_members_invitation_id_fkey";
 
 -- DropForeignKey
 ALTER TABLE "invitation_members" DROP CONSTRAINT "invitation_members_user_id_fkey";
+ALTER TABLE "invitation_members" DROP CONSTRAINT IF EXISTS "invitation_members_user_id_fkey";
 
 -- DropIndex
 DROP INDEX "buwuhans_recorded_by_member_id_idx";
+DROP INDEX IF EXISTS "buwuhans_recorded_by_member_id_idx";
 
 -- DropIndex
 DROP INDEX "gifts_recorded_by_member_id_idx";
+DROP INDEX IF EXISTS "gifts_recorded_by_member_id_idx";
 
 -- DropIndex
 DROP INDEX "invitation_members_email_idx";
+DROP INDEX IF EXISTS "invitation_members_email_idx";
 
 -- DropIndex
 DROP INDEX "invitation_members_invitation_id_email_key";
+DROP INDEX IF EXISTS "invitation_members_invitation_id_email_key";
 
 -- DropIndex
 DROP INDEX "invitation_members_invitation_id_idx";
+DROP INDEX IF EXISTS "invitation_members_invitation_id_idx";
 
 -- DropIndex
 DROP INDEX "invitation_members_invite_token_hash_key";
+DROP INDEX IF EXISTS "invitation_members_invite_token_hash_key";
 
 -- DropIndex
 DROP INDEX "invitation_members_user_id_idx";
+DROP INDEX IF EXISTS "invitation_members_user_id_idx";
 
 -- AlterTable
 ALTER TABLE "buwuhans" DROP COLUMN "recorded_by_member_id",
 DROP COLUMN "recorded_by_name",
+ALTER TABLE "buwuhans" DROP COLUMN IF EXISTS "recorded_by_member_id",
+DROP COLUMN IF EXISTS "recorded_by_name",
 ADD COLUMN     "recordedByMemberId" TEXT,
 ADD COLUMN     "recordedByName" TEXT,
 ADD COLUMN     "userId" TEXT,
@@ -76,6 +101,8 @@ ALTER COLUMN "invitationId" DROP NOT NULL;
 -- AlterTable
 ALTER TABLE "gifts" DROP COLUMN "recorded_by_member_id",
 DROP COLUMN "recorded_by_name",
+ALTER TABLE "gifts" DROP COLUMN IF EXISTS "recorded_by_member_id",
+DROP COLUMN IF EXISTS "recorded_by_name",
 ADD COLUMN     "recordedByMemberId" TEXT,
 ADD COLUMN     "recordedByName" TEXT;
 
@@ -89,6 +116,15 @@ DROP COLUMN "invited_at",
 DROP COLUMN "revoked_at",
 DROP COLUMN "updated_at",
 DROP COLUMN "user_id",
+ALTER TABLE "invitation_members" DROP COLUMN IF EXISTS "accepted_at",
+DROP COLUMN IF EXISTS "created_at",
+DROP COLUMN IF EXISTS "invitation_id",
+DROP COLUMN IF EXISTS "invite_token_expires_at",
+DROP COLUMN IF EXISTS "invite_token_hash",
+DROP COLUMN IF EXISTS "invited_at",
+DROP COLUMN IF EXISTS "revoked_at",
+DROP COLUMN IF EXISTS "updated_at",
+DROP COLUMN IF EXISTS "user_id",
 ADD COLUMN     "acceptedAt" TIMESTAMP(3),
 ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 ADD COLUMN     "invitationId" TEXT NOT NULL,

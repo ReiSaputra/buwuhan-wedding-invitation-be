@@ -25,6 +25,27 @@ export class InvitationRepository {
     });
   }
 
+  // static async findByIdAndOwner(id: string, ownerId: string) {
+  //   return await prisma.invitation.findFirst({
+  //     where: {
+  //       id,
+  //       OR: [
+  //         { ownerId },
+  //         {
+  //           members: {
+  //             some: {
+  //               userId: ownerId,
+  //               acceptedAt: { not: null },
+  //               revokedAt: null,
+  //             },
+  //           },
+  //         },
+  //       ],
+  //     },
+  //     include: includeRelations,
+  //   });
+  // }
+
   static async findByIdAndOwner(id: string, ownerId: string) {
     return await prisma.invitation.findFirst({
       where: {
@@ -34,8 +55,7 @@ export class InvitationRepository {
           {
             members: {
               some: {
-                userId: ownerId,
-                acceptedAt: { not: null },
+                OR: [{ userId: ownerId }, { id: ownerId }],
                 revokedAt: null,
               },
             },

@@ -16,6 +16,30 @@ app.use(express.json());
 app.use(cookieParser());
 const allowedOrigin = process.env.FRONTEND_URL || (process.env.NODE_ENV === "production" ? "https://buwuh.com" : "http://localhost:5173");
 app.use(cors({ origin: allowedOrigin, credentials: true }));
+const envOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(",").map((url) => url.trim())
+  : [];
+
+const allowedOrigins = [
+  "https://www.buwuh.com",
+  "https://buwuh.com",
+  "http://localhost:5173",
+  "http://localhost:3000",
+  ...envOrigins,
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS error: Origin ${origin} is not allowed`));
+      }
+    },
+    credentials: true,
+  })
+);
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));

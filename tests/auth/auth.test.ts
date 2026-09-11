@@ -185,12 +185,10 @@ describe("auth test: signIn", () => {
     const createSessionArgs = (AuthRepository.createSession as Mock).mock.calls[0][0];
     const cookie = findRefreshTokenCookie(res);
 
-    console.info(cookie);
-
     expect(cookie).toBeDefined();
     expect(cookie).toContain(`refreshToken=${createSessionArgs.refreshToken}`);
     expect(cookie).toContain("HttpOnly");
-    expect(cookie).toContain("SameSite=Strict");
+    expect(cookie).toContain("SameSite=Lax");
     expect(cookie).toContain("Path=/v1/api/auth");
   });
 
@@ -262,11 +260,7 @@ describe("auth test: refreshToken", () => {
     });
     (AuthRepository.revokeAllSessionsByUserId as Mock).mockResolvedValue({ count: 2 });
 
-    const res = await request(app)
-      .post("/v1/api/auth/refresh-token")
-      .set("Cookie", "refreshToken=revoked-token")
-      .set("User-Agent", "Mozilla/5.0")
-      .set("X-Forwarded-For", "127.0.0.1");
+    const res = await request(app).post("/v1/api/auth/refresh-token").set("Cookie", "refreshToken=revoked-token").set("User-Agent", "Mozilla/5.0").set("X-Forwarded-For", "127.0.0.1");
 
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ success: false, message: "Refresh token tidak valid" });
@@ -276,7 +270,7 @@ describe("auth test: refreshToken", () => {
       expect.objectContaining({
         userId: validSession.userId,
         sessionId: validSession.id,
-      })
+      }),
     );
     expect(AuthRepository.revokeAllSessionsByUserId).toHaveBeenCalledWith(validSession.userId);
   });
@@ -371,10 +365,7 @@ describe("auth test: listSessions", () => {
 
     (AuthRepository.listActiveSessionsByUserId as Mock).mockResolvedValue(activeSessions);
 
-    const res = await request(app)
-      .get("/v1/api/auth/sessions")
-      .set("Authorization", createAuthHeader())
-      .set("Cookie", "refreshToken=current-token");
+    const res = await request(app).get("/v1/api/auth/sessions").set("Authorization", createAuthHeader()).set("Cookie", "refreshToken=current-token");
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe(200);
@@ -417,10 +408,7 @@ describe("auth test: logoutAll", () => {
   it("berhasil me-revoke semua sesi user dan membersihkan cookie refresh token (200)", async () => {
     (AuthRepository.revokeAllSessionsByUserId as Mock).mockResolvedValue({ count: 3 });
 
-    const res = await request(app)
-      .post("/v1/api/auth/logout-all")
-      .set("Authorization", createAuthHeader())
-      .set("Cookie", "refreshToken=some-token");
+    const res = await request(app).post("/v1/api/auth/logout-all").set("Authorization", createAuthHeader()).set("Cookie", "refreshToken=some-token");
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
@@ -462,9 +450,7 @@ describe("auth test: deleteSession", () => {
     });
     (AuthRepository.revokeSessionById as Mock).mockResolvedValue({ id: "session-target-id" });
 
-    const res = await request(app)
-      .delete("/v1/api/auth/sessions/session-target-id")
-      .set("Authorization", createAuthHeader());
+    const res = await request(app).delete("/v1/api/auth/sessions/session-target-id").set("Authorization", createAuthHeader());
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
@@ -478,9 +464,7 @@ describe("auth test: deleteSession", () => {
   it("menolak deleteSession jika sesi tidak ditemukan atau sudah direvoke (404)", async () => {
     (AuthRepository.findSessionById as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .delete("/v1/api/auth/sessions/non-existent-session")
-      .set("Authorization", createAuthHeader());
+    const res = await request(app).delete("/v1/api/auth/sessions/non-existent-session").set("Authorization", createAuthHeader());
 
     expect(res.status).toBe(404);
     expect(res.body.success).toBe(false);
@@ -495,9 +479,7 @@ describe("auth test: deleteSession", () => {
       expiresAt: new Date(Date.now() + 3600000),
     });
 
-    const res = await request(app)
-      .delete("/v1/api/auth/sessions/other-user-session")
-      .set("Authorization", createAuthHeader());
+    const res = await request(app).delete("/v1/api/auth/sessions/other-user-session").set("Authorization", createAuthHeader());
 
     expect(res.status).toBe(403);
     expect(res.body.success).toBe(false);
@@ -512,4 +494,3 @@ describe("auth test: deleteSession", () => {
     expect(AuthRepository.findSessionById).not.toHaveBeenCalled();
   });
 });
-

@@ -29,6 +29,7 @@
  *   post:
  *     tags: [Upload]
  *     summary: Unggah berkas gambar (Cover, Galeri, Kisah Cinta, QRIS)
+ *     summary: Unggah berkas gambar (Cover, Galeri, Cerita/Story, QRIS)
  *     description: Mengunggah berkas gambar dengan batasan ukuran 5 MB dan format JPEG, PNG, atau WebP. Membutuhkan autentikasi pengguna.
  *     security:
  *       - bearerAuth: []

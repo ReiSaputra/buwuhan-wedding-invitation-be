@@ -479,8 +479,8 @@ describe("invitation test: Galeri Foto", () => {
   });
 });
 
-describe("invitation test: Kisah Cinta (Love Story)", () => {
-  it("berhasil menambahkan momen kisah cinta (201)", async () => {
+describe("invitation test: Cerita & Linimasa (Story Timeline)", () => {
+  it("berhasil menambahkan momen cerita (201)", async () => {
     (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
     (InvitationRepository.addLoveStory as Mock).mockResolvedValue(mockStory);
 
@@ -493,11 +493,11 @@ describe("invitation test: Kisah Cinta (Love Story)", () => {
     });
 
     expect(res.status).toBe(201);
-    expect(res.body.message).toBe("Kisah cinta berhasil ditambahkan");
+    expect(res.body.message).toBe("Cerita berhasil ditambahkan");
     expect(res.body.data.title).toBe("Pertama Bertemu");
   });
 
-  it("berhasil update momen kisah cinta (200)", async () => {
+  it("berhasil update momen cerita (200)", async () => {
     (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
     (InvitationRepository.findLoveStoryById as Mock).mockResolvedValue(mockStory);
     (InvitationRepository.updateLoveStory as Mock).mockResolvedValue({
@@ -510,10 +510,10 @@ describe("invitation test: Kisah Cinta (Love Story)", () => {
     });
 
     expect(res.status).toBe(200);
-    expect(res.body.message).toBe("Kisah cinta berhasil diperbarui");
+    expect(res.body.message).toBe("Cerita berhasil diperbarui");
   });
 
-  it("berhasil menghapus momen kisah cinta (200)", async () => {
+  it("berhasil menghapus momen cerita (200)", async () => {
     (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
     (InvitationRepository.findLoveStoryById as Mock).mockResolvedValue(mockStory);
     (InvitationRepository.deleteLoveStory as Mock).mockResolvedValue(mockStory);
@@ -521,7 +521,7 @@ describe("invitation test: Kisah Cinta (Love Story)", () => {
     const res = await request(app).delete(`/v1/api/invitations/${mockInvitation.id}/stories/${mockStory.id}`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.message).toBe("Kisah cinta berhasil dihapus");
+    expect(res.body.message).toBe("Cerita berhasil dihapus");
   });
 
   it("menolak update cerita jika cerita tidak ditemukan (404)", async () => {

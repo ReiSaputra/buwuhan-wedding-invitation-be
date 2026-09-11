@@ -183,7 +183,7 @@ export class InvitationService {
     return { message: "Foto galeri berhasil dihapus", status: 200 };
   }
 
-  // ── Kisah Cinta (Love Story) ─────────────────────────────────────────
+  // ── Cerita / Linimasa (Story Timeline) ────────────────────────────────
 
   static async addLoveStory(invitationId: string, ownerId: string, request: AddLoveStoryReq): Promise<LoveStoryRes> {
     const invitation = await InvitationRepository.findByIdAndOwner(invitationId, ownerId);
@@ -192,7 +192,7 @@ export class InvitationService {
 
     const story = await InvitationRepository.addLoveStory(invitationId, request);
 
-    return loveStoryResponse(story, "Kisah cinta berhasil ditambahkan", 201);
+    return loveStoryResponse(story, "Cerita berhasil ditambahkan", 201);
   }
 
   static async updateLoveStory(invitationId: string, storyId: string, ownerId: string, request: UpdateLoveStoryReq): Promise<LoveStoryRes> {
@@ -202,11 +202,11 @@ export class InvitationService {
 
     const existing = await InvitationRepository.findLoveStoryById(storyId, invitationId);
 
-    if (!existing) throw new NotFoundError("Kisah cinta tidak ditemukan");
+    if (!existing) throw new NotFoundError("Cerita tidak ditemukan");
 
     const updated = await InvitationRepository.updateLoveStory(storyId, request);
 
-    return loveStoryResponse(updated, "Kisah cinta berhasil diperbarui", 200);
+    return loveStoryResponse(updated, "Cerita berhasil diperbarui", 200);
   }
 
   static async removeLoveStory(invitationId: string, storyId: string, ownerId: string): Promise<{ message: string; status: number }> {
@@ -216,11 +216,11 @@ export class InvitationService {
 
     const existing = await InvitationRepository.findLoveStoryById(storyId, invitationId);
 
-    if (!existing) throw new NotFoundError("Kisah cinta tidak ditemukan");
+    if (!existing) throw new NotFoundError("Cerita tidak ditemukan");
 
     await InvitationRepository.deleteLoveStory(storyId);
 
-    return { message: "Kisah cinta berhasil dihapus", status: 200 };
+    return { message: "Cerita berhasil dihapus", status: 200 };
   }
 
   // ── Admin Moderation & Overview ─────────────────────────────────────

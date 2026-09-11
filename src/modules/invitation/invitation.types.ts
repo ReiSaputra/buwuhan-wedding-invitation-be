@@ -335,7 +335,7 @@ export function galleryPhotoResponse(photo: GalleryPhoto, message = "Foto galeri
   };
 }
 
-export function loveStoryResponse(story: LoveStory, message = "Kisah cinta berhasil disimpan", status = 200): LoveStoryRes {
+export function loveStoryResponse(story: LoveStory, message = "Cerita berhasil disimpan", status = 200): LoveStoryRes {
   return {
     message,
     status,

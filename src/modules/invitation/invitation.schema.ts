@@ -98,6 +98,7 @@ export const updateGalleryPhotoSchema = z
   });
 
 // ── Kisah Cinta (Love Story Timeline) ────────────────────────────────
+// ── Cerita / Linimasa (Story Timeline) ────────────────────────────────
 
 export const addLoveStorySchema = z.object({
   yearOrDate: z.string().trim().min(1, "Tahun/Waktu momen wajib diisi").max(100),
@@ -116,7 +117,7 @@ export const updateLoveStorySchema = z
     order: z.number().int().min(0).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
-    message: "Minimal satu field harus diisi untuk update kisah cinta",
+    message: "Minimal satu field harus diisi untuk update cerita",
   });
 
 export type CreateInvitationInput = z.infer<typeof createInvitationSchema>;

@@ -64,10 +64,22 @@ export class BuwuhanService {
     return listBuwuhanResponse(buwuhans);
   }
 
-  static async getById(id: string, actorUserId: string): Promise<GetBuwuhanRes> {
+  static async getById(
+    id: string,
+    actorUserId: string,
+    accessType?: "INSTANT",
+    instantInvitationId?: string,
+  ): Promise<GetBuwuhanRes> {
     const buwuhan = await BuwuhanRepository.findById(id);
     if (!buwuhan) {
       throw new NotFoundError("Catatan buwuh tidak ditemukan");
+    }
+
+    if (accessType === "INSTANT") {
+      if (!instantInvitationId || buwuhan.invitationId !== instantInvitationId) {
+        throw new ForbiddenError("Anda tidak memiliki akses ke catatan buwuh ini");
+      }
+      return getBuwuhanResponse(buwuhan);
     }
 
     if (buwuhan.invitationId) {
@@ -90,13 +102,29 @@ export class BuwuhanService {
    * - Standalone: hanya user pemilik yang boleh mengedit.
    * - Undangan: OWNER / ADMIN boleh edit semua entri, USER (petugas) hanya entri yang dibuat sendiri.
    */
-  static async update(id: string, actorUserId: string, actorMemberId: string | null, invitationRole: InvitationRole | undefined, req: UpdateBuwuhanReq): Promise<UpdateBuwuhanRes> {
+  static async update(
+    id: string,
+    actorUserId: string,
+    actorMemberId: string | null,
+    invitationRole: InvitationRole | undefined,
+    accessType: "INSTANT" | undefined,
+    instantInvitationId: string | undefined,
+    req: UpdateBuwuhanReq,
+  ): Promise<UpdateBuwuhanRes> {
     const existing = await BuwuhanRepository.findById(id);
     if (!existing) {
       throw new NotFoundError("Catatan buwuh tidak ditemukan");
     }
 
-    if (existing.invitationId) {
+    if (accessType === "INSTANT") {
+      if (!instantInvitationId || existing.invitationId !== instantInvitationId) {
+        throw new ForbiddenError("Anda tidak memiliki akses ke catatan buwuh ini");
+      }
+      // Petugas instan hanya boleh mengedit catatan yang dibuat sendiri
+      if (!actorMemberId || existing.recordedByMemberId !== actorMemberId) {
+        throw new ForbiddenError("Petugas hanya dapat mengubah catatan yang dibuat sendiri");
+      }
+    } else if (existing.invitationId) {
       const effectiveRole = invitationRole ?? (existing.invitation?.ownerId === actorUserId ? "OWNER" : null) ?? (await MemberRepository.findMemberRole(existing.invitationId, actorUserId));
 
       if (!effectiveRole) {
@@ -109,6 +137,7 @@ export class BuwuhanService {
           throw new ForbiddenError("Anda hanya dapat mengedit catatan yang Anda buat sendiri");
         }
       }
+
     } else {
       if (existing.userId !== actorUserId) {
         throw new ForbiddenError("Anda tidak memiliki akses ke catatan buwuh ini");
@@ -124,10 +153,19 @@ export class BuwuhanService {
    * - Standalone: hanya user pemilik yang boleh menghapus.
    * - Undangan: Hanya OWNER dan ADMIN yang diizinkan. Petugas USER dilarang keras.
    */
-  static async remove(id: string, actorUserId: string, invitationRole: InvitationRole | undefined): Promise<DeleteBuwuhanRes> {
+  static async remove(
+    id: string,
+    actorUserId: string,
+    invitationRole: InvitationRole | undefined,
+    accessType?: "INSTANT",
+  ): Promise<DeleteBuwuhanRes> {
     const existing = await BuwuhanRepository.findById(id);
     if (!existing) {
       throw new NotFoundError("Catatan buwuh tidak ditemukan");
+    }
+
+    if (accessType === "INSTANT") {
+      throw new ForbiddenError("Petugas tidak diizinkan menghapus catatan buwuh");
     }
 
     if (existing.invitationId) {
@@ -135,7 +173,7 @@ export class BuwuhanService {
 
       // Petugas USER tidak diizinkan menghapus data apapun
       if (effectiveRole === "USER") {
-        throw new ForbiddenError("Petugas tidak diizinkan menghapus catatan buwuhan");
+        throw new ForbiddenError("Petugas tidak diizinkan menghapus catatan buwuh");
       }
 
       if (!effectiveRole || (effectiveRole !== "OWNER" && effectiveRole !== "ADMIN")) {
@@ -150,6 +188,8 @@ export class BuwuhanService {
     await BuwuhanRepository.delete(id);
     return deleteBuwuhanResponse();
   }
+
+
 
   static async getSummary(invitationId: string, actorUserId: string): Promise<GetBuwuhanSummaryRes> {
     const invitation = await BuwuhanRepository.findInvitationByIdAndOwner(invitationId, actorUserId);

@@ -1,14 +1,16 @@
 import { Router } from "express";
 import { UserController } from "./user.controller";
 import { updateUserRoleSchema, updateUserTierSchema } from "./user.schema";
-import { requireAuth } from "../../middlewares/auth.middleware";
+import { denyInstantAccess, requireAuth } from "../../middlewares/auth.middleware";
 import { requireRole } from "../../middlewares/role.middleware";
 import { validate } from "../../middlewares/validate.middleware";
 
 export const userRouter = Router();
 
 // Protected -- Profile info pengguna login
-userRouter.get("/users/me", requireAuth, UserController.getProfile);
+userRouter.get("/users/me", requireAuth, denyInstantAccess, UserController.getProfile);
+
+
 
 // ── Admin-only -- Kelola Pengguna ─────────────────────────────────────
 userRouter.get("/admin/users", requireAuth, requireRole("ADMIN"), UserController.listUsers);

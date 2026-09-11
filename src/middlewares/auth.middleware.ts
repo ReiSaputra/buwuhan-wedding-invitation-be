@@ -1,8 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
-import { UnauthorizedError } from "../errors/app.error";
+import { ForbiddenError, UnauthorizedError } from "../errors/app.error";
 import type { InvitationRole, PlanTier, PlatformRole } from "../generated/prisma/client";
+
 
 export interface AuthUser {
   id: string;
@@ -12,6 +13,8 @@ export interface AuthUser {
   memberId?: string | undefined;
   invitationId?: string | undefined;
   invitationRole?: InvitationRole | undefined;
+  accessType?: "INSTANT" | undefined;
+  accessScope?: "BUWUHAN_ONLY" | undefined;
 }
 
 declare global {
@@ -41,6 +44,8 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
       memberId?: string | undefined;
       invitationId?: string | undefined;
       invitationRole?: InvitationRole | undefined;
+      accessType?: "INSTANT" | undefined;
+      accessScope?: "BUWUHAN_ONLY" | undefined;
     };
 
     req.user = {
@@ -50,6 +55,8 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
       memberId: payload.memberId,
       invitationId: payload.invitationId,
       invitationRole: payload.invitationRole,
+      accessType: payload.accessType,
+      accessScope: payload.accessScope,
     };
 
     next();
@@ -57,3 +64,12 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
     next(new UnauthorizedError("Token akses tidak valid atau sudah kedaluwarsa"));
   }
 }
+
+export function denyInstantAccess(req: Request, _res: Response, next: NextFunction): void {
+  if (req.user?.accessType === "INSTANT") {
+    next(new ForbiddenError("Petugas link hanya dapat mengakses fitur Catatan Buwuh"));
+    return;
+  }
+  next();
+}
+

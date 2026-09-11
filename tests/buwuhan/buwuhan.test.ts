@@ -767,3 +767,177 @@ describe("buwuhan test: export buwuhan", () => {
     expect(res.body.success).toBe(false);
   });
 });
+
+describe("buwuhan test: otorisasi petugas instant access link (magic link)", () => {
+  const instantMemberId = "instant-staff-001";
+  const instantToken = jwt.sign(
+    {
+      id: instantMemberId,
+      role: "USER",
+      planTier: "FREE",
+      memberId: instantMemberId,
+      invitationId: mockInvitation.id,
+      invitationRole: "USER",
+      accessType: "INSTANT",
+      accessScope: "BUWUHAN_ONLY",
+    },
+    process.env.JWT_SECRET as string,
+    { expiresIn: "1d" },
+  );
+
+  it("BERHASIL (200) petugas instant dapat melihat daftar Catatan Buwuh undangan terkait", async () => {
+    (BuwuhanRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (BuwuhanRepository.findManyByInvitationId as Mock).mockResolvedValue([mockBuwuhan]);
+
+    const res = await request(app)
+      .get(`/v1/api/invitations/${mockInvitation.id}/buwuhans`)
+      .set("Authorization", `Bearer ${instantToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+  });
+
+  it("BERHASIL (200) petugas instant dapat melihat ringkasan summary Catatan Buwuh", async () => {
+    (BuwuhanRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (BuwuhanRepository.getSummary as Mock).mockResolvedValue({
+      totalCount: 1,
+      totalCashValue: 100000,
+      totalGoodsCount: 1,
+      totalEstimatedValue: 450000,
+      uniqueGiversCount: 1,
+      categories: [{ category: "Sembako", count: 1, totalValue: 350000 }],
+    });
+
+    const res = await request(app)
+      .get(`/v1/api/invitations/${mockInvitation.id}/buwuhans/summary`)
+      .set("Authorization", `Bearer ${instantToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.totalCashValue).toBe(100000);
+  });
+
+  it("BERHASIL (201) petugas instant dapat mencatat buwuh baru", async () => {
+    (BuwuhanRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
+    (BuwuhanRepository.create as Mock).mockResolvedValue({
+      ...mockBuwuhan,
+      recordedByMemberId: instantMemberId,
+    });
+
+    const res = await request(app)
+      .post(`/v1/api/invitations/${mockInvitation.id}/buwuhans`)
+      .set("Authorization", `Bearer ${instantToken}`)
+      .send({
+        giverName: "H. Joko",
+        items: [{ itemName: "Uang Amplop", quantity: 1, unit: "transaksi", estimatedValue: 200000 }],
+      });
+
+    expect(res.status).toBe(201);
+
+  });
+
+  it("DITOLAK (403) petugas instant tidak dapat mengakses Catatan Buwuh milik undangan lain", async () => {
+    const res = await request(app)
+      .get("/v1/api/invitations/other-inv-999/buwuhans")
+      .set("Authorization", `Bearer ${instantToken}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toContain("Link petugas tidak berlaku untuk undangan ini");
+  });
+
+  it("BERHASIL (200) petugas instant dapat melihat detail catatan buwuh undangannya", async () => {
+    (BuwuhanRepository.findById as Mock).mockResolvedValue({
+      ...mockBuwuhan,
+      invitationId: mockInvitation.id,
+      recordedByMemberId: instantMemberId,
+    });
+
+    const res = await request(app)
+      .get(`/v1/api/buwuhans/${mockBuwuhan.id}`)
+      .set("Authorization", `Bearer ${instantToken}`);
+
+    expect(res.status).toBe(200);
+  });
+
+  it("DITOLAK (403) petugas instant tidak dapat melihat detail catatan buwuh undangan lain", async () => {
+    (BuwuhanRepository.findById as Mock).mockResolvedValue({
+      ...mockBuwuhan,
+      invitationId: "other-inv-999",
+    });
+
+    const res = await request(app)
+      .get(`/v1/api/buwuhans/${mockBuwuhan.id}`)
+      .set("Authorization", `Bearer ${instantToken}`);
+
+    expect(res.status).toBe(403);
+  });
+
+  it("BERHASIL (200) petugas instant dapat mengubah catatan buwuh yang dicatat sendiri", async () => {
+    (BuwuhanRepository.findById as Mock).mockResolvedValue({
+      ...mockBuwuhan,
+      invitationId: mockInvitation.id,
+      recordedByMemberId: instantMemberId,
+    });
+    (BuwuhanRepository.update as Mock).mockResolvedValue({
+      ...mockBuwuhan,
+      giverName: "H. Joko Diperbarui",
+    });
+
+    const res = await request(app)
+      .patch(`/v1/api/buwuhans/${mockBuwuhan.id}`)
+      .set("Authorization", `Bearer ${instantToken}`)
+      .send({ giverName: "H. Joko Diperbarui" });
+
+    expect(res.status).toBe(200);
+  });
+
+  it("DITOLAK (403) petugas instant tidak dapat mengubah catatan buwuh yang dicatat orang lain", async () => {
+    (BuwuhanRepository.findById as Mock).mockResolvedValue({
+      ...mockBuwuhan,
+      invitationId: mockInvitation.id,
+      recordedByMemberId: "other-member-or-owner",
+    });
+
+    const res = await request(app)
+      .patch(`/v1/api/buwuhans/${mockBuwuhan.id}`)
+      .set("Authorization", `Bearer ${instantToken}`)
+      .send({ giverName: "H. Joko Hack" });
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toContain("hanya dapat mengubah catatan yang dibuat sendiri");
+  });
+
+  it("DITOLAK (403) petugas instant dilarang menghapus catatan buwuh", async () => {
+    (BuwuhanRepository.findById as Mock).mockResolvedValue({
+      ...mockBuwuhan,
+      invitationId: mockInvitation.id,
+      recordedByMemberId: instantMemberId,
+    });
+
+    const res = await request(app)
+      .delete(`/v1/api/buwuhans/${mockBuwuhan.id}`)
+      .set("Authorization", `Bearer ${instantToken}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toContain("Petugas tidak diizinkan menghapus");
+  });
+
+  it("DITOLAK (403) petugas instant tidak dapat mengakses catatan buwuh mandiri (standalone)", async () => {
+    const resList = await request(app)
+      .get("/v1/api/buwuhans/standalone")
+      .set("Authorization", `Bearer ${instantToken}`);
+
+    expect(resList.status).toBe(403);
+    expect(resList.body.message).toContain("Catatan Buwuh");
+
+    const resCreate = await request(app)
+      .post("/v1/api/buwuhans/standalone")
+      .set("Authorization", `Bearer ${instantToken}`)
+      .send({
+        giverName: "Mandiri",
+        items: [{ itemName: "Uang", quantity: 1, unit: "transaksi" }],
+      });
+
+    expect(resCreate.status).toBe(403);
+  });
+});
+

@@ -503,7 +503,7 @@ describe("Matriks Izin Role (RBAC Matrix Verification)", () => {
 });
 
 describe("Member Service: Instant Access (Magic Link Tanpa Password)", () => {
-  it("OWNER dapat membuat magic link untuk petugas tanpa butuh email", async () => {
+  it("OWNER dapat membuat magic link untuk petugas tanpa butuh email (role default USER)", async () => {
     (MemberRepository.createInstantMember as Mock).mockResolvedValue({
       id: "instant-member-001",
       invitationId: mockInvitation.id,
@@ -523,7 +523,24 @@ describe("Member Service: Instant Access (Magic Link Tanpa Password)", () => {
     expect(res.body.data.accessLink).toContain("/petugas/akses?token=");
   });
 
-  it("Petugas dapat menukar token magic link menjadi session JWT instan", async () => {
+  it("Menolak (400) jika request instant link mencoba meminta role ADMIN atau OWNER", async () => {
+    const resAdmin = await request(app)
+      .post(`/v1/api/invitations/${mockInvitation.id}/members/instant-link`)
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ name: "Siti Penerima Tamu", role: "ADMIN" });
+
+    expect(resAdmin.status).toBe(400);
+
+    const resOwner = await request(app)
+      .post(`/v1/api/invitations/${mockInvitation.id}/members/instant-link`)
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ name: "Siti Penerima Tamu", role: "OWNER" });
+
+    expect(resOwner.status).toBe(400);
+  });
+
+
+  it("Petugas dapat menukar token magic link menjadi session JWT instan dengan access scope BUWUHAN_ONLY", async () => {
     (MemberRepository.findByTokenHash as Mock).mockResolvedValue({
       id: "instant-member-001",
       invitationId: mockInvitation.id,
@@ -545,14 +562,24 @@ describe("Member Service: Instant Access (Magic Link Tanpa Password)", () => {
     expect(res.status).toBe(200);
     expect(res.body.message).toContain("Selamat bertugas");
     expect(res.body.data.sessionToken).toBeDefined();
+    expect(res.body.data.access).toEqual({
+      type: "INSTANT",
+      scope: "BUWUHAN_ONLY",
+      invitationId: mockInvitation.id,
+      memberId: "instant-member-001",
+      invitationRole: "USER",
+      canDeleteBuwuhan: false,
+    });
     expect(res.body.data.member.name).toBe("Siti Penerima Tamu");
     expect(res.body.data.invitation.id).toBe(mockInvitation.id);
 
-    // Verifikasi JWT payload berisi memberId dan role
+    // Verifikasi JWT payload berisi memberId, role, accessType, dan accessScope
     const decoded = jwt.decode(res.body.data.sessionToken) as any;
     expect(decoded.memberId).toBe("instant-member-001");
     expect(decoded.invitationId).toBe(mockInvitation.id);
     expect(decoded.invitationRole).toBe("USER");
+    expect(decoded.accessType).toBe("INSTANT");
+    expect(decoded.accessScope).toBe("BUWUHAN_ONLY");
   });
 
   it("Menolak token instan jika token kedaluwarsa (422)", async () => {
@@ -573,5 +600,38 @@ describe("Member Service: Instant Access (Magic Link Tanpa Password)", () => {
     expect(res.status).toBe(422);
     expect(res.body.message).toContain("kedaluwarsa");
   });
+
+  it("Ditolak (403) saat petugas instant link mencoba mengakses fitur selain Catatan Buwuh (misal tamu)", async () => {
+    const instantToken = jwt.sign(
+      {
+        id: "instant-member-001",
+        role: "USER",
+        planTier: "FREE",
+        memberId: "instant-member-001",
+        invitationId: mockInvitation.id,
+        invitationRole: "USER",
+        accessType: "INSTANT",
+        accessScope: "BUWUHAN_ONLY",
+      },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "1d" },
+    );
+
+    const resGuests = await request(app)
+      .get(`/v1/api/invitations/${mockInvitation.id}/guests`)
+      .set("Authorization", `Bearer ${instantToken}`);
+
+    expect(resGuests.status).toBe(403);
+    expect(resGuests.body.message).toContain("Catatan Buwuh");
+
+    const resInvite = await request(app)
+      .patch(`/v1/api/invitations/${mockInvitation.id}`)
+      .set("Authorization", `Bearer ${instantToken}`)
+      .send({ title: "Hack Title" });
+
+    expect(resInvite.status).toBe(403);
+  });
 });
+
+
 

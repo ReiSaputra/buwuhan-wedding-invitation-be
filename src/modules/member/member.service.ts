@@ -237,10 +237,11 @@ export class MemberService {
     // Token berlaku 30 hari — cukup untuk persiapan + hari-H
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
+    // Instant link selalu menghasilkan peran USER (petugas)
     const member = await MemberRepository.createInstantMember({
       invitationId,
       name: request.name,
-      role: request.role ?? "USER",
+      role: "USER",
       tokenHash,
       expiresAt,
     });
@@ -281,7 +282,7 @@ export class MemberService {
       throw new ForbiddenError("Akses ini telah dicabut");
     }
 
-    // Terbitkan JWT khusus petugas — berisi memberId & invitationId untuk otorisasi di middleware
+    // Terbitkan JWT khusus petugas — berisi memberId & invitationId serta scope otorisasi
     const sessionToken = jwt.sign(
       {
         // id diisi memberId agar middleware requireAuth tetap punya req.user.id
@@ -291,7 +292,9 @@ export class MemberService {
         // Field khusus sesi petugas instan
         memberId: member.id,
         invitationId: member.invitationId,
-        invitationRole: member.role,
+        invitationRole: "USER" as const,
+        accessType: "INSTANT" as const,
+        accessScope: "BUWUHAN_ONLY" as const,
       },
       process.env.JWT_SECRET as string,
       // Token petugas berlaku 2 hari (cukup untuk sebelum + hari-H acara)
@@ -303,6 +306,14 @@ export class MemberService {
       status: 200,
       data: {
         sessionToken,
+        access: {
+          type: "INSTANT",
+          scope: "BUWUHAN_ONLY",
+          invitationId: member.invitationId,
+          memberId: member.id,
+          invitationRole: "USER",
+          canDeleteBuwuhan: false,
+        },
         member: {
           id: member.id,
           name: member.name,

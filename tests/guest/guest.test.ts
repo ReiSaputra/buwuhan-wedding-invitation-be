@@ -10,6 +10,8 @@ import { errorHandler } from "../../src/middlewares/error.middleware";
 import { mailer } from "../../src/lib/mailer";
 
 process.env.JWT_SECRET = "test-jwt-secret";
+process.env.FRONTEND_URL = "http://localhost:5173";
+
 
 beforeAll(() => {
   vi.spyOn(MemberRepository, "findInvitationById");

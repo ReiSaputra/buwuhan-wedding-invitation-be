@@ -12,21 +12,32 @@ declare global {
   }
 }
 
+export interface InvitationRoleOptions {
+  allowInstant?: boolean;
+}
+
 export async function checkInvitationAccess(
   invitationId: string,
   userId: string,
   allowedRoles: InvitationRole[],
-  // Opsional: role dari JWT petugas instan (bypass DB query)
   instantRole?: InvitationRole,
   instantInvitationId?: string,
+  accessType?: "INSTANT",
+  accessScope?: "BUWUHAN_ONLY",
+  allowInstant: boolean = false,
 ): Promise<InvitationRole> {
-  // Jalur cepat untuk sesi petugas instan:
-  // role sudah diembed di JWT, tidak perlu query DB lagi
-  if (instantRole && instantInvitationId) {
-    if (instantInvitationId !== invitationId) {
-      throw new ForbiddenError("Kamu tidak punya akses untuk melakukan aksi ini");
+  // Jalur untuk sesi petugas instan (magic link)
+  if (accessType === "INSTANT" || (instantRole && instantInvitationId)) {
+    if (!allowInstant) {
+      throw new ForbiddenError("Petugas link hanya dapat mengakses fitur Catatan Buwuh");
     }
-    if (!allowedRoles.includes(instantRole)) {
+    if (instantInvitationId !== invitationId) {
+      throw new ForbiddenError("Link petugas tidak berlaku untuk undangan ini");
+    }
+    if (accessScope && accessScope !== "BUWUHAN_ONLY") {
+      throw new ForbiddenError("Scope akses petugas tidak valid");
+    }
+    if (!instantRole || !allowedRoles.includes(instantRole)) {
       throw new ForbiddenError("Kamu tidak punya akses untuk melakukan aksi ini");
     }
     return instantRole;
@@ -46,7 +57,20 @@ export async function checkInvitationAccess(
   return role;
 }
 
-export function requireInvitationRole(...allowedRoles: InvitationRole[]) {
+export function requireInvitationRole(...args: (InvitationRole | InvitationRoleOptions)[]) {
+  const allowedRoles: InvitationRole[] = [];
+  let allowInstant = false;
+
+  for (const arg of args) {
+    if (typeof arg === "string") {
+      allowedRoles.push(arg);
+    } else if (typeof arg === "object" && arg !== null) {
+      if (arg.allowInstant) {
+        allowInstant = true;
+      }
+    }
+  }
+
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.user) {
@@ -62,9 +86,11 @@ export function requireInvitationRole(...allowedRoles: InvitationRole[]) {
         invitationId,
         req.user.id,
         allowedRoles,
-        // Teruskan data petugas instan dari JWT jika ada
         req.user.invitationRole,
         req.user.invitationId,
+        req.user.accessType,
+        req.user.accessScope,
+        allowInstant,
       );
       req.invitationRole = role;
 
@@ -74,3 +100,5 @@ export function requireInvitationRole(...allowedRoles: InvitationRole[]) {
     }
   };
 }
+
+

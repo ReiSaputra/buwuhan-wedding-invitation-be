@@ -17,8 +17,10 @@ export const acceptInviteSchema = z.object({
 // Schema untuk generate link akses instan petugas (tanpa email / registrasi akun)
 export const instantLinkSchema = z.object({
   name: z.string().trim().min(1, "Nama petugas wajib diisi").max(255, "Nama maksimal 255 karakter"),
-  role: z.enum(["ADMIN", "USER"]).optional().default("USER"),
+  role: z.literal("USER").optional().default("USER"),
 });
+
+
 
 // Schema untuk penukaran token instan → session JWT
 export const instantAccessSchema = z.object({

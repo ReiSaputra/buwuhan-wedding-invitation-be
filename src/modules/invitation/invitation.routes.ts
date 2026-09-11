@@ -3,7 +3,7 @@ import { Router } from "express";
 import { InvitationController } from "./invitation.controller";
 import { addGalleryPhotoSchema, addLoveStorySchema, createInvitationSchema, updateGalleryPhotoSchema, updateInvitationSchema, updateInvitationStatusSchema, updateLoveStorySchema } from "./invitation.schema";
 import { validate } from "../../middlewares/validate.middleware";
-import { requireAuth } from "../../middlewares/auth.middleware";
+import { denyInstantAccess, requireAuth } from "../../middlewares/auth.middleware";
 import { requireRole } from "../../middlewares/role.middleware";
 import { requireInvitationRole } from "../../middlewares/invitation-role.middleware";
 
@@ -13,8 +13,10 @@ export const invitationRouter = Router();
 invitationRouter.get("/public/invitations/:slug", InvitationController.getPublicBySlug);
 
 // Protected -- Pengelolaan undangan
-invitationRouter.post("/invitations", requireAuth, validate(createInvitationSchema), InvitationController.create);
-invitationRouter.get("/invitations", requireAuth, InvitationController.listMine);
+invitationRouter.post("/invitations", requireAuth, denyInstantAccess, validate(createInvitationSchema), InvitationController.create);
+invitationRouter.get("/invitations", requireAuth, denyInstantAccess, InvitationController.listMine);
+
+
 invitationRouter.get("/invitations/:id", requireAuth, requireInvitationRole("OWNER", "ADMIN", "USER"), InvitationController.getOwned);
 invitationRouter.patch("/invitations/:id", requireAuth, requireInvitationRole("OWNER", "ADMIN"), validate(updateInvitationSchema), InvitationController.update);
 invitationRouter.patch("/invitations/:id/status", requireAuth, requireInvitationRole("OWNER", "ADMIN"), validate(updateInvitationStatusSchema), InvitationController.updateStatus);

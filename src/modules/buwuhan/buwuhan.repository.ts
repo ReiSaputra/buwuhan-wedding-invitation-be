@@ -14,6 +14,10 @@ export class BuwuhanRepository {
                 userId: ownerId,
                 acceptedAt: { not: null },
                 revokedAt: null,
+                OR: [
+                  { userId: ownerId, acceptedAt: { not: null }, revokedAt: null },
+                  { id: ownerId, revokedAt: null },
+                ],
               },
             },
           },
@@ -21,6 +25,7 @@ export class BuwuhanRepository {
       },
     });
   }
+
 
   /**
    * @param recordedByMemberId - ID InvitationMember yang mencatat (null jika owner langsung)

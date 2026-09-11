@@ -35,7 +35,9 @@ export class BuwuhanController {
     try {
       const id = req.params.id as string;
       const actorUserId = req.user!.id;
-      const result = await BuwuhanService.getById(id, actorUserId);
+      const accessType = req.user!.accessType;
+      const instantInvitationId = req.user!.invitationId;
+      const result = await BuwuhanService.getById(id, actorUserId, accessType, instantInvitationId);
       res.status(result.status).json(result);
     } catch (err) {
       next(err);
@@ -48,8 +50,10 @@ export class BuwuhanController {
       const actorUserId = req.user!.id;
       const actorMemberId = req.user!.memberId ?? null;
       const invitationRole = req.invitationRole ?? req.user!.invitationRole;
+      const accessType = req.user!.accessType;
+      const instantInvitationId = req.user!.invitationId;
 
-      const result = await BuwuhanService.update(id, actorUserId, actorMemberId, invitationRole, req.body as UpdateBuwuhanReq);
+      const result = await BuwuhanService.update(id, actorUserId, actorMemberId, invitationRole, accessType, instantInvitationId, req.body as UpdateBuwuhanReq);
       res.status(result.status).json(result);
     } catch (err) {
       next(err);
@@ -61,13 +65,16 @@ export class BuwuhanController {
       const id = req.params.id as string;
       const actorUserId = req.user!.id;
       const invitationRole = req.invitationRole ?? req.user!.invitationRole;
+      const accessType = req.user!.accessType;
 
-      const result = await BuwuhanService.remove(id, actorUserId, invitationRole);
+      const result = await BuwuhanService.remove(id, actorUserId, invitationRole, accessType);
       res.status(result.status).json(result);
     } catch (err) {
       next(err);
     }
   }
+
+
 
   static async getSummary(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {

@@ -17,8 +17,9 @@ export interface AcceptInviteReq {
 // Request untuk generate instant link petugas (tanpa email / registrasi akun)
 export interface InstantLinkReq {
   name: string;
-  role?: "ADMIN" | "USER";
+  role?: "USER";
 }
+
 
 // Request untuk menukar token instan → session JWT
 export interface InstantAccessReq {
@@ -111,6 +112,14 @@ export interface InstantAccessRes {
   status: number;
   data: {
     sessionToken: string;
+    access: {
+      type: "INSTANT";
+      scope: "BUWUHAN_ONLY";
+      invitationId: string;
+      memberId: string;
+      invitationRole: "USER";
+      canDeleteBuwuhan: boolean;
+    };
     member: {
       id: string;
       name: string;
@@ -123,6 +132,7 @@ export interface InstantAccessRes {
     };
   };
 }
+
 
 // ── Helper formatters ────────────────────────────────────────────────
 

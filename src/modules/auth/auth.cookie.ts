@@ -11,8 +11,6 @@ const isProduction = process.env.NODE_ENV === "production";
 export function setRefreshTokenCookie(res: Response, refreshToken: string): void {
   res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, {
     httpOnly: true, // tidak bisa diakses lewat JS di browser -> mitigasi XSS
-    secure: process.env.NODE_ENV === "production", // HTTPS only di production
-    sameSite: "strict", // tidak ikut terkirim di request cross-site -> mitigasi CSRF
     secure: isProduction, // HTTPS only di production (wajib true jika sameSite: "none")
     sameSite: isProduction ? "none" : "lax", // "none" di prod untuk cross-subdomain/cross-origin, "lax" di dev lokal
     path: COOKIE_PATH,
@@ -23,8 +21,6 @@ export function setRefreshTokenCookie(res: Response, refreshToken: string): void
 export function clearRefreshTokenCookie(res: Response): void {
   res.clearCookie(REFRESH_TOKEN_COOKIE, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
     path: COOKIE_PATH,

@@ -201,17 +201,14 @@
  *           example: "cly3k9h2p0000v8og3f1a7x2r"
  *         yearOrDate:
  *           type: string
- *           description: Waktu kejadian momen (misal tahun atau tanggal lengkap).
  *           description: Waktu kejadian momen (misal tahun, tanggal lengkap, atau fase usia).
  *           example: "2020"
  *         title:
  *           type: string
- *           description: Judul momen cerita perjalanan cinta.
  *           description: Judul babak perjalanan/cerita momen (misal "Pertama Bertemu" atau "Kelahiran Sang Buah Hati").
  *           example: "Pertama Bertemu"
  *         story:
  *           type: string
- *           description: Narasi lengkap cerita cinta.
  *           description: Narasi lengkap cerita perjalanan/momen acara.
  *           example: "Kami pertama kali bertemu saat kegiatan kampus..."
  *         imageUrl:
@@ -266,17 +263,14 @@
  *       properties:
  *         yearOrDate:
  *           type: string
- *           description: "Waktu kejadian (contoh: '2020', '15 Juni 2021', 'Tahun Ke-2')."
  *           description: "Waktu kejadian (contoh: '2020', '15 Juni 2021', 'Bulan Ke-6')."
  *           example: "2020"
  *         title:
  *           type: string
- *           description: Judul babak perjalanan kisah cinta.
  *           description: Judul babak perjalanan/cerita momen.
  *           example: "Pertama Kali Bertemu"
  *         story:
  *           type: string
- *           description: Narasi perjalanan cinta pasangan mempelai.
  *           description: Narasi perjalanan atau cerita momen acara (cocok untuk love story, milestone anak, maupun linimasa acara lainnya).
  *           example: "Kami pertama kali berkenalan di sebuah coffee shop di Yogyakarta..."
  *         imageUrl:
@@ -291,7 +285,6 @@
  *
  *     UpdateLoveStoryRequestBody:
  *       type: object
- *       description: Minimal satu field harus diisi untuk update kisah cinta.
  *       description: Minimal satu field harus diisi untuk update cerita.
  *       properties:
  *         yearOrDate:
@@ -1192,8 +1185,6 @@
  * /invitations/{invitationId}/stories:
  *   post:
  *     tags: [Invitation]
- *     summary: Tambah momen kisah cinta ke undangan (Love Story Timeline)
- *     description: Menambahkan satu momen perjalanan kisah cinta baru pada undangan.
  *     summary: Tambah momen/timeline perjalanan ke undangan (Story Timeline)
  *     description: Menambahkan satu momen perjalanan/cerita baru pada timeline undangan (cocok untuk love story, milestone anak, maupun linimasa acara lainnya).
  *     security:
@@ -1214,7 +1205,6 @@
  *             $ref: '#/components/schemas/AddLoveStoryRequestBody'
  *     responses:
  *       201:
- *         description: Momen kisah cinta berhasil ditambahkan.
  *         description: Momen cerita berhasil ditambahkan.
  *         content:
  *           application/json:
@@ -1227,7 +1217,6 @@
  *                     data:
  *                       $ref: '#/components/schemas/LoveStoryItem'
  *             example:
- *               message: "Kisah cinta berhasil ditambahkan"
  *               message: "Cerita berhasil ditambahkan"
  *               status: 201
  *               data:
@@ -1251,8 +1240,6 @@
  * /invitations/{invitationId}/stories/{id}:
  *   patch:
  *     tags: [Invitation]
- *     summary: Update momen kisah cinta
- *     description: Memperbarui judul, tahun/tanggal, narasi, foto, atau urutan kronologis kisah cinta.
  *     summary: Update momen/timeline cerita
  *     description: Memperbarui judul, tahun/tanggal, narasi, foto, atau urutan kronologis cerita.
  *     security:
@@ -1278,7 +1265,6 @@
  *             $ref: '#/components/schemas/UpdateLoveStoryRequestBody'
  *     responses:
  *       200:
- *         description: Momen kisah cinta berhasil diperbarui.
  *         description: Momen cerita berhasil diperbarui.
  *         content:
  *           application/json:
@@ -1290,7 +1276,6 @@
  *                     data:
  *                       $ref: '#/components/schemas/LoveStoryItem'
  *             example:
- *               message: "Kisah cinta berhasil diperbarui"
  *               message: "Cerita berhasil diperbarui"
  *               status: 200
  *               data:
@@ -1302,7 +1287,6 @@
  *                 order: 2
  *                 createdAt: "2026-08-27T10:00:00.000Z"
  *       404:
- *         description: Kisah cinta atau undangan tidak ditemukan.
  *         description: Cerita atau undangan tidak ditemukan.
  *         content:
  *           application/json:
@@ -1310,12 +1294,9 @@
  *               $ref: '#/components/schemas/ErrorEnvelope'
  *             example:
  *               success: false
- *               message: "Kisah cinta tidak ditemukan"
  *               message: "Cerita tidak ditemukan"
  *   delete:
  *     tags: [Invitation]
- *     summary: Hapus momen kisah cinta
- *     description: Menghapus satu momen kisah cinta dari timeline undangan.
  *     summary: Hapus momen/timeline cerita
  *     description: Menghapus satu momen cerita dari timeline undangan.
  *     security:
@@ -1335,18 +1316,15 @@
  *         example: "cly3k9h2p0000v8og3f1a7x2r"
  *     responses:
  *       200:
- *         description: Momen kisah cinta berhasil dihapus.
  *         description: Momen cerita berhasil dihapus.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/SuccessEnvelope'
  *             example:
- *               message: "Kisah cinta berhasil dihapus"
  *               message: "Cerita berhasil dihapus"
  *               status: 200
  *       404:
- *         description: Kisah cinta atau undangan tidak ditemukan.
  *         description: Cerita atau undangan tidak ditemukan.
  *         content:
  *           application/json:
@@ -1354,7 +1332,6 @@
  *               $ref: '#/components/schemas/ErrorEnvelope'
  *             example:
  *               success: false
- *               message: "Kisah cinta tidak ditemukan"
  *               message: "Cerita tidak ditemukan"
  */
 
@@ -1517,7 +1494,6 @@
  *   get:
  *     tags: [Admin - Invitation]
  *     summary: Detail lengkap undangan lintas pengguna (admin)
- *     description: Mengambil data lengkap undangan (termasuk pasangan mempelai, galeri, kisah cinta, info pemilik, dan statistik tamu & RSVP) untuk keperluan pengawasan atau investigasi konten. Hanya dapat diakses oleh ADMIN.
  *     description: Mengambil data lengkap undangan (termasuk pasangan mempelai/celebrant, galeri, timeline cerita, info pemilik, dan statistik tamu & RSVP) untuk keperluan pengawasan atau investigasi konten. Hanya dapat diakses oleh ADMIN.
  *     security:
  *       - bearerAuth: []

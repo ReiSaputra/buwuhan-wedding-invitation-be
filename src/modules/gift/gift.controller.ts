@@ -3,6 +3,17 @@ import { GiftService } from "./gift.service";
 import type { CreateGiftAccountReq, CreateGiftReq, UpdateGiftAccountReq, UpdateGiftReq } from "./gift.types";
 
 export class GiftController {
+  // ── Public Gift Accounts ───────────────────────────────────────────────
+  static async listPublicAccounts(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const slug = req.params.slug as string;
+      const result = await GiftService.listPublicAccounts(slug);
+      res.status(result.status).json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   // ── Gift Accounts ──────────────────────────────────────────────────────
   static async listAccounts(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -104,4 +115,3 @@ export class GiftController {
     }
   }
 }
-

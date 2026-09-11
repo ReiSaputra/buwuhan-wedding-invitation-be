@@ -1,5 +1,20 @@
 export type GiftMethodType = "CASH" | "TRANSFER" | "EWALLET";
 
+export interface PublicGiftAccountData {
+  id: string;
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+  type: string;
+  order: number;
+}
+
+export interface ListPublicGiftAccountRes {
+  message: string;
+  status: number;
+  data: PublicGiftAccountData[];
+}
+
 export interface GiftAccountData {
   id: string;
   invitationId: string;
@@ -126,6 +141,25 @@ export interface DeleteGiftRes {
 }
 
 // Helper response formatting
+export function toPublicGiftAccountData(account: { id: string; bankName: string; accountNumber: string; accountHolder: string; type: string; order: number }): PublicGiftAccountData {
+  return {
+    id: account.id,
+    bankName: account.bankName,
+    accountNumber: account.accountNumber,
+    accountHolder: account.accountHolder,
+    type: account.type,
+    order: account.order,
+  };
+}
+
+export function listPublicGiftAccountResponse(accounts: Parameters<typeof toPublicGiftAccountData>[0][]): ListPublicGiftAccountRes {
+  return {
+    message: "Daftar rekening hadiah publik berhasil diambil",
+    status: 200,
+    data: accounts.map(toPublicGiftAccountData),
+  };
+}
+
 export function toGiftAccountData(account: { id: string; invitationId: string; bankName: string; accountNumber: string; accountHolder: string; type: string; order: number; createdAt: Date; updatedAt: Date }): GiftAccountData {
   return {
     id: account.id,

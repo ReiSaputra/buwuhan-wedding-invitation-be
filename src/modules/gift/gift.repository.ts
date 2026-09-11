@@ -20,6 +20,22 @@ export class GiftRepository {
     });
   }
 
+  static async findPublishedInvitationBySlug(slug: string) {
+    return await prisma.invitation.findFirst({
+      where: {
+        slug,
+        status: { in: ["ACTIVE", "COMPLETED"] },
+      },
+      select: {
+        id: true,
+        status: true,
+        giftAccounts: {
+          orderBy: { order: "asc" },
+        },
+      },
+    });
+  }
+
   // ── GiftAccount ────────────────────────────────────────────────────────
   static async findGiftAccountsByInvitationId(invitationId: string) {
     return await prisma.giftAccount.findMany({

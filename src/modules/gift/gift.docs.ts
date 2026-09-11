@@ -2,6 +2,28 @@
  * @openapi
  * components:
  *   schemas:
+ *     PublicGiftAccount:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           example: "cuid123456"
+ *         bankName:
+ *           type: string
+ *           example: "BCA"
+ *         accountNumber:
+ *           type: string
+ *           example: "1234567890"
+ *         accountHolder:
+ *           type: string
+ *           example: "Fathur Saputra"
+ *         type:
+ *           type: string
+ *           example: "BANK"
+ *         order:
+ *           type: integer
+ *           example: 0
+ *
  *     GiftAccount:
  *       type: object
  *       properties:
@@ -175,6 +197,41 @@
  *               properties:
  *                 count: { type: integer, example: 1 }
  *                 totalAmount: { type: number, example: 500000 }
+ */
+
+/**
+ * @openapi
+ * /public/invitations/{slug}/gift-accounts:
+ *   get:
+ *     summary: Ambil daftar rekening kado pengantin untuk tamu publik
+ *     tags: [Hadiah & Amplop Digital]
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: "fathur-anisa"
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil daftar rekening publik
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Daftar rekening hadiah publik berhasil diambil"
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PublicGiftAccount'
+ *       404:
+ *         description: Undangan tidak ditemukan atau masih DRAFT
  */
 
 /**
@@ -405,4 +462,3 @@
  *       404:
  *         description: Hadiah tidak ditemukan
  */
-

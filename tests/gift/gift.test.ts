@@ -14,6 +14,7 @@ beforeAll(() => {
   vi.spyOn(MemberRepository, "findInvitationById");
   vi.spyOn(MemberRepository, "findMemberRole");
   vi.spyOn(GiftRepository, "findInvitationById");
+  vi.spyOn(GiftRepository, "findPublishedInvitationBySlug");
   vi.spyOn(GiftRepository, "findGiftAccountsByInvitationId");
   vi.spyOn(GiftRepository, "findGiftAccountById");
   vi.spyOn(GiftRepository, "createGiftAccount");
@@ -43,11 +44,7 @@ const mockInvitationId = "inv-001";
 const mockAccountId = "account-001";
 const mockGiftId = "gift-001";
 
-const validAuthToken = jwt.sign(
-  { id: mockOwnerId, role: "USER", planTier: "FREE" },
-  process.env.JWT_SECRET as string,
-  { expiresIn: "1d" }
-);
+const validAuthToken = jwt.sign({ id: mockOwnerId, role: "USER", planTier: "FREE" }, process.env.JWT_SECRET as string, { expiresIn: "1d" });
 
 const mockInvitation = { id: mockInvitationId, ownerId: mockOwnerId };
 
@@ -96,10 +93,7 @@ describe("POST /v1/api/invitations/:invitationId/gift-accounts", () => {
   });
 
   it("201 - berhasil membuat gift account", async () => {
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitationId}/gift-accounts`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send(validBody);
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitationId}/gift-accounts`).set("Authorization", `Bearer ${validAuthToken}`).send(validBody);
 
     expect(res.status).toBe(201);
     expect(res.body.message).toBe("Rekening hadiah berhasil ditambahkan");
@@ -108,18 +102,13 @@ describe("POST /v1/api/invitations/:invitationId/gift-accounts", () => {
   });
 
   it("400 - gagal jika field wajib tidak diisi", async () => {
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitationId}/gift-accounts`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({});
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitationId}/gift-accounts`).set("Authorization", `Bearer ${validAuthToken}`).send({});
 
     expect(res.status).toBe(400);
   });
 
   it("401 - gagal jika tanpa token otentikasi", async () => {
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitationId}/gift-accounts`)
-      .send(validBody);
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitationId}/gift-accounts`).send(validBody);
 
     expect(res.status).toBe(401);
   });
@@ -130,10 +119,7 @@ describe("POST /v1/api/invitations/:invitationId/gift-accounts", () => {
       ownerId: mockOtherOwnerId,
     });
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitationId}/gift-accounts`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send(validBody);
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitationId}/gift-accounts`).set("Authorization", `Bearer ${validAuthToken}`).send(validBody);
 
     expect(res.status).toBe(403);
   });
@@ -141,10 +127,7 @@ describe("POST /v1/api/invitations/:invitationId/gift-accounts", () => {
   it("404 - gagal jika undangan tidak ditemukan", async () => {
     (GiftRepository.findInvitationById as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitationId}/gift-accounts`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send(validBody);
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitationId}/gift-accounts`).set("Authorization", `Bearer ${validAuthToken}`).send(validBody);
 
     expect(res.status).toBe(404);
   });
@@ -157,9 +140,7 @@ describe("GET /v1/api/invitations/:invitationId/gift-accounts", () => {
   });
 
   it("200 - berhasil mengambil daftar rekening hadiah", async () => {
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitationId}/gift-accounts`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitationId}/gift-accounts`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(1);
@@ -172,9 +153,7 @@ describe("GET /v1/api/invitations/:invitationId/gift-accounts", () => {
       ownerId: mockOtherOwnerId,
     });
 
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitationId}/gift-accounts`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitationId}/gift-accounts`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(403);
   });
@@ -182,9 +161,7 @@ describe("GET /v1/api/invitations/:invitationId/gift-accounts", () => {
   it("404 - gagal jika undangan tidak ditemukan", async () => {
     (GiftRepository.findInvitationById as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitationId}/gift-accounts`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitationId}/gift-accounts`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(404);
   });
@@ -200,20 +177,14 @@ describe("PATCH /v1/api/gift-accounts/:id", () => {
   });
 
   it("200 - berhasil memperbarui rekening hadiah", async () => {
-    const res = await request(app)
-      .patch(`/v1/api/gift-accounts/${mockAccountId}`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({ bankName: "Mandiri" });
+    const res = await request(app).patch(`/v1/api/gift-accounts/${mockAccountId}`).set("Authorization", `Bearer ${validAuthToken}`).send({ bankName: "Mandiri" });
 
     expect(res.status).toBe(200);
     expect(res.body.data.bankName).toBe("Mandiri");
   });
 
   it("400 - gagal jika body kosong", async () => {
-    const res = await request(app)
-      .patch(`/v1/api/gift-accounts/${mockAccountId}`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({});
+    const res = await request(app).patch(`/v1/api/gift-accounts/${mockAccountId}`).set("Authorization", `Bearer ${validAuthToken}`).send({});
 
     expect(res.status).toBe(400);
   });
@@ -224,10 +195,7 @@ describe("PATCH /v1/api/gift-accounts/:id", () => {
       invitation: { id: mockInvitationId, ownerId: mockOtherOwnerId },
     });
 
-    const res = await request(app)
-      .patch(`/v1/api/gift-accounts/${mockAccountId}`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({ bankName: "Mandiri" });
+    const res = await request(app).patch(`/v1/api/gift-accounts/${mockAccountId}`).set("Authorization", `Bearer ${validAuthToken}`).send({ bankName: "Mandiri" });
 
     expect(res.status).toBe(403);
   });
@@ -235,10 +203,7 @@ describe("PATCH /v1/api/gift-accounts/:id", () => {
   it("404 - gagal jika rekening tidak ditemukan", async () => {
     (GiftRepository.findGiftAccountById as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .patch(`/v1/api/gift-accounts/${mockAccountId}`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({ bankName: "Mandiri" });
+    const res = await request(app).patch(`/v1/api/gift-accounts/${mockAccountId}`).set("Authorization", `Bearer ${validAuthToken}`).send({ bankName: "Mandiri" });
 
     expect(res.status).toBe(404);
   });
@@ -251,9 +216,7 @@ describe("DELETE /v1/api/gift-accounts/:id", () => {
   });
 
   it("200 - berhasil menghapus rekening", async () => {
-    const res = await request(app)
-      .delete(`/v1/api/gift-accounts/${mockAccountId}`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).delete(`/v1/api/gift-accounts/${mockAccountId}`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Rekening hadiah berhasil dihapus");
@@ -265,9 +228,7 @@ describe("DELETE /v1/api/gift-accounts/:id", () => {
       invitation: { id: mockInvitationId, ownerId: mockOtherOwnerId },
     });
 
-    const res = await request(app)
-      .delete(`/v1/api/gift-accounts/${mockAccountId}`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).delete(`/v1/api/gift-accounts/${mockAccountId}`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(403);
   });
@@ -275,9 +236,7 @@ describe("DELETE /v1/api/gift-accounts/:id", () => {
   it("404 - gagal jika rekening tidak ditemukan", async () => {
     (GiftRepository.findGiftAccountById as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .delete(`/v1/api/gift-accounts/${mockAccountId}`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).delete(`/v1/api/gift-accounts/${mockAccountId}`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(404);
   });
@@ -299,10 +258,7 @@ describe("POST /v1/api/invitations/:invitationId/gifts", () => {
   });
 
   it("201 - berhasil membuat catatan hadiah", async () => {
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitationId}/gifts`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send(validBody);
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitationId}/gifts`).set("Authorization", `Bearer ${validAuthToken}`).send(validBody);
 
     expect(res.status).toBe(201);
     expect(res.body.message).toBe("Catatan hadiah berhasil ditambahkan");
@@ -325,10 +281,7 @@ describe("POST /v1/api/invitations/:invitationId/gifts", () => {
       ownerId: mockOtherOwnerId,
     });
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitationId}/gifts`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send(validBody);
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitationId}/gifts`).set("Authorization", `Bearer ${validAuthToken}`).send(validBody);
 
     expect(res.status).toBe(403);
   });
@@ -336,10 +289,7 @@ describe("POST /v1/api/invitations/:invitationId/gifts", () => {
   it("404 - gagal jika undangan tidak ditemukan", async () => {
     (GiftRepository.findInvitationById as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitationId}/gifts`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send(validBody);
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitationId}/gifts`).set("Authorization", `Bearer ${validAuthToken}`).send(validBody);
 
     expect(res.status).toBe(404);
   });
@@ -352,9 +302,7 @@ describe("GET /v1/api/invitations/:invitationId/gifts", () => {
   });
 
   it("200 - berhasil mengambil daftar hadiah", async () => {
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitationId}/gifts`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitationId}/gifts`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(1);
@@ -367,9 +315,7 @@ describe("GET /v1/api/invitations/:invitationId/gifts", () => {
       ownerId: mockOtherOwnerId,
     });
 
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitationId}/gifts`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitationId}/gifts`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(403);
   });
@@ -377,9 +323,7 @@ describe("GET /v1/api/invitations/:invitationId/gifts", () => {
   it("404 - gagal jika undangan tidak ditemukan", async () => {
     (GiftRepository.findInvitationById as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitationId}/gifts`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitationId}/gifts`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(404);
   });
@@ -402,9 +346,7 @@ describe("GET /v1/api/invitations/:invitationId/gifts/summary", () => {
   });
 
   it("200 - berhasil mengambil summary hadiah", async () => {
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitationId}/gifts/summary`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitationId}/gifts/summary`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data.totalGifts).toBe(2);
@@ -418,9 +360,7 @@ describe("GET /v1/api/invitations/:invitationId/gifts/summary", () => {
       ownerId: mockOtherOwnerId,
     });
 
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitationId}/gifts/summary`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitationId}/gifts/summary`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(403);
   });
@@ -428,9 +368,7 @@ describe("GET /v1/api/invitations/:invitationId/gifts/summary", () => {
   it("404 - gagal jika undangan tidak ditemukan", async () => {
     (GiftRepository.findInvitationById as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitationId}/gifts/summary`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitationId}/gifts/summary`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(404);
   });
@@ -446,20 +384,14 @@ describe("PATCH /v1/api/gifts/:id", () => {
   });
 
   it("200 - berhasil memperbarui catatan hadiah", async () => {
-    const res = await request(app)
-      .patch(`/v1/api/gifts/${mockGiftId}`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({ amount: 750000 });
+    const res = await request(app).patch(`/v1/api/gifts/${mockGiftId}`).set("Authorization", `Bearer ${validAuthToken}`).send({ amount: 750000 });
 
     expect(res.status).toBe(200);
     expect(res.body.data.amount).toBe(750000);
   });
 
   it("400 - gagal jika body kosong", async () => {
-    const res = await request(app)
-      .patch(`/v1/api/gifts/${mockGiftId}`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({});
+    const res = await request(app).patch(`/v1/api/gifts/${mockGiftId}`).set("Authorization", `Bearer ${validAuthToken}`).send({});
 
     expect(res.status).toBe(400);
   });
@@ -470,10 +402,7 @@ describe("PATCH /v1/api/gifts/:id", () => {
       invitation: { id: mockInvitationId, ownerId: mockOtherOwnerId },
     });
 
-    const res = await request(app)
-      .patch(`/v1/api/gifts/${mockGiftId}`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({ amount: 750000 });
+    const res = await request(app).patch(`/v1/api/gifts/${mockGiftId}`).set("Authorization", `Bearer ${validAuthToken}`).send({ amount: 750000 });
 
     expect(res.status).toBe(403);
   });
@@ -481,10 +410,7 @@ describe("PATCH /v1/api/gifts/:id", () => {
   it("404 - gagal jika hadiah tidak ditemukan", async () => {
     (GiftRepository.findGiftById as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .patch(`/v1/api/gifts/${mockGiftId}`)
-      .set("Authorization", `Bearer ${validAuthToken}`)
-      .send({ amount: 750000 });
+    const res = await request(app).patch(`/v1/api/gifts/${mockGiftId}`).set("Authorization", `Bearer ${validAuthToken}`).send({ amount: 750000 });
 
     expect(res.status).toBe(404);
   });
@@ -497,9 +423,7 @@ describe("DELETE /v1/api/gifts/:id", () => {
   });
 
   it("200 - berhasil menghapus catatan hadiah", async () => {
-    const res = await request(app)
-      .delete(`/v1/api/gifts/${mockGiftId}`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).delete(`/v1/api/gifts/${mockGiftId}`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Catatan hadiah berhasil dihapus");
@@ -511,9 +435,7 @@ describe("DELETE /v1/api/gifts/:id", () => {
       invitation: { id: mockInvitationId, ownerId: mockOtherOwnerId },
     });
 
-    const res = await request(app)
-      .delete(`/v1/api/gifts/${mockGiftId}`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).delete(`/v1/api/gifts/${mockGiftId}`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(403);
   });
@@ -521,11 +443,77 @@ describe("DELETE /v1/api/gifts/:id", () => {
   it("404 - gagal jika hadiah tidak ditemukan", async () => {
     (GiftRepository.findGiftById as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .delete(`/v1/api/gifts/${mockGiftId}`)
-      .set("Authorization", `Bearer ${validAuthToken}`);
+    const res = await request(app).delete(`/v1/api/gifts/${mockGiftId}`).set("Authorization", `Bearer ${validAuthToken}`);
 
     expect(res.status).toBe(404);
   });
 });
 
+// ── Public Gift Account Tests ─────────────────────────────────────────────
+
+describe("GET /v1/api/public/invitations/:slug/gift-accounts", () => {
+  const mockSlug = "fathur-anisa";
+
+  it("200 - berhasil mengambil daftar rekening publik tanpa autentikasi (ACTIVE)", async () => {
+    (GiftRepository.findPublishedInvitationBySlug as Mock).mockResolvedValue({
+      id: mockInvitationId,
+      status: "ACTIVE",
+      giftAccounts: [mockGiftAccount],
+    });
+
+    const res = await request(app).get(`/v1/api/public/invitations/${mockSlug}/gift-accounts`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Daftar rekening hadiah publik berhasil diambil");
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0]).toEqual({
+      id: mockAccountId,
+      bankName: "BCA",
+      accountNumber: "1234567890",
+      accountHolder: "Fathur Saputra",
+      type: "BANK",
+      order: 0,
+    });
+    // Pastikan field sensitif / internal tidak bocor
+    expect(res.body.data[0].invitationId).toBeUndefined();
+    expect(res.body.data[0].userId).toBeUndefined();
+    expect(res.body.data[0].createdAt).toBeUndefined();
+    expect(res.body.data[0].updatedAt).toBeUndefined();
+  });
+
+  it("200 - berhasil mengambil daftar rekening untuk undangan COMPLETED", async () => {
+    (GiftRepository.findPublishedInvitationBySlug as Mock).mockResolvedValue({
+      id: mockInvitationId,
+      status: "COMPLETED",
+      giftAccounts: [mockGiftAccount],
+    });
+
+    const res = await request(app).get(`/v1/api/public/invitations/${mockSlug}/gift-accounts`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+  });
+
+  it("200 - mengembalikan list kosong jika belum ada rekening", async () => {
+    (GiftRepository.findPublishedInvitationBySlug as Mock).mockResolvedValue({
+      id: mockInvitationId,
+      status: "ACTIVE",
+      giftAccounts: [],
+    });
+
+    const res = await request(app).get(`/v1/api/public/invitations/${mockSlug}/gift-accounts`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual([]);
+  });
+
+  it("404 - gagal jika undangan masih DRAFT atau slug tidak ditemukan", async () => {
+    (GiftRepository.findPublishedInvitationBySlug as Mock).mockResolvedValue(null);
+
+    const res = await request(app).get(`/v1/api/public/invitations/${mockSlug}/gift-accounts`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe("Undangan tidak ditemukan");
+  });
+});

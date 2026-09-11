@@ -7,6 +7,7 @@ import {
   getGiftSummaryResponse,
   listGiftAccountResponse,
   listGiftResponse,
+  listPublicGiftAccountResponse,
   updateGiftAccountResponse,
   updateGiftResponse,
   type CreateGiftAccountReq,
@@ -18,6 +19,7 @@ import {
   type GetGiftSummaryRes,
   type ListGiftAccountRes,
   type ListGiftRes,
+  type ListPublicGiftAccountRes,
   type UpdateGiftAccountReq,
   type UpdateGiftAccountRes,
   type UpdateGiftReq,
@@ -37,6 +39,16 @@ export class GiftService {
     return invitation;
   }
 
+  // ── Public GiftAccount ──────────────────────────────────────────────────
+  static async listPublicAccounts(slug: string): Promise<ListPublicGiftAccountRes> {
+    const invitation = await GiftRepository.findPublishedInvitationBySlug(slug);
+    if (!invitation) {
+      throw new NotFoundError("Undangan tidak ditemukan");
+    }
+
+    return listPublicGiftAccountResponse(invitation.giftAccounts);
+  }
+
   // ── GiftAccount ────────────────────────────────────────────────────────
   static async listAccounts(invitationId: string, ownerId: string): Promise<ListGiftAccountRes> {
     await this.ensureInvitationOwnership(invitationId, ownerId);
@@ -44,21 +56,13 @@ export class GiftService {
     return listGiftAccountResponse(accounts);
   }
 
-  static async createAccount(
-    invitationId: string,
-    ownerId: string,
-    req: CreateGiftAccountReq
-  ): Promise<CreateGiftAccountRes> {
+  static async createAccount(invitationId: string, ownerId: string, req: CreateGiftAccountReq): Promise<CreateGiftAccountRes> {
     await this.ensureInvitationOwnership(invitationId, ownerId);
     const account = await GiftRepository.createGiftAccount(invitationId, req);
     return createGiftAccountResponse(account);
   }
 
-  static async updateAccount(
-    id: string,
-    ownerId: string,
-    req: UpdateGiftAccountReq
-  ): Promise<UpdateGiftAccountRes> {
+  static async updateAccount(id: string, ownerId: string, req: UpdateGiftAccountReq): Promise<UpdateGiftAccountRes> {
     const existing = await GiftRepository.findGiftAccountById(id);
     if (!existing) {
       throw new NotFoundError("Rekening hadiah tidak ditemukan");
@@ -97,21 +101,13 @@ export class GiftService {
     return getGiftSummaryResponse(summary);
   }
 
-  static async createGift(
-    invitationId: string,
-    ownerId: string,
-    req: CreateGiftReq
-  ): Promise<CreateGiftRes> {
+  static async createGift(invitationId: string, ownerId: string, req: CreateGiftReq): Promise<CreateGiftRes> {
     await this.ensureInvitationOwnership(invitationId, ownerId);
     const gift = await GiftRepository.createGift(invitationId, req);
     return createGiftResponse(gift);
   }
 
-  static async updateGift(
-    id: string,
-    ownerId: string,
-    req: UpdateGiftReq
-  ): Promise<UpdateGiftRes> {
+  static async updateGift(id: string, ownerId: string, req: UpdateGiftReq): Promise<UpdateGiftRes> {
     const existing = await GiftRepository.findGiftById(id);
     if (!existing) {
       throw new NotFoundError("Catatan hadiah tidak ditemukan");
@@ -137,4 +133,3 @@ export class GiftService {
     return deleteGiftResponse();
   }
 }
-

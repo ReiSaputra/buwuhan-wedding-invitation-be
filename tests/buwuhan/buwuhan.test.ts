@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import { buwuhanRouter } from "../../src/modules/buwuhan/buwuhan.routes";
 import { BuwuhanRepository } from "../../src/modules/buwuhan/buwuhan.repository";
 import { MemberRepository } from "../../src/modules/member/member.repository";
+import { prisma } from "../../src/lib/prisma";
 import { errorHandler } from "../../src/middlewares/error.middleware";
 
 process.env.JWT_SECRET = "test-jwt-secret";
@@ -789,9 +790,7 @@ describe("buwuhan test: otorisasi petugas instant access link (magic link)", () 
     (BuwuhanRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
     (BuwuhanRepository.findManyByInvitationId as Mock).mockResolvedValue([mockBuwuhan]);
 
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitation.id}/buwuhans`)
-      .set("Authorization", `Bearer ${instantToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/buwuhans`).set("Authorization", `Bearer ${instantToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(1);
@@ -808,9 +807,7 @@ describe("buwuhan test: otorisasi petugas instant access link (magic link)", () 
       categories: [{ category: "Sembako", count: 1, totalValue: 350000 }],
     });
 
-    const res = await request(app)
-      .get(`/v1/api/invitations/${mockInvitation.id}/buwuhans/summary`)
-      .set("Authorization", `Bearer ${instantToken}`);
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/buwuhans/summary`).set("Authorization", `Bearer ${instantToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data.totalCashValue).toBe(100000);
@@ -832,13 +829,10 @@ describe("buwuhan test: otorisasi petugas instant access link (magic link)", () 
       });
 
     expect(res.status).toBe(201);
-
   });
 
   it("DITOLAK (403) petugas instant tidak dapat mengakses Catatan Buwuh milik undangan lain", async () => {
-    const res = await request(app)
-      .get("/v1/api/invitations/other-inv-999/buwuhans")
-      .set("Authorization", `Bearer ${instantToken}`);
+    const res = await request(app).get("/v1/api/invitations/other-inv-999/buwuhans").set("Authorization", `Bearer ${instantToken}`);
 
     expect(res.status).toBe(403);
     expect(res.body.message).toContain("Link petugas tidak berlaku untuk undangan ini");
@@ -851,9 +845,7 @@ describe("buwuhan test: otorisasi petugas instant access link (magic link)", () 
       recordedByMemberId: instantMemberId,
     });
 
-    const res = await request(app)
-      .get(`/v1/api/buwuhans/${mockBuwuhan.id}`)
-      .set("Authorization", `Bearer ${instantToken}`);
+    const res = await request(app).get(`/v1/api/buwuhans/${mockBuwuhan.id}`).set("Authorization", `Bearer ${instantToken}`);
 
     expect(res.status).toBe(200);
   });
@@ -864,9 +856,7 @@ describe("buwuhan test: otorisasi petugas instant access link (magic link)", () 
       invitationId: "other-inv-999",
     });
 
-    const res = await request(app)
-      .get(`/v1/api/buwuhans/${mockBuwuhan.id}`)
-      .set("Authorization", `Bearer ${instantToken}`);
+    const res = await request(app).get(`/v1/api/buwuhans/${mockBuwuhan.id}`).set("Authorization", `Bearer ${instantToken}`);
 
     expect(res.status).toBe(403);
   });
@@ -882,10 +872,7 @@ describe("buwuhan test: otorisasi petugas instant access link (magic link)", () 
       giverName: "H. Joko Diperbarui",
     });
 
-    const res = await request(app)
-      .patch(`/v1/api/buwuhans/${mockBuwuhan.id}`)
-      .set("Authorization", `Bearer ${instantToken}`)
-      .send({ giverName: "H. Joko Diperbarui" });
+    const res = await request(app).patch(`/v1/api/buwuhans/${mockBuwuhan.id}`).set("Authorization", `Bearer ${instantToken}`).send({ giverName: "H. Joko Diperbarui" });
 
     expect(res.status).toBe(200);
   });
@@ -897,10 +884,7 @@ describe("buwuhan test: otorisasi petugas instant access link (magic link)", () 
       recordedByMemberId: "other-member-or-owner",
     });
 
-    const res = await request(app)
-      .patch(`/v1/api/buwuhans/${mockBuwuhan.id}`)
-      .set("Authorization", `Bearer ${instantToken}`)
-      .send({ giverName: "H. Joko Hack" });
+    const res = await request(app).patch(`/v1/api/buwuhans/${mockBuwuhan.id}`).set("Authorization", `Bearer ${instantToken}`).send({ giverName: "H. Joko Hack" });
 
     expect(res.status).toBe(403);
     expect(res.body.message).toContain("hanya dapat mengubah catatan yang dibuat sendiri");
@@ -913,18 +897,14 @@ describe("buwuhan test: otorisasi petugas instant access link (magic link)", () 
       recordedByMemberId: instantMemberId,
     });
 
-    const res = await request(app)
-      .delete(`/v1/api/buwuhans/${mockBuwuhan.id}`)
-      .set("Authorization", `Bearer ${instantToken}`);
+    const res = await request(app).delete(`/v1/api/buwuhans/${mockBuwuhan.id}`).set("Authorization", `Bearer ${instantToken}`);
 
     expect(res.status).toBe(403);
     expect(res.body.message).toContain("Petugas tidak diizinkan menghapus");
   });
 
   it("DITOLAK (403) petugas instant tidak dapat mengakses catatan buwuh mandiri (standalone)", async () => {
-    const resList = await request(app)
-      .get("/v1/api/buwuhans/standalone")
-      .set("Authorization", `Bearer ${instantToken}`);
+    const resList = await request(app).get("/v1/api/buwuhans/standalone").set("Authorization", `Bearer ${instantToken}`);
 
     expect(resList.status).toBe(403);
     expect(resList.body.message).toContain("Catatan Buwuh");
@@ -941,3 +921,36 @@ describe("buwuhan test: otorisasi petugas instant access link (magic link)", () 
   });
 });
 
+describe("BuwuhanRepository.findInvitationByIdAndOwner", () => {
+  it("membentuk query Prisma yang benar untuk owner, member reguler, dan petugas instant link", async () => {
+    (BuwuhanRepository.findInvitationByIdAndOwner as Mock).mockRestore?.();
+    const findFirstSpy = vi.spyOn(prisma.invitation, "findFirst").mockResolvedValue({
+      id: "inv-123",
+      ownerId: "actor-123",
+    } as any);
+
+    const result = await BuwuhanRepository.findInvitationByIdAndOwner("inv-123", "actor-123");
+
+    expect(findFirstSpy).toHaveBeenCalledWith({
+      where: {
+        id: "inv-123",
+        OR: [
+          { ownerId: "actor-123" },
+          {
+            members: {
+              some: {
+                revokedAt: null,
+                OR: [{ userId: "actor-123", acceptedAt: { not: null } }, { id: "actor-123" }],
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    expect(result).toBeDefined();
+    expect(result?.id).toBe("inv-123");
+
+    findFirstSpy.mockRestore();
+  });
+});

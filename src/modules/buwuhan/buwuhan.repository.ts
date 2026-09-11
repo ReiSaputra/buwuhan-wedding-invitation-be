@@ -2,22 +2,17 @@ import { prisma } from "../../lib/prisma";
 import type { CreateBuwuhanReq, UpdateBuwuhanReq } from "./buwuhan.types";
 
 export class BuwuhanRepository {
-  static async findInvitationByIdAndOwner(invitationId: string, ownerId: string) {
+  static async findInvitationByIdAndOwner(invitationId: string, actorId: string) {
     return await prisma.invitation.findFirst({
       where: {
         id: invitationId,
         OR: [
-          { ownerId },
+          { ownerId: actorId },
           {
             members: {
               some: {
-                userId: ownerId,
-                acceptedAt: { not: null },
                 revokedAt: null,
-                OR: [
-                  { userId: ownerId, acceptedAt: { not: null }, revokedAt: null },
-                  { id: ownerId, revokedAt: null },
-                ],
+                OR: [{ userId: actorId, acceptedAt: { not: null } }, { id: actorId }],
               },
             },
           },
@@ -25,7 +20,6 @@ export class BuwuhanRepository {
       },
     });
   }
-
 
   /**
    * @param recordedByMemberId - ID InvitationMember yang mencatat (null jika owner langsung)

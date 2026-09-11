@@ -97,9 +97,55 @@ function refreshTokenResponse(accessToken: string, refreshToken: string) {
   };
 }
 
-function logoutResponse() {
+function logoutResponse(): LogoutRes {
   return {
     message: "Logged out successfully",
+    status: 200,
+  };
+}
+
+interface SessionItem {
+  id: string;
+  userAgent: string | null;
+  ipAddress: string | null;
+  createdAt: Date;
+  isCurrent: boolean;
+}
+
+interface ListSessionsRes {
+  message: string;
+  status: number;
+  data: SessionItem[];
+}
+
+interface LogoutAllRes {
+  message: string;
+  status: number;
+}
+
+interface DeleteSessionRes {
+  message: string;
+  status: number;
+}
+
+function listSessionsResponse(sessions: SessionItem[]): ListSessionsRes {
+  return {
+    message: "Sessions retrieved successfully",
+    status: 200,
+    data: sessions,
+  };
+}
+
+function logoutAllResponse(): LogoutAllRes {
+  return {
+    message: "Logged out from all devices successfully",
+    status: 200,
+  };
+}
+
+function deleteSessionResponse(): DeleteSessionRes {
+  return {
+    message: "Session deleted successfully",
     status: 200,
   };
 }
@@ -114,5 +160,17 @@ export type {
   SignInRes,
   RefreshTokenRes,
   LogoutRes,
+  SessionItem,
+  ListSessionsRes,
+  LogoutAllRes,
+  DeleteSessionRes,
 };
-export { signUpResponse, signInResponse, refreshTokenResponse, logoutResponse };
+export {
+  signUpResponse,
+  signInResponse,
+  refreshTokenResponse,
+  logoutResponse,
+  listSessionsResponse,
+  logoutAllResponse,
+  deleteSessionResponse,
+};

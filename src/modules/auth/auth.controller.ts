@@ -77,4 +77,42 @@ export class AuthController {
       next(error);
     }
   }
+  // ---------------------------------------------------------------------------
+  // Session management endpoints
+  // ---------------------------------------------------------------------------
+
+  static async listSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const currentRefreshToken = getRefreshTokenFromCookie(req);
+      const response = await AuthService.listSessions(userId, currentRefreshToken);
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async logoutAll(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const response = await AuthService.logoutAll(userId);
+      clearRefreshTokenCookie(res);
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteSession(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const sessionId = req.params.id as string;
+      const response = await AuthService.deleteSession(userId, sessionId);
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
+
+

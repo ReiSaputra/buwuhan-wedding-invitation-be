@@ -10,7 +10,7 @@ import { prisma } from "../../lib/prisma";
 import type { RequestMeta, SignUpReq } from "./auth.types";
 import { Prisma } from "../../generated/prisma/client";
 
-function hashToken(token: string): string {
+export function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
@@ -56,6 +56,12 @@ export class AuthRepository {
     });
   }
 
+  static async findSessionById(sessionId: string) {
+    return await prisma.session.findUnique({
+      where: { id: sessionId },
+    });
+  }
+
   static async findSessionByRefreshToken(refreshToken: string) {
     return await prisma.session.findUnique({
       where: { refreshTokenHash: hashToken(refreshToken) },
@@ -75,4 +81,29 @@ export class AuthRepository {
       data: { revokedAt: new Date() },
     });
   }
+  static async listActiveSessionsByUserId(userId: string) {
+    return await prisma.session.findMany({
+      where: {
+        userId,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        userAgent: true,
+        ipAddress: true,
+        refreshTokenHash: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  static async revokeAllSessionsByUserId(userId: string) {
+    return await prisma.session.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
 }
+

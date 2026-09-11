@@ -9,8 +9,9 @@ import jwt from "jsonwebtoken";
 // yang sebenarnya relatif ke folder src/. Contoh ini mengasumsikan test ada
 // di tests/auth/auth.test.ts (dua level di atas src/).
 import { authRouter } from "../../src/modules/auth/auth.routes";
-import { AuthRepository } from "../../src/modules/auth/auth.repository";
+import { AuthRepository, hashToken } from "../../src/modules/auth/auth.repository";
 import { errorHandler } from "../../src/middlewares/error.middleware";
+import { logger } from "../../src/utils/log";
 
 // ── Spy setup ────────────────────────────────────────────────────────
 // Pakai vi.spyOn, BUKAN vi.mock(). vi.mock() mengganti modul di level
@@ -31,13 +32,18 @@ beforeAll(() => {
   vi.spyOn(AuthRepository, "findUserById");
   vi.spyOn(AuthRepository, "createUser");
   vi.spyOn(AuthRepository, "createSession");
+  vi.spyOn(AuthRepository, "findSessionById");
   vi.spyOn(AuthRepository, "findSessionByRefreshToken");
   vi.spyOn(AuthRepository, "revokeSessionById");
   vi.spyOn(AuthRepository, "revokeSessionByRefreshToken");
+  vi.spyOn(AuthRepository, "listActiveSessionsByUserId");
+  vi.spyOn(AuthRepository, "revokeAllSessionsByUserId");
 
+  vi.spyOn(logger, "warn");
   vi.spyOn(bcrypt, "hash");
   vi.spyOn(bcrypt, "compare");
   vi.spyOn(jwt, "sign");
+  vi.spyOn(jwt, "verify");
 });
 
 // ── Test app ─────────────────────────────────────────────────────────
@@ -249,17 +255,30 @@ describe("auth test: refreshToken", () => {
     expect(AuthRepository.findSessionByRefreshToken).not.toHaveBeenCalled();
   });
 
-  it("menolak refresh jika token sudah direvoke (401)", async () => {
+  it("menolak refresh dan me-revoke semua sesi user jika refresh token yang sudah direvoke dipakai lagi / reuse detected (401)", async () => {
     (AuthRepository.findSessionByRefreshToken as Mock).mockResolvedValue({
       ...validSession,
       revokedAt: new Date(),
     });
+    (AuthRepository.revokeAllSessionsByUserId as Mock).mockResolvedValue({ count: 2 });
 
-    const res = await request(app).post("/v1/api/auth/refresh-token").set("Cookie", "refreshToken=revoked-token");
+    const res = await request(app)
+      .post("/v1/api/auth/refresh-token")
+      .set("Cookie", "refreshToken=revoked-token")
+      .set("User-Agent", "Mozilla/5.0")
+      .set("X-Forwarded-For", "127.0.0.1");
 
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ success: false, message: "Refresh token tidak valid" });
     expect(AuthRepository.revokeSessionById).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      "Refresh token reuse detected",
+      expect.objectContaining({
+        userId: validSession.userId,
+        sessionId: validSession.id,
+      })
+    );
+    expect(AuthRepository.revokeAllSessionsByUserId).toHaveBeenCalledWith(validSession.userId);
   });
 
   it("menolak refresh jika token sudah kedaluwarsa (401)", async () => {
@@ -321,3 +340,176 @@ describe("auth test: logout", () => {
     expect(AuthRepository.revokeSessionByRefreshToken).toHaveBeenCalledWith("");
   });
 });
+
+describe("auth test: listSessions", () => {
+  function createAuthHeader(userId = mockUserRecord.id) {
+    (jwt.verify as unknown as Mock).mockReturnValue({
+      id: userId,
+      role: mockUserRecord.role,
+      planTier: mockUserRecord.planTier,
+    });
+    return `Bearer valid-test-token`;
+  }
+
+  it("berhasil mendapatkan daftar sesi aktif user dengan penanda isCurrent (200)", async () => {
+    const activeSessions = [
+      {
+        id: "session-1",
+        userAgent: "Mozilla/5.0 (Windows NT 10.0)",
+        ipAddress: "127.0.0.1",
+        refreshTokenHash: hashToken("current-token"),
+        createdAt: new Date("2026-09-10T10:00:00Z"),
+      },
+      {
+        id: "session-2",
+        userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0)",
+        ipAddress: "192.168.1.1",
+        refreshTokenHash: hashToken("other-token"),
+        createdAt: new Date("2026-09-09T08:00:00Z"),
+      },
+    ];
+
+    (AuthRepository.listActiveSessionsByUserId as Mock).mockResolvedValue(activeSessions);
+
+    const res = await request(app)
+      .get("/v1/api/auth/sessions")
+      .set("Authorization", createAuthHeader())
+      .set("Cookie", "refreshToken=current-token");
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe(200);
+    expect(res.body.data).toHaveLength(2);
+    expect(res.body.data[0]).toEqual({
+      id: "session-1",
+      userAgent: "Mozilla/5.0 (Windows NT 10.0)",
+      ipAddress: "127.0.0.1",
+      createdAt: "2026-09-10T10:00:00.000Z",
+      isCurrent: true,
+    });
+    expect(res.body.data[1]).toEqual({
+      id: "session-2",
+      userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0)",
+      ipAddress: "192.168.1.1",
+      createdAt: "2026-09-09T08:00:00.000Z",
+      isCurrent: false,
+    });
+    expect(AuthRepository.listActiveSessionsByUserId).toHaveBeenCalledWith(mockUserRecord.id);
+  });
+
+  it("menolak akses tanpa header Authorization (401)", async () => {
+    const res = await request(app).get("/v1/api/auth/sessions");
+
+    expect(res.status).toBe(401);
+    expect(res.body.success).toBe(false);
+  });
+});
+
+describe("auth test: logoutAll", () => {
+  function createAuthHeader(userId = mockUserRecord.id) {
+    (jwt.verify as unknown as Mock).mockReturnValue({
+      id: userId,
+      role: mockUserRecord.role,
+      planTier: mockUserRecord.planTier,
+    });
+    return `Bearer valid-test-token`;
+  }
+
+  it("berhasil me-revoke semua sesi user dan membersihkan cookie refresh token (200)", async () => {
+    (AuthRepository.revokeAllSessionsByUserId as Mock).mockResolvedValue({ count: 3 });
+
+    const res = await request(app)
+      .post("/v1/api/auth/logout-all")
+      .set("Authorization", createAuthHeader())
+      .set("Cookie", "refreshToken=some-token");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      message: "Logged out from all devices successfully",
+      status: 200,
+    });
+    expect(AuthRepository.revokeAllSessionsByUserId).toHaveBeenCalledWith(mockUserRecord.id);
+
+    const cookie = findRefreshTokenCookie(res);
+    expect(cookie).toBeDefined();
+    expect(cookie).toMatch(/refreshToken=;/);
+  });
+
+  it("menolak logout-all tanpa header Authorization (401)", async () => {
+    const res = await request(app).post("/v1/api/auth/logout-all");
+
+    expect(res.status).toBe(401);
+    expect(res.body.success).toBe(false);
+    expect(AuthRepository.revokeAllSessionsByUserId).not.toHaveBeenCalled();
+  });
+});
+
+describe("auth test: deleteSession", () => {
+  function createAuthHeader(userId = mockUserRecord.id) {
+    (jwt.verify as unknown as Mock).mockReturnValue({
+      id: userId,
+      role: mockUserRecord.role,
+      planTier: mockUserRecord.planTier,
+    });
+    return `Bearer valid-test-token`;
+  }
+
+  it("berhasil menghapus satu sesi spesifik milik user (200)", async () => {
+    (AuthRepository.findSessionById as Mock).mockResolvedValue({
+      id: "session-target-id",
+      userId: mockUserRecord.id,
+      revokedAt: null,
+      expiresAt: new Date(Date.now() + 3600000),
+    });
+    (AuthRepository.revokeSessionById as Mock).mockResolvedValue({ id: "session-target-id" });
+
+    const res = await request(app)
+      .delete("/v1/api/auth/sessions/session-target-id")
+      .set("Authorization", createAuthHeader());
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      message: "Session deleted successfully",
+      status: 200,
+    });
+    expect(AuthRepository.findSessionById).toHaveBeenCalledWith("session-target-id");
+    expect(AuthRepository.revokeSessionById).toHaveBeenCalledWith("session-target-id");
+  });
+
+  it("menolak deleteSession jika sesi tidak ditemukan atau sudah direvoke (404)", async () => {
+    (AuthRepository.findSessionById as Mock).mockResolvedValue(null);
+
+    const res = await request(app)
+      .delete("/v1/api/auth/sessions/non-existent-session")
+      .set("Authorization", createAuthHeader());
+
+    expect(res.status).toBe(404);
+    expect(res.body.success).toBe(false);
+    expect(AuthRepository.revokeSessionById).not.toHaveBeenCalled();
+  });
+
+  it("menolak deleteSession jika sesi bukan milik user yang sedang login (403)", async () => {
+    (AuthRepository.findSessionById as Mock).mockResolvedValue({
+      id: "other-user-session",
+      userId: "different-user-id",
+      revokedAt: null,
+      expiresAt: new Date(Date.now() + 3600000),
+    });
+
+    const res = await request(app)
+      .delete("/v1/api/auth/sessions/other-user-session")
+      .set("Authorization", createAuthHeader());
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(AuthRepository.revokeSessionById).not.toHaveBeenCalled();
+  });
+
+  it("menolak deleteSession tanpa header Authorization (401)", async () => {
+    const res = await request(app).delete("/v1/api/auth/sessions/session-123");
+
+    expect(res.status).toBe(401);
+    expect(res.body.success).toBe(false);
+    expect(AuthRepository.findSessionById).not.toHaveBeenCalled();
+  });
+});
+

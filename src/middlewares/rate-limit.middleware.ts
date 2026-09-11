@@ -58,3 +58,14 @@ export const exportRateLimiter = rateLimit({
   skip: skipInTest,
   message: { success: false, message: "Terlalu banyak permintaan ekspor, coba lagi nanti" },
 });
+
+// Session: batasi frekuensi pengelolaan sesi aktif.
+export const sessionRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTest,
+  message: { success: false, message: "Terlalu banyak permintaan sesi, coba lagi nanti" },
+});
+

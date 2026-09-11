@@ -239,3 +239,116 @@
  *             schema:
  *               $ref: '#/components/schemas/SuccessEnvelope'
  */
+
+/**
+ * @openapi
+ * /auth/sessions:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Daftar sesi aktif milik user
+ *     description: Mengambil semua sesi yang masih aktif milik user yang sedang login beserta penanda sesi saat ini (`isCurrent`).
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Daftar sesi berhasil diambil.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           userAgent:
+ *                             type: string
+ *                             nullable: true
+ *                           ipAddress:
+ *                             type: string
+ *                             nullable: true
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                           isCurrent:
+ *                             type: boolean
+ *       401:
+ *         description: Tidak terautentikasi.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorEnvelope'
+ */
+
+/**
+ * @openapi
+ * /auth/logout-all:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Logout dari semua perangkat
+ *     description: Me-revoke seluruh sesi aktif milik user dan menghapus cookie refresh token saat ini.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Semua sesi berhasil di-revoke.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessEnvelope'
+ *       401:
+ *         description: Tidak terautentikasi.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorEnvelope'
+ */
+
+/**
+ * @openapi
+ * /auth/sessions/{id}:
+ *   delete:
+ *     tags: [Auth]
+ *     summary: Revoke satu sesi tertentu
+ *     description: Menghapus/me-revoke satu sesi aktif milik user berdasarkan sessionId.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID sesi yang ingin dicabut.
+ *     responses:
+ *       200:
+ *         description: Sesi berhasil dihapus.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessEnvelope'
+ *       401:
+ *         description: Tidak terautentikasi.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorEnvelope'
+ *       403:
+ *         description: Sesi bukan milik user yang sedang login.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorEnvelope'
+ *       404:
+ *         description: Sesi tidak ditemukan atau sudah tidak aktif.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorEnvelope'
+ */
+

@@ -11,12 +11,18 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 
-import { AuthRepository } from "./auth.repository";
+import { AuthRepository, hashToken } from "./auth.repository";
 import {
+  deleteSessionResponse,
+  listSessionsResponse,
+  logoutAllResponse,
   logoutResponse,
   refreshTokenResponse,
   signInResponse,
   signUpResponse,
+  type DeleteSessionRes,
+  type ListSessionsRes,
+  type LogoutAllRes,
   type LogoutReq,
   type LogoutRes,
   type RefreshTokenReq,
@@ -28,7 +34,8 @@ import {
   type SignUpRes,
 } from "./auth.types";
 
-import { ConflictError, UnauthorizedError } from "../../errors/app.error";
+import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from "../../errors/app.error";
+import { logger } from "../../utils/log";
 import type { PlanTier, PlatformRole } from "../../generated/prisma/client";
 
 const REFRESH_TOKEN_TTL_DAYS = 7;
@@ -85,7 +92,22 @@ export class AuthService {
   static async refreshToken(request: RefreshTokenReq, meta?: RequestMeta | undefined): Promise<RefreshTokenRes> {
     const session = await AuthRepository.findSessionByRefreshToken(request.refreshToken);
 
-    if (!session || session.revokedAt || session.expiresAt < new Date()) {
+    // Jika session tidak ditemukan atau sudah kedaluwarsa
+    if (!session || session.expiresAt < new Date()) {
+      throw new UnauthorizedError("Refresh token tidak valid");
+    }
+
+    // Deteksi reuse: session sudah pernah di-revoke (indikasi pencurian token)
+    if (session.revokedAt) {
+      logger.warn("Refresh token reuse detected", {
+        userId: session.userId,
+        sessionId: session.id,
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+
+      // Revoke semua sesi aktif milik user sebagai mitigasi keamanan
+      await AuthRepository.revokeAllSessionsByUserId(session.userId);
       throw new UnauthorizedError("Refresh token tidak valid");
     }
 
@@ -113,9 +135,50 @@ export class AuthService {
     return refreshTokenResponse(accessToken, newRefreshToken);
   }
 
+  // ---------------------------------------------------------------------------
+  // Session management
+  // ---------------------------------------------------------------------------
+
+  static async listSessions(userId: string, currentRefreshToken?: string | undefined): Promise<ListSessionsRes> {
+    const sessions = await AuthRepository.listActiveSessionsByUserId(userId);
+    const currentHash = currentRefreshToken ? hashToken(currentRefreshToken) : null;
+
+    const sessionItems = sessions.map((session) => ({
+      id: session.id,
+      userAgent: session.userAgent,
+      ipAddress: session.ipAddress,
+      createdAt: session.createdAt,
+      isCurrent: Boolean(currentHash && session.refreshTokenHash === currentHash),
+    }));
+
+    return listSessionsResponse(sessionItems);
+  }
+
+  static async logoutAll(userId: string): Promise<LogoutAllRes> {
+    await AuthRepository.revokeAllSessionsByUserId(userId);
+    return logoutAllResponse();
+  }
+
+  static async deleteSession(userId: string, sessionId: string): Promise<DeleteSessionRes> {
+    const session = await AuthRepository.findSessionById(sessionId);
+
+    if (!session || session.revokedAt) {
+      throw new NotFoundError("Sesi tidak ditemukan");
+    }
+
+    if (session.userId !== userId) {
+      throw new ForbiddenError("Anda tidak memiliki akses ke sesi ini");
+    }
+
+    await AuthRepository.revokeSessionById(sessionId);
+    return deleteSessionResponse();
+  }
+
   static async logout(request: LogoutReq): Promise<LogoutRes> {
     await AuthRepository.revokeSessionByRefreshToken(request.refreshToken);
 
     return logoutResponse();
   }
 }
+
+

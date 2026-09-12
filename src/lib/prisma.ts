@@ -1,12 +1,21 @@
-import "dotenv/config";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { fileURLToPath } from "url";
+import path from "path";
+import dotenv from "dotenv";
+// Load .env dari root project (2 level di atas src/lib/)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+
+import { neon } from "@neondatabase/serverless";
+import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "../generated/prisma/client";
 
 import { logger } from "../utils/log";
 
-const connectionString = `${process.env.DATABASE_URL}`;
+const connectionString = process.env.DATABASE_URL!;
 
-const adapter = new PrismaPg({ connectionString });
+const sql = neon(connectionString);
+const adapter = new PrismaNeon(sql);
 const prisma = new PrismaClient({
   adapter,
   log: [

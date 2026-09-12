@@ -14,8 +14,6 @@ const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
-const allowedOrigin = process.env.FRONTEND_URL || (process.env.NODE_ENV === "production" ? "https://buwuh.com" : "http://localhost:5173");
-app.use(cors({ origin: allowedOrigin, credentials: true }));
 const envOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(",").map((url) => url.trim())
   : [];

@@ -13,6 +13,10 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "setup": "node setup.js",
+    "test-run": "node test-run.js",
+    "test-dist": "node test-dist.js",
+    "kill": "node kill.js",
     "seed": "tsx prisma/seed.ts",
     "contract:emit": "prisma-cli contract emit"
   },

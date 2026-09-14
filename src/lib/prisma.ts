@@ -1,17 +1,27 @@
 import "dotenv/config";
 import { neonConfig } from "@neondatabase/serverless";
 import { PrismaNeon } from "@prisma/adapter-neon";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client";
 
 import { logger } from "../utils/log";
 
-// Gunakan WebSocket bawaan Node.js 22 agar Neon terhubung via port 443
-// (bukan TCP port 5432 yang mungkin diblokir hosting)
-// @ts-ignore WebSocket is globally available in Node.js 22
-neonConfig.webSocketConstructor = WebSocket;
+const connectionString = process.env.DATABASE_URL || "";
 
-// DATABASE_URL sudah di-set oleh app.js sebelum module ini dimuat
-const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL });
+// Cek apakah koneksi mengarah ke Neon (production) atau PostgreSQL lokal
+const isNeon = connectionString.includes("neon.tech");
+
+let adapter: any;
+
+if (isNeon) {
+  // Mode Production / Neon: gunakan WebSocket (Port 443 HTTPS)
+  // @ts-ignore WebSocket is globally available in Node.js 22
+  neonConfig.webSocketConstructor = WebSocket;
+  adapter = new PrismaNeon({ connectionString });
+} else {
+  // Mode Local Development: gunakan TCP PostgreSQL standar
+  adapter = new PrismaPg({ connectionString });
+}
 
 const prisma = new PrismaClient({
   adapter,

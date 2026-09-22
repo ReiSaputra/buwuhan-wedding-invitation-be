@@ -7,7 +7,9 @@ export interface InviteMemberReq {
 }
 
 export interface UpdateMemberRoleReq {
-  role: InvitationRole;
+  role?: InvitationRole | undefined;
+  isRevoked?: boolean | undefined;
+  status?: "ACTIVE" | "REVOKED" | "PASIF" | "INACTIVE" | undefined;
 }
 
 export interface AcceptInviteReq {
@@ -19,7 +21,6 @@ export interface InstantLinkReq {
   name: string;
   role?: "USER";
 }
-
 
 // Request untuk menukar token instan → session JWT
 export interface InstantAccessReq {
@@ -133,7 +134,6 @@ export interface InstantAccessRes {
   };
 }
 
-
 // ── Helper formatters ────────────────────────────────────────────────
 
 export function toMemberItemData(member: InvitationMember): MemberItemData {
@@ -218,4 +218,3 @@ export function acceptInviteResponse(member: InvitationMember & { invitation: { 
     },
   };
 }
-

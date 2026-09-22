@@ -161,14 +161,11 @@ describe("Member Service: Invite Member", () => {
       role: "USER",
     });
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/members`)
-      .set("Authorization", `Bearer ${ownerToken}`)
-      .send({
-        email: "budi.usher@example.com",
-        name: "Budi Petugas",
-        role: "USER",
-      });
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/members`).set("Authorization", `Bearer ${ownerToken}`).send({
+      email: "budi.usher@example.com",
+      name: "Budi Petugas",
+      role: "USER",
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.message).toBe("Petugas berhasil diundang");
@@ -178,14 +175,11 @@ describe("Member Service: Invite Member", () => {
   });
 
   it("harus menolak jika mencoba mengundang email pemilik sendiri", async () => {
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/members`)
-      .set("Authorization", `Bearer ${ownerToken}`)
-      .send({
-        email: mockInvitation.owner.email,
-        name: "Romeo Owner",
-        role: "ADMIN",
-      });
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/members`).set("Authorization", `Bearer ${ownerToken}`).send({
+      email: mockInvitation.owner.email,
+      name: "Romeo Owner",
+      role: "ADMIN",
+    });
 
     expect(res.status).toBe(409);
     expect(res.body.message).toContain("Pemilik undangan");
@@ -197,28 +191,22 @@ describe("Member Service: Invite Member", () => {
       acceptedAt: new Date(),
     });
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/members`)
-      .set("Authorization", `Bearer ${ownerToken}`)
-      .send({
-        email: "budi.usher@example.com",
-        name: "Budi Petugas",
-        role: "USER",
-      });
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/members`).set("Authorization", `Bearer ${ownerToken}`).send({
+      email: "budi.usher@example.com",
+      name: "Budi Petugas",
+      role: "USER",
+    });
 
     expect(res.status).toBe(409);
     expect(res.body.message).toContain("anggota aktif");
   });
 
   it("harus menolak (403) jika bukan OWNER yang mengundang", async () => {
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/members`)
-      .set("Authorization", `Bearer ${adminMemberToken}`)
-      .send({
-        email: "staff2@example.com",
-        name: "Staff Baru",
-        role: "USER",
-      });
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/members`).set("Authorization", `Bearer ${adminMemberToken}`).send({
+      email: "staff2@example.com",
+      name: "Staff Baru",
+      role: "USER",
+    });
 
     expect(res.status).toBe(403);
   });
@@ -229,9 +217,7 @@ describe("Member Service: Resend Invite", () => {
     (MemberRepository.findById as Mock).mockResolvedValue(mockMember);
     (MemberRepository.updateToken as Mock).mockResolvedValue(mockMember);
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}/resend`)
-      .set("Authorization", `Bearer ${ownerToken}`);
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}/resend`).set("Authorization", `Bearer ${ownerToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Undangan petugas berhasil dikirim ulang");
@@ -244,9 +230,7 @@ describe("Member Service: Resend Invite", () => {
       acceptedAt: new Date(),
     });
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}/resend`)
-      .set("Authorization", `Bearer ${ownerToken}`);
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}/resend`).set("Authorization", `Bearer ${ownerToken}`);
 
     expect(res.status).toBe(409);
   });
@@ -271,10 +255,7 @@ describe("Member Service: Accept Invite Token", () => {
       },
     });
 
-    const res = await request(app)
-      .post("/v1/api/members/accept")
-      .set("Authorization", `Bearer ${usherMemberToken}`)
-      .send({ token: "raw-secret-token-123" });
+    const res = await request(app).post("/v1/api/members/accept").set("Authorization", `Bearer ${usherMemberToken}`).send({ token: "raw-secret-token-123" });
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Undangan petugas berhasil diterima");
@@ -284,10 +265,7 @@ describe("Member Service: Accept Invite Token", () => {
   it("harus menolak (404) jika token tidak ditemukan", async () => {
     (MemberRepository.findByTokenHash as Mock).mockResolvedValue(null);
 
-    const res = await request(app)
-      .post("/v1/api/members/accept")
-      .set("Authorization", `Bearer ${usherMemberToken}`)
-      .send({ token: "invalid-token" });
+    const res = await request(app).post("/v1/api/members/accept").set("Authorization", `Bearer ${usherMemberToken}`).send({ token: "invalid-token" });
 
     expect(res.status).toBe(404);
   });
@@ -300,10 +278,7 @@ describe("Member Service: Accept Invite Token", () => {
       revokedAt: null,
     });
 
-    const res = await request(app)
-      .post("/v1/api/members/accept")
-      .set("Authorization", `Bearer ${usherMemberToken}`)
-      .send({ token: "expired-token" });
+    const res = await request(app).post("/v1/api/members/accept").set("Authorization", `Bearer ${usherMemberToken}`).send({ token: "expired-token" });
 
     expect(res.status).toBe(422);
     expect(res.body.message).toContain("kedaluwarsa");
@@ -314,24 +289,18 @@ describe("Member Service: List, Detail, Update Role, Remove", () => {
   it("OWNER dan ADMIN dapat melihat daftar petugas", async () => {
     (MemberRepository.findManyByInvitationId as Mock).mockResolvedValue([mockMember]);
 
-    const resOwner = await request(app)
-      .get(`/v1/api/invitations/${mockInvitation.id}/members`)
-      .set("Authorization", `Bearer ${ownerToken}`);
+    const resOwner = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/members`).set("Authorization", `Bearer ${ownerToken}`);
 
     expect(resOwner.status).toBe(200);
     expect(resOwner.body.data.length).toBe(1);
 
-    const resAdmin = await request(app)
-      .get(`/v1/api/invitations/${mockInvitation.id}/members`)
-      .set("Authorization", `Bearer ${adminMemberToken}`);
+    const resAdmin = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/members`).set("Authorization", `Bearer ${adminMemberToken}`);
 
     expect(resAdmin.status).toBe(200);
   });
 
   it("Petugas USER (usher) ditolak (403) saat membaca daftar petugas", async () => {
-    const resUsher = await request(app)
-      .get(`/v1/api/invitations/${mockInvitation.id}/members`)
-      .set("Authorization", `Bearer ${usherMemberToken}`);
+    const resUsher = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/members`).set("Authorization", `Bearer ${usherMemberToken}`);
 
     expect(resUsher.status).toBe(403);
   });
@@ -343,20 +312,100 @@ describe("Member Service: List, Detail, Update Role, Remove", () => {
       role: "ADMIN",
     });
 
-    const res = await request(app)
-      .patch(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}`)
-      .set("Authorization", `Bearer ${ownerToken}`)
-      .send({ role: "ADMIN" });
+    const res = await request(app).patch(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}`).set("Authorization", `Bearer ${ownerToken}`).send({ role: "ADMIN" });
 
     expect(res.status).toBe(200);
     expect(res.body.data.role).toBe("ADMIN");
   });
 
+  it("OWNER dapat mengubah status petugas menjadi pasif (isRevoked: true)", async () => {
+    const revokedDate = new Date();
+    (MemberRepository.findById as Mock).mockResolvedValue(mockMember);
+    (MemberRepository.update as Mock).mockImplementation((_id, data) => {
+      expect(data.revokedAt).toBeInstanceOf(Date);
+      return Promise.resolve({
+        ...mockMember,
+        revokedAt: revokedDate,
+      });
+    });
+
+    const res = await request(app).patch(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}`).set("Authorization", `Bearer ${ownerToken}`).send({ isRevoked: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.isRevoked).toBe(true);
+    expect(res.body.data.revokedAt).not.toBeNull();
+  });
+
+  it("OWNER dapat mengaktifkan kembali status petugas (isRevoked: false)", async () => {
+    (MemberRepository.findById as Mock).mockResolvedValue({
+      ...mockMember,
+      revokedAt: new Date(),
+    });
+    (MemberRepository.update as Mock).mockImplementation((_id, data) => {
+      expect(data.revokedAt).toBeNull();
+      return Promise.resolve({
+        ...mockMember,
+        revokedAt: null,
+      });
+    });
+
+    const res = await request(app).patch(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}`).set("Authorization", `Bearer ${ownerToken}`).send({ isRevoked: false });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.isRevoked).toBe(false);
+    expect(res.body.data.revokedAt).toBeNull();
+  });
+
+  it("OWNER dapat mengubah status petugas dengan status: 'PASIF' dan 'ACTIVE'", async () => {
+    (MemberRepository.findById as Mock).mockResolvedValue(mockMember);
+    (MemberRepository.update as Mock).mockResolvedValue({
+      ...mockMember,
+      revokedAt: new Date(),
+    });
+
+    const resPasif = await request(app).patch(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}`).set("Authorization", `Bearer ${ownerToken}`).send({ status: "PASIF" });
+
+    expect(resPasif.status).toBe(200);
+    expect(resPasif.body.data.isRevoked).toBe(true);
+
+    (MemberRepository.update as Mock).mockResolvedValue({
+      ...mockMember,
+      revokedAt: null,
+    });
+
+    const resActive = await request(app).patch(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}`).set("Authorization", `Bearer ${ownerToken}`).send({ status: "ACTIVE" });
+
+    expect(resActive.status).toBe(200);
+    expect(resActive.body.data.isRevoked).toBe(false);
+  });
+
+  it("OWNER dapat mengupdate role dan isRevoked secara bersamaan", async () => {
+    (MemberRepository.findById as Mock).mockResolvedValue(mockMember);
+    (MemberRepository.update as Mock).mockImplementation((_id, data) => {
+      expect(data.role).toBe("ADMIN");
+      expect(data.revokedAt).toBeInstanceOf(Date);
+      return Promise.resolve({
+        ...mockMember,
+        role: "ADMIN",
+        revokedAt: new Date(),
+      });
+    });
+
+    const res = await request(app).patch(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}`).set("Authorization", `Bearer ${ownerToken}`).send({ role: "ADMIN", isRevoked: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.role).toBe("ADMIN");
+    expect(res.body.data.isRevoked).toBe(true);
+  });
+
+  it("Ditolak (400) jika request update tidak menyertakan role, isRevoked, maupun status", async () => {
+    const res = await request(app).patch(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}`).set("Authorization", `Bearer ${ownerToken}`).send({});
+
+    expect(res.status).toBe(400);
+  });
+
   it("ADMIN ditolak (403) saat mencoba mengubah role petugas", async () => {
-    const res = await request(app)
-      .patch(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}`)
-      .set("Authorization", `Bearer ${adminMemberToken}`)
-      .send({ role: "ADMIN" });
+    const res = await request(app).patch(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}`).set("Authorization", `Bearer ${adminMemberToken}`).send({ role: "ADMIN" });
 
     expect(res.status).toBe(403);
   });
@@ -365,17 +414,13 @@ describe("Member Service: List, Detail, Update Role, Remove", () => {
     (MemberRepository.findById as Mock).mockResolvedValue(mockMember);
     (MemberRepository.delete as Mock).mockResolvedValue(mockMember);
 
-    const res = await request(app)
-      .delete(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}`)
-      .set("Authorization", `Bearer ${ownerToken}`);
+    const res = await request(app).delete(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}`).set("Authorization", `Bearer ${ownerToken}`);
 
     expect(res.status).toBe(200);
   });
 
   it("ADMIN ditolak (403) saat mencoba menghapus petugas", async () => {
-    const res = await request(app)
-      .delete(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}`)
-      .set("Authorization", `Bearer ${adminMemberToken}`);
+    const res = await request(app).delete(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}`).set("Authorization", `Bearer ${adminMemberToken}`);
 
     expect(res.status).toBe(403);
   });
@@ -387,9 +432,7 @@ describe("Matriks Izin Role (RBAC Matrix Verification)", () => {
       (GuestRepository.findInvitationByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
       (GuestRepository.findManyByInvitationId as Mock).mockResolvedValue([]);
 
-      const res = await request(app)
-        .get(`/v1/api/invitations/${mockInvitation.id}/guests`)
-        .set("Authorization", `Bearer ${usherMemberToken}`);
+      const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/guests`).set("Authorization", `Bearer ${usherMemberToken}`);
 
       expect(res.status).toBe(200);
     });
@@ -416,28 +459,19 @@ describe("Matriks Izin Role (RBAC Matrix Verification)", () => {
         paxActual: 1,
       });
 
-      const res = await request(app)
-        .post(`/v1/api/invitations/${mockInvitation.id}/guests/check-in`)
-        .set("Authorization", `Bearer ${usherMemberToken}`)
-        .send({ qrCode: "QR123" });
+      const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/guests/check-in`).set("Authorization", `Bearer ${usherMemberToken}`).send({ qrCode: "QR123" });
 
       expect(res.status).toBe(200);
     });
 
     it("ditolak (403) saat mencoba membuat tamu baru", async () => {
-      const res = await request(app)
-        .post(`/v1/api/invitations/${mockInvitation.id}/guests`)
-        .set("Authorization", `Bearer ${usherMemberToken}`)
-        .send({ name: "Tamu Ilegal" });
+      const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/guests`).set("Authorization", `Bearer ${usherMemberToken}`).send({ name: "Tamu Ilegal" });
 
       expect(res.status).toBe(403);
     });
 
     it("ditolak (403) saat mencoba mengedit konten undangan", async () => {
-      const res = await request(app)
-        .patch(`/v1/api/invitations/${mockInvitation.id}`)
-        .set("Authorization", `Bearer ${usherMemberToken}`)
-        .send({ title: "Judul Baru" });
+      const res = await request(app).patch(`/v1/api/invitations/${mockInvitation.id}`).set("Authorization", `Bearer ${usherMemberToken}`).send({ title: "Judul Baru" });
 
       expect(res.status).toBe(403);
     });
@@ -456,10 +490,7 @@ describe("Matriks Izin Role (RBAC Matrix Verification)", () => {
         isAttended: false,
       });
 
-      const res = await request(app)
-        .post(`/v1/api/invitations/${mockInvitation.id}/guests`)
-        .set("Authorization", `Bearer ${adminMemberToken}`)
-        .send({ name: "Tamu Baru" });
+      const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/guests`).set("Authorization", `Bearer ${adminMemberToken}`).send({ name: "Tamu Baru" });
 
       expect(res.status).toBe(201);
     });
@@ -471,18 +502,13 @@ describe("Matriks Izin Role (RBAC Matrix Verification)", () => {
         title: "Judul Diperbarui Admin",
       });
 
-      const res = await request(app)
-        .patch(`/v1/api/invitations/${mockInvitation.id}`)
-        .set("Authorization", `Bearer ${adminMemberToken}`)
-        .send({ title: "Judul Diperbarui Admin" });
+      const res = await request(app).patch(`/v1/api/invitations/${mockInvitation.id}`).set("Authorization", `Bearer ${adminMemberToken}`).send({ title: "Judul Diperbarui Admin" });
 
       expect(res.status).toBe(200);
     });
 
     it("ditolak (403) saat mencoba menghapus undangan", async () => {
-      const res = await request(app)
-        .delete(`/v1/api/invitations/${mockInvitation.id}`)
-        .set("Authorization", `Bearer ${adminMemberToken}`);
+      const res = await request(app).delete(`/v1/api/invitations/${mockInvitation.id}`).set("Authorization", `Bearer ${adminMemberToken}`);
 
       expect(res.status).toBe(403);
     });
@@ -493,9 +519,7 @@ describe("Matriks Izin Role (RBAC Matrix Verification)", () => {
       (InvitationRepository.findByIdAndOwner as Mock).mockResolvedValue(mockInvitation);
       (InvitationRepository.deleteById as Mock).mockResolvedValue(mockInvitation);
 
-      const res = await request(app)
-        .delete(`/v1/api/invitations/${mockInvitation.id}`)
-        .set("Authorization", `Bearer ${ownerToken}`);
+      const res = await request(app).delete(`/v1/api/invitations/${mockInvitation.id}`).set("Authorization", `Bearer ${ownerToken}`);
 
       expect(res.status).toBe(200);
     });
@@ -511,10 +535,7 @@ describe("Member Service: Instant Access (Magic Link Tanpa Password)", () => {
       role: "USER",
     });
 
-    const res = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/members/instant-link`)
-      .set("Authorization", `Bearer ${ownerToken}`)
-      .send({ name: "Siti Penerima Tamu", role: "USER" });
+    const res = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/members/instant-link`).set("Authorization", `Bearer ${ownerToken}`).send({ name: "Siti Penerima Tamu", role: "USER" });
 
     expect(res.status).toBe(201);
     expect(res.body.message).toBe("Link akses petugas berhasil dibuat");
@@ -524,21 +545,14 @@ describe("Member Service: Instant Access (Magic Link Tanpa Password)", () => {
   });
 
   it("Menolak (400) jika request instant link mencoba meminta role ADMIN atau OWNER", async () => {
-    const resAdmin = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/members/instant-link`)
-      .set("Authorization", `Bearer ${ownerToken}`)
-      .send({ name: "Siti Penerima Tamu", role: "ADMIN" });
+    const resAdmin = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/members/instant-link`).set("Authorization", `Bearer ${ownerToken}`).send({ name: "Siti Penerima Tamu", role: "ADMIN" });
 
     expect(resAdmin.status).toBe(400);
 
-    const resOwner = await request(app)
-      .post(`/v1/api/invitations/${mockInvitation.id}/members/instant-link`)
-      .set("Authorization", `Bearer ${ownerToken}`)
-      .send({ name: "Siti Penerima Tamu", role: "OWNER" });
+    const resOwner = await request(app).post(`/v1/api/invitations/${mockInvitation.id}/members/instant-link`).set("Authorization", `Bearer ${ownerToken}`).send({ name: "Siti Penerima Tamu", role: "OWNER" });
 
     expect(resOwner.status).toBe(400);
   });
-
 
   it("Petugas dapat menukar token magic link menjadi session JWT instan dengan access scope BUWUHAN_ONLY", async () => {
     (MemberRepository.findByTokenHash as Mock).mockResolvedValue({
@@ -555,9 +569,7 @@ describe("Member Service: Instant Access (Magic Link Tanpa Password)", () => {
       },
     });
 
-    const res = await request(app)
-      .post("/v1/api/members/instant-access")
-      .send({ token: "sample-valid-magic-token" });
+    const res = await request(app).post("/v1/api/members/instant-access").send({ token: "sample-valid-magic-token" });
 
     expect(res.status).toBe(200);
     expect(res.body.message).toContain("Selamat bertugas");
@@ -593,9 +605,7 @@ describe("Member Service: Instant Access (Magic Link Tanpa Password)", () => {
       invitation: mockInvitation,
     });
 
-    const res = await request(app)
-      .post("/v1/api/members/instant-access")
-      .send({ token: "expired-magic-token" });
+    const res = await request(app).post("/v1/api/members/instant-access").send({ token: "expired-magic-token" });
 
     expect(res.status).toBe(422);
     expect(res.body.message).toContain("kedaluwarsa");
@@ -617,21 +627,13 @@ describe("Member Service: Instant Access (Magic Link Tanpa Password)", () => {
       { expiresIn: "1d" },
     );
 
-    const resGuests = await request(app)
-      .get(`/v1/api/invitations/${mockInvitation.id}/guests`)
-      .set("Authorization", `Bearer ${instantToken}`);
+    const resGuests = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/guests`).set("Authorization", `Bearer ${instantToken}`);
 
     expect(resGuests.status).toBe(403);
     expect(resGuests.body.message).toContain("Catatan Buwuh");
 
-    const resInvite = await request(app)
-      .patch(`/v1/api/invitations/${mockInvitation.id}`)
-      .set("Authorization", `Bearer ${instantToken}`)
-      .send({ title: "Hack Title" });
+    const resInvite = await request(app).patch(`/v1/api/invitations/${mockInvitation.id}`).set("Authorization", `Bearer ${instantToken}`).send({ title: "Hack Title" });
 
     expect(resInvite.status).toBe(403);
   });
 });
-
-
-

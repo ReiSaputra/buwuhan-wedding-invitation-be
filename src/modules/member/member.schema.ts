@@ -6,9 +6,13 @@ export const inviteMemberSchema = z.object({
   role: z.enum(["OWNER", "ADMIN", "USER"]).optional().default("USER"),
 });
 
-export const updateMemberRoleSchema = z.object({
-  role: z.enum(["OWNER", "ADMIN", "USER"]),
-});
+export const updateMemberRoleSchema = z
+  .object({
+    role: z.enum(["OWNER", "ADMIN", "USER"]).optional(),
+    isRevoked: z.boolean().optional(),
+    status: z.enum(["ACTIVE", "REVOKED", "PASIF", "INACTIVE"]).optional(),
+  })
+  .refine((data) => data.role !== undefined || data.isRevoked !== undefined || data.status !== undefined, { message: "Minimal salah satu dari role, isRevoked, atau status harus disertakan" });
 
 export const acceptInviteSchema = z.object({
   token: z.string().trim().min(1, "Token undangan wajib disertakan"),
@@ -19,8 +23,6 @@ export const instantLinkSchema = z.object({
   name: z.string().trim().min(1, "Nama petugas wajib diisi").max(255, "Nama maksimal 255 karakter"),
   role: z.literal("USER").optional().default("USER"),
 });
-
-
 
 // Schema untuk penukaran token instan → session JWT
 export const instantAccessSchema = z.object({

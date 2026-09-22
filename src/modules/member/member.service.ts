@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import type { Prisma } from "../../generated/prisma/client";
 import { MemberRepository } from "./member.repository";
 import {
   acceptInviteResponse,
@@ -208,7 +209,23 @@ export class MemberService {
       throw new NotFoundError("Petugas tidak ditemukan");
     }
 
-    const updated = await MemberRepository.update(memberId, { role: request.role });
+    const updateData: Prisma.InvitationMemberUpdateInput = {};
+
+    if (request.role !== undefined) {
+      updateData.role = request.role;
+    }
+
+    if (request.isRevoked !== undefined) {
+      updateData.revokedAt = request.isRevoked ? new Date() : null;
+    } else if (request.status !== undefined) {
+      if (request.status === "REVOKED" || request.status === "PASIF" || request.status === "INACTIVE") {
+        updateData.revokedAt = new Date();
+      } else if (request.status === "ACTIVE") {
+        updateData.revokedAt = null;
+      }
+    }
+
+    const updated = await MemberRepository.update(memberId, updateData);
     return updateMemberRoleResponse(updated);
   }
 

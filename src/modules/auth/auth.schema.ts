@@ -17,5 +17,15 @@ export const signInSchema = z.object({
   password: z.string().min(1, "Password wajib diisi"),
 });
 
+export const googleAuthSchema = z
+  .object({
+    idToken: z.string().optional(),
+    code: z.string().optional(),
+  })
+  .refine((data) => Boolean(data.idToken || data.code), {
+    message: "idToken atau code wajib disertakan",
+  });
+
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type SignInInput = z.infer<typeof signInSchema>;
+export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;

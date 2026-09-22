@@ -76,12 +76,73 @@
  *             Refresh token TIDAK ikut di body ini — dikirim terpisah
  *             lewat header Set-Cookie (httpOnly), lihat deskripsi endpoint login.
  *
+ *     GoogleAuthRequestBody:
+ *       type: object
+ *       properties:
+ *         idToken:
+ *           type: string
+ *           description: ID Token (credential JWT) dari Google Identity Services / One Tap / OAuth Popup.
+ *           example: "eyJhbGciOiJSUzI1NiIs..."
+ *         code:
+ *           type: string
+ *           description: Authorization Code dari alur OAuth 2.0 redirect flow.
+ *           example: "4/0AeanS0b..."
+ *
  *     RefreshTokenResponseData:
  *       type: object
  *       properties:
  *         accessToken:
  *           type: string
  *           description: Access token baru hasil rotasi refresh token.
+ */
+
+/**
+ * @openapi
+ * /auth/google:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Autentikasi dengan Google OAuth (ID Token atau Auth Code)
+ *     description: >
+ *       Memverifikasi login/registrasi pengguna menggunakan Google. Mendukung Google `idToken` (dari popup/One Tap) atau `code` (dari redirect flow).
+ *       Jika akun belum ada, sistem akan otomatis mendaftarkan user baru.
+ *       Jika email sudah ada di database, sistem akan menautkan akun Google ke user tersebut.
+ *       Access token dikembalikan di body dan refresh token diset sebagai `httpOnly` cookie.
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/GoogleAuthRequestBody'
+ *     responses:
+ *       200:
+ *         description: Login Google berhasil.
+ *         headers:
+ *           Set-Cookie:
+ *             description: "refreshToken=<value>; HttpOnly; SameSite=Strict; Path=/v1/auth; Max-Age=604800"
+ *             schema:
+ *               type: string
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/LoginResponseData'
+ *       400:
+ *         description: Validasi gagal (baik `idToken` maupun `code` tidak disertakan).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorEnvelope'
+ *       401:
+ *         description: Token Google tidak valid, kedaluwarsa, atau email belum diverifikasi.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorEnvelope'
  */
 
 /**
@@ -351,4 +412,3 @@
  *             schema:
  *               $ref: '#/components/schemas/ErrorEnvelope'
  */
-

@@ -51,10 +51,12 @@ model User {
 
   fullName     String
   email        String       @unique @db.Citext
-  passwordHash String
+  passwordHash String?
+  avatarUrl    String?
   role         PlatformRole @default(USER)
   planTier     PlanTier     @default(FREE)
 
+  accounts          Account[]
   invitations       Invitation[]
   invitationMembers InvitationMember[]
   sessions          Session[]
@@ -65,6 +67,22 @@ model User {
   updatedAt DateTime @updatedAt
 
   @@map("users")
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String   // "GOOGLE", "FACEBOOK", etc.
+  providerAccountId String   // Provider's unique user ID
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
 }
 
 enum EventCategory {

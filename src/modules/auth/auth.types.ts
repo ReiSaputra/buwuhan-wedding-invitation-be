@@ -19,6 +19,11 @@ interface LogoutReq {
   refreshToken: string;
 }
 
+interface GoogleAuthReq {
+  idToken?: string;
+  code?: string;
+}
+
 interface RequestMeta {
   userAgent?: string | undefined;
   ipAddress?: string | undefined;
@@ -153,6 +158,7 @@ function deleteSessionResponse(): DeleteSessionRes {
 export type {
   SignUpReq,
   SignInReq,
+  GoogleAuthReq,
   RefreshTokenReq,
   LogoutReq,
   RequestMeta,
@@ -173,4 +179,4 @@ export {
   listSessionsResponse,
   logoutAllResponse,
   deleteSessionResponse,
-};
+};

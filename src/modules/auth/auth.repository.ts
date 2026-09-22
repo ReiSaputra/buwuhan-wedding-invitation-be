@@ -42,6 +42,61 @@ export class AuthRepository {
     }
   }
 
+  // ── OAuth & Account ────────────────────────────────────────────────
+
+  static async findAccount(provider: string, providerAccountId: string) {
+    return await prisma.account.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider,
+          providerAccountId,
+        },
+      },
+      include: {
+        user: true,
+      },
+    });
+  }
+
+  static async linkAccount(params: { userId: string; provider: string; providerAccountId: string }) {
+    return await prisma.account.create({
+      data: {
+        userId: params.userId,
+        provider: params.provider,
+        providerAccountId: params.providerAccountId,
+      },
+    });
+  }
+
+  static async createUserFromOAuth(params: {
+    email: string;
+    fullName: string;
+    avatarUrl?: string | null | undefined;
+    provider: string;
+    providerAccountId: string;
+  }) {
+    return await prisma.user.create({
+      data: {
+        email: params.email,
+        fullName: params.fullName,
+        avatarUrl: params.avatarUrl ?? null,
+        accounts: {
+          create: {
+            provider: params.provider,
+            providerAccountId: params.providerAccountId,
+          },
+        },
+      },
+    });
+  }
+
+  static async updateUserAvatarIfNull(userId: string, avatarUrl: string) {
+    return await prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl },
+    });
+  }
+
   // ── Session ────────────────────────────────────────────────────────
 
   static async createSession(params: { userId: string; refreshToken: string; expiresAt: Date; meta?: RequestMeta | undefined }) {

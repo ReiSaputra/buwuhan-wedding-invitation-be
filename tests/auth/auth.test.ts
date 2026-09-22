@@ -4,6 +4,7 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
 
 // PENTING: sesuaikan jumlah "../" di bawah ini dengan lokasi file test kamu
 // yang sebenarnya relatif ke folder src/. Contoh ini mengasumsikan test ada
@@ -38,6 +39,10 @@ beforeAll(() => {
   vi.spyOn(AuthRepository, "revokeSessionByRefreshToken");
   vi.spyOn(AuthRepository, "listActiveSessionsByUserId");
   vi.spyOn(AuthRepository, "revokeAllSessionsByUserId");
+  vi.spyOn(AuthRepository, "findAccount");
+  vi.spyOn(AuthRepository, "linkAccount");
+  vi.spyOn(AuthRepository, "createUserFromOAuth");
+  vi.spyOn(AuthRepository, "updateUserAvatarIfNull");
 
   vi.spyOn(logger, "warn");
   vi.spyOn(bcrypt, "hash");
@@ -492,5 +497,93 @@ describe("auth test: deleteSession", () => {
     expect(res.status).toBe(401);
     expect(res.body.success).toBe(false);
     expect(AuthRepository.findSessionById).not.toHaveBeenCalled();
+  });
+});
+
+describe("auth test: googleAuth", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (jwt.sign as Mock).mockReturnValue("mock-access-token");
+    (AuthRepository.createSession as Mock).mockResolvedValue({ id: "session-1" });
+  });
+
+  it("menolak request jika tidak ada idToken atau code (400)", async () => {
+    const res = await request(app).post("/v1/api/auth/google").send({});
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  it("berhasil login/register user baru dengan Google idToken (200)", async () => {
+    vi.spyOn(OAuth2Client.prototype, "verifyIdToken").mockResolvedValue({
+      getPayload: () => ({
+        sub: "google-12345",
+        email: "googleuser@example.com",
+        name: "Google User",
+        picture: "https://example.com/avatar.jpg",
+        email_verified: true,
+      }),
+    } as any);
+
+    (AuthRepository.findAccount as Mock).mockResolvedValue(null);
+    (AuthRepository.findUserByEmail as Mock).mockResolvedValue(null);
+    (AuthRepository.createUserFromOAuth as Mock).mockResolvedValue({
+      id: "new-google-user-id",
+      fullName: "Google User",
+      email: "googleuser@example.com",
+      role: "USER",
+      planTier: "FREE",
+      avatarUrl: "https://example.com/avatar.jpg",
+    });
+
+    const res = await request(app).post("/v1/api/auth/google").send({
+      idToken: "valid-mock-google-id-token",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.email).toBe("googleuser@example.com");
+    expect(res.body.data.accessToken).toBe("mock-access-token");
+    expect(res.headers["set-cookie"]).toBeDefined();
+    expect(AuthRepository.createUserFromOAuth).toHaveBeenCalledWith({
+      email: "googleuser@example.com",
+      fullName: "Google User",
+      avatarUrl: "https://example.com/avatar.jpg",
+      provider: "GOOGLE",
+      providerAccountId: "google-12345",
+    });
+  });
+
+  it("berhasil login jika akun Google sudah pernah ditautkan (200)", async () => {
+    vi.spyOn(OAuth2Client.prototype, "verifyIdToken").mockResolvedValue({
+      getPayload: () => ({
+        sub: "google-12345",
+        email: "googleuser@example.com",
+        name: "Google User",
+        picture: "https://example.com/avatar.jpg",
+        email_verified: true,
+      }),
+    } as any);
+
+    (AuthRepository.findAccount as Mock).mockResolvedValue({
+      id: "account-1",
+      provider: "GOOGLE",
+      providerAccountId: "google-12345",
+      user: {
+        id: "existing-google-user-id",
+        fullName: "Existing User",
+        email: "googleuser@example.com",
+        role: "USER",
+        planTier: "FREE",
+      },
+    });
+
+    const res = await request(app).post("/v1/api/auth/google").send({
+      idToken: "valid-mock-google-id-token",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.id).toBe("existing-google-user-id");
+    expect(AuthRepository.createUserFromOAuth).not.toHaveBeenCalled();
+    expect(AuthRepository.linkAccount).not.toHaveBeenCalled();
   });
 });

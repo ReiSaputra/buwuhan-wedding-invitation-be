@@ -10,6 +10,7 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
 
 import { AuthRepository, hashToken } from "./auth.repository";
 import {
@@ -21,6 +22,7 @@ import {
   signInResponse,
   signUpResponse,
   type DeleteSessionRes,
+  type GoogleAuthReq,
   type ListSessionsRes,
   type LogoutAllRes,
   type LogoutReq,
@@ -37,6 +39,12 @@ import {
 import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from "../../errors/app.error";
 import { logger } from "../../utils/log";
 import type { PlanTier, PlatformRole } from "../../generated/prisma/client";
+
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI || "postmessage"
+);
 
 const REFRESH_TOKEN_TTL_DAYS = 7;
 
@@ -71,6 +79,9 @@ export class AuthService {
     const existingEmail = await AuthRepository.findUserByEmail(request.email);
 
     if (!existingEmail) throw new UnauthorizedError("Email atau password salah");
+    if (!existingEmail || !existingEmail.passwordHash) {
+      throw new UnauthorizedError("Email atau password salah");
+    }
 
     if (!(await bcrypt.compare(request.password, existingEmail.passwordHash))) {
       throw new UnauthorizedError("Email atau password salah");
@@ -87,6 +98,113 @@ export class AuthService {
     });
 
     return signInResponse(existingEmail, accessToken, refreshToken);
+  }
+
+  static async googleAuth(request: GoogleAuthReq, meta?: RequestMeta | undefined): Promise<SignInRes> {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      throw new Error("GOOGLE_CLIENT_ID belum dikonfigurasi di environment");
+    }
+
+    let email: string | undefined;
+    let fullName: string | undefined;
+    let googleId: string | undefined;
+    let avatarUrl: string | undefined;
+    let emailVerified: boolean | undefined;
+
+    if (request.idToken) {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: request.idToken,
+        audience: clientId,
+      });
+      const payload = ticket.getPayload();
+      if (!payload) {
+        throw new UnauthorizedError("Token Google tidak valid");
+      }
+      email = payload.email;
+      fullName = payload.name;
+      googleId = payload.sub;
+      avatarUrl = payload.picture;
+      emailVerified = payload.email_verified;
+    } else if (request.code) {
+      const { tokens } = await googleClient.getToken({
+        code: request.code,
+        redirect_uri: process.env.GOOGLE_REDIRECT_URI || "postmessage",
+      });
+      if (!tokens.id_token) {
+        throw new UnauthorizedError("Gagal mendapatkan ID token dari Google");
+      }
+      const ticket = await googleClient.verifyIdToken({
+        idToken: tokens.id_token,
+        audience: clientId,
+      });
+      const payload = ticket.getPayload();
+      if (!payload) {
+        throw new UnauthorizedError("Payload token Google tidak valid");
+      }
+      email = payload.email;
+      fullName = payload.name;
+      googleId = payload.sub;
+      avatarUrl = payload.picture;
+      emailVerified = payload.email_verified;
+    } else {
+      throw new UnauthorizedError("idToken atau code Google wajib disertakan");
+    }
+
+    if (!email || !googleId) {
+      throw new UnauthorizedError("Informasi profil Google tidak lengkap");
+    }
+
+    if (!emailVerified) {
+      throw new UnauthorizedError("Email Google belum terverifikasi");
+    }
+
+    const safeEmail = email;
+    const safeFullName = (fullName && fullName.trim().length > 0) ? fullName : (safeEmail.split("@")[0] ?? "User");
+
+    // 1. Cek apakah user sudah terhubung via Account Google
+    const existingAccount = await AuthRepository.findAccount("GOOGLE", googleId);
+    let user = existingAccount?.user;
+
+    if (!user) {
+      // 2. Cek apakah email sudah terdaftar sebelumnya di sistem
+      const existingUser = await AuthRepository.findUserByEmail(safeEmail);
+
+      if (existingUser) {
+        await AuthRepository.linkAccount({
+          userId: existingUser.id,
+          provider: "GOOGLE",
+          providerAccountId: googleId,
+        });
+
+        if (!existingUser.avatarUrl && avatarUrl) {
+          await AuthRepository.updateUserAvatarIfNull(existingUser.id, avatarUrl);
+        }
+
+        user = existingUser;
+      } else {
+        // 3. Daftarkan user baru dari profil Google
+        user = await AuthRepository.createUserFromOAuth({
+          email: safeEmail,
+          fullName: safeFullName,
+          avatarUrl: avatarUrl ?? null,
+          provider: "GOOGLE",
+          providerAccountId: googleId,
+        });
+      }
+    }
+
+    const accessToken = signAccessToken(user.id, user.role, user.planTier);
+    const refreshToken = generateRefreshToken();
+
+    await AuthRepository.createSession({
+      userId: user.id,
+      refreshToken,
+      expiresAt: refreshTokenExpiry(),
+      meta,
+    });
+
+    return signInResponse(user, accessToken, refreshToken);
   }
 
   static async refreshToken(request: RefreshTokenReq, meta?: RequestMeta | undefined): Promise<RefreshTokenRes> {

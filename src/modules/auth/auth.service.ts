@@ -7,6 +7,7 @@
 //     cuma nyimpen userId, bukan role, dan role bisa saja berubah sejak
 //     access token lama diterbitkan
 
+import "dotenv/config";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
@@ -40,11 +41,9 @@ import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from 
 import { logger } from "../../utils/log";
 import type { PlanTier, PlatformRole } from "../../generated/prisma/client";
 
-const googleClient = new OAuth2Client(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI || "postmessage"
-);
+function getGoogleClient(): OAuth2Client {
+  return new OAuth2Client(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET, process.env.GOOGLE_REDIRECT_URI || "postmessage");
+}
 
 const REFRESH_TOKEN_TTL_DAYS = 7;
 
@@ -106,6 +105,8 @@ export class AuthService {
       throw new Error("GOOGLE_CLIENT_ID belum dikonfigurasi di environment");
     }
 
+    const googleClient = getGoogleClient();
+
     let email: string | undefined;
     let fullName: string | undefined;
     let googleId: string | undefined;
@@ -160,7 +161,7 @@ export class AuthService {
     }
 
     const safeEmail = email;
-    const safeFullName = (fullName && fullName.trim().length > 0) ? fullName : (safeEmail.split("@")[0] ?? "User");
+    const safeFullName = fullName && fullName.trim().length > 0 ? fullName : (safeEmail.split("@")[0] ?? "User");
 
     // 1. Cek apakah user sudah terhubung via Account Google
     const existingAccount = await AuthRepository.findAccount("GOOGLE", googleId);
@@ -298,5 +299,3 @@ export class AuthService {
     return logoutResponse();
   }
 }
-
-

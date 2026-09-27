@@ -60,6 +60,22 @@ export class AuthController {
     }
   }
 
+  static async facebookAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const response: SignInRes = await AuthService.facebookAuth(req.body, {
+        userAgent: req.headers["user-agent"],
+        ipAddress: req.ip,
+      });
+
+      const { refreshToken, ...data } = response.data;
+      setRefreshTokenCookie(res, refreshToken);
+
+      res.status(200).json({ ...response, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const refreshToken = getRefreshTokenFromCookie(req);
@@ -130,5 +146,3 @@ export class AuthController {
     }
   }
 }
-
-

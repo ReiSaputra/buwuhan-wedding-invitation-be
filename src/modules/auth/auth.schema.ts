@@ -26,6 +26,16 @@ export const googleAuthSchema = z
     message: "idToken atau code wajib disertakan",
   });
 
+export const facebookAuthSchema = z
+  .object({
+    accessToken: z.string().optional(),
+    code: z.string().optional(),
+  })
+  .refine((data) => Boolean(data.accessToken || data.code), {
+    message: "accessToken atau code wajib disertakan",
+  });
+
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type SignInInput = z.infer<typeof signInSchema>;
 export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;
+export type FacebookAuthInput = z.infer<typeof facebookAuthSchema>;

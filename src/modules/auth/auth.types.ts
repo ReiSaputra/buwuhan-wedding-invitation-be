@@ -24,6 +24,11 @@ interface GoogleAuthReq {
   code?: string;
 }
 
+interface FacebookAuthReq {
+  accessToken?: string;
+  code?: string;
+}
+
 interface RequestMeta {
   userAgent?: string | undefined;
   ipAddress?: string | undefined;
@@ -159,6 +164,7 @@ export type {
   SignUpReq,
   SignInReq,
   GoogleAuthReq,
+  FacebookAuthReq,
   RefreshTokenReq,
   LogoutReq,
   RequestMeta,

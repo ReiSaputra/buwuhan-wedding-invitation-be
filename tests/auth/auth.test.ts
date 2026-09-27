@@ -587,3 +587,176 @@ describe("auth test: googleAuth", () => {
     expect(AuthRepository.linkAccount).not.toHaveBeenCalled();
   });
 });
+
+describe("auth test: facebookAuth", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.FACEBOOK_APP_ID = "test-fb-app-id";
+    process.env.FACEBOOK_APP_SECRET = "test-fb-app-secret";
+    (jwt.sign as Mock).mockReturnValue("mock-access-token");
+    (AuthRepository.createSession as Mock).mockResolvedValue({ id: "session-1" });
+  });
+
+  it("menolak request jika tidak ada accessToken atau code (400)", async () => {
+    const res = await request(app).post("/v1/api/auth/facebook").send({});
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  it("berhasil login/register user baru dengan Facebook accessToken (200)", async () => {
+    const mockFbProfile = {
+      id: "fb-12345",
+      name: "Facebook User",
+      email: "fbuser@example.com",
+      picture: {
+        data: {
+          url: "https://example.com/fb-avatar.jpg",
+        },
+      },
+    };
+
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockFbProfile,
+    }) as any;
+
+    (AuthRepository.findAccount as Mock).mockResolvedValue(null);
+    (AuthRepository.findUserByEmail as Mock).mockResolvedValue(null);
+    (AuthRepository.createUserFromOAuth as Mock).mockResolvedValue({
+      id: "new-fb-user-id",
+      fullName: "Facebook User",
+      email: "fbuser@example.com",
+      role: "USER",
+      planTier: "FREE",
+      avatarUrl: "https://example.com/fb-avatar.jpg",
+    });
+
+    const res = await request(app).post("/v1/api/auth/facebook").send({
+      accessToken: "valid-mock-fb-access-token",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.email).toBe("fbuser@example.com");
+    expect(res.body.data.accessToken).toBe("mock-access-token");
+    expect(res.headers["set-cookie"]).toBeDefined();
+    expect(AuthRepository.createUserFromOAuth).toHaveBeenCalledWith({
+      email: "fbuser@example.com",
+      fullName: "Facebook User",
+      avatarUrl: "https://example.com/fb-avatar.jpg",
+      provider: "FACEBOOK",
+      providerAccountId: "fb-12345",
+    });
+
+    global.fetch = originalFetch;
+  });
+
+  it("berhasil login jika akun Facebook sudah pernah terhubung (200)", async () => {
+    const mockFbProfile = {
+      id: "fb-12345",
+      name: "Facebook User",
+      email: "fbuser@example.com",
+    };
+
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockFbProfile,
+    }) as any;
+
+    (AuthRepository.findAccount as Mock).mockResolvedValue({
+      id: "account-fb-1",
+      provider: "FACEBOOK",
+      providerAccountId: "fb-12345",
+      user: {
+        id: "existing-fb-user-id",
+        fullName: "Existing User",
+        email: "fbuser@example.com",
+        role: "USER",
+        planTier: "FREE",
+      },
+    });
+
+    const res = await request(app).post("/v1/api/auth/facebook").send({
+      accessToken: "valid-mock-fb-access-token",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.id).toBe("existing-fb-user-id");
+    expect(AuthRepository.createUserFromOAuth).not.toHaveBeenCalled();
+    expect(AuthRepository.linkAccount).not.toHaveBeenCalled();
+
+    global.fetch = originalFetch;
+  });
+
+  it("berhasil menautkan akun jika email sudah ada di sistem (200)", async () => {
+    const mockFbProfile = {
+      id: "fb-12345",
+      name: "Facebook User",
+      email: "existing@example.com",
+      picture: {
+        data: {
+          url: "https://example.com/avatar.jpg",
+        },
+      },
+    };
+
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockFbProfile,
+    }) as any;
+
+    (AuthRepository.findAccount as Mock).mockResolvedValue(null);
+    (AuthRepository.findUserByEmail as Mock).mockResolvedValue({
+      id: "existing-user-id",
+      email: "existing@example.com",
+      fullName: "Existing User",
+      role: "USER",
+      planTier: "FREE",
+      avatarUrl: null,
+    });
+    (AuthRepository.linkAccount as Mock).mockResolvedValue({});
+    (AuthRepository.updateUserAvatarIfNull as Mock).mockResolvedValue({});
+
+    const res = await request(app).post("/v1/api/auth/facebook").send({
+      accessToken: "valid-mock-fb-access-token",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.id).toBe("existing-user-id");
+    expect(AuthRepository.linkAccount).toHaveBeenCalledWith({
+      userId: "existing-user-id",
+      provider: "FACEBOOK",
+      providerAccountId: "fb-12345",
+    });
+    expect(AuthRepository.updateUserAvatarIfNull).toHaveBeenCalledWith(
+      "existing-user-id",
+      "https://example.com/avatar.jpg"
+    );
+
+    global.fetch = originalFetch;
+  });
+
+  it("menolak login jika token Facebook tidak valid dari Graph API (401)", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({
+        error: { message: "Invalid OAuth access token." },
+      }),
+    }) as any;
+
+    const res = await request(app).post("/v1/api/auth/facebook").send({
+      accessToken: "invalid-token",
+    });
+
+    expect(res.status).toBe(401);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toContain("Invalid OAuth access token");
+
+    global.fetch = originalFetch;
+  });
+});
+

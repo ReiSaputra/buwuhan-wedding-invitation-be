@@ -23,6 +23,7 @@ import {
   signInResponse,
   signUpResponse,
   type DeleteSessionRes,
+  type FacebookAuthReq,
   type GoogleAuthReq,
   type ListSessionsRes,
   type LogoutAllRes,
@@ -191,6 +192,125 @@ export class AuthService {
           avatarUrl: avatarUrl ?? null,
           provider: "GOOGLE",
           providerAccountId: googleId,
+        });
+      }
+    }
+
+    const accessToken = signAccessToken(user.id, user.role, user.planTier);
+    const refreshToken = generateRefreshToken();
+
+    await AuthRepository.createSession({
+      userId: user.id,
+      refreshToken,
+      expiresAt: refreshTokenExpiry(),
+      meta,
+    });
+
+    return signInResponse(user, accessToken, refreshToken);
+  }
+
+  static async facebookAuth(request: FacebookAuthReq, meta?: RequestMeta | undefined): Promise<SignInRes> {
+    const appId = process.env.FACEBOOK_APP_ID;
+    const appSecret = process.env.FACEBOOK_APP_SECRET;
+
+    if (!appId || !appSecret) {
+      throw new Error("FACEBOOK_APP_ID atau FACEBOOK_APP_SECRET belum dikonfigurasi di environment");
+    }
+
+    let userAccessToken: string;
+
+    if (request.accessToken) {
+      userAccessToken = request.accessToken;
+    } else if (request.code) {
+      const redirectUri = process.env.FACEBOOK_REDIRECT_URI || "http://localhost:5173/auth/facebook/callback";
+      const tokenUrl = new URL("https://graph.facebook.com/v19.0/oauth/access_token");
+      tokenUrl.searchParams.set("client_id", appId);
+      tokenUrl.searchParams.set("client_secret", appSecret);
+      tokenUrl.searchParams.set("redirect_uri", redirectUri);
+      tokenUrl.searchParams.set("code", request.code);
+
+      const tokenRes = await fetch(tokenUrl.toString());
+      const tokenData = (await tokenRes.json()) as { access_token?: string; error?: { message: string } };
+
+      if (!tokenRes.ok || !tokenData.access_token) {
+        logger.error("Facebook token exchange failed", { error: tokenData.error });
+        throw new UnauthorizedError(tokenData.error?.message || "Gagal mendapatkan access token dari Facebook");
+      }
+
+      userAccessToken = tokenData.access_token;
+    } else {
+      throw new UnauthorizedError("accessToken atau code Facebook wajib disertakan");
+    }
+
+    // Ambil profil user dari Facebook Graph API dengan HMAC SHA256 appsecret_proof
+    const appSecretProof = crypto.createHmac("sha256", appSecret).update(userAccessToken).digest("hex");
+    const meUrl = new URL("https://graph.facebook.com/v19.0/me");
+    meUrl.searchParams.set("fields", "id,name,email,picture.type(large)");
+    meUrl.searchParams.set("access_token", userAccessToken);
+    meUrl.searchParams.set("appsecret_proof", appSecretProof);
+
+    const meRes = await fetch(meUrl.toString());
+    const fbProfile = (await meRes.json()) as {
+      id?: string;
+      name?: string;
+      email?: string;
+      picture?: {
+        data?: {
+          url?: string;
+        };
+      };
+      error?: {
+        message: string;
+      };
+    };
+
+    if (!meRes.ok || !fbProfile.id) {
+      logger.error("Facebook profile fetch failed", { error: fbProfile.error });
+      throw new UnauthorizedError(fbProfile.error?.message || "Token Facebook tidak valid atau kedaluwarsa");
+    }
+
+    const facebookId = fbProfile.id;
+    const email = fbProfile.email;
+    const fullName = fbProfile.name;
+    const avatarUrl = fbProfile.picture?.data?.url;
+
+    // 1. Cek apakah user sudah terhubung via Account Facebook
+    const existingAccount = await AuthRepository.findAccount("FACEBOOK", facebookId);
+    let user = existingAccount?.user;
+
+    if (!user) {
+      if (!email) {
+        throw new UnauthorizedError(
+          "Akun Facebook Anda tidak membagikan alamat email. Pastikan izin email telah diizinkan pada aplikasi Facebook Anda."
+        );
+      }
+
+      const safeEmail = email.toLowerCase().trim();
+      const safeFullName = fullName && fullName.trim().length > 0 ? fullName : (safeEmail.split("@")[0] ?? "User");
+
+      // 2. Cek apakah email sudah terdaftar sebelumnya di sistem
+      const existingUser = await AuthRepository.findUserByEmail(safeEmail);
+
+      if (existingUser) {
+        await AuthRepository.linkAccount({
+          userId: existingUser.id,
+          provider: "FACEBOOK",
+          providerAccountId: facebookId,
+        });
+
+        if (!existingUser.avatarUrl && avatarUrl) {
+          await AuthRepository.updateUserAvatarIfNull(existingUser.id, avatarUrl);
+        }
+
+        user = existingUser;
+      } else {
+        // 3. Daftarkan user baru dari profil Facebook
+        user = await AuthRepository.createUserFromOAuth({
+          email: safeEmail,
+          fullName: safeFullName,
+          avatarUrl: avatarUrl ?? null,
+          provider: "FACEBOOK",
+          providerAccountId: facebookId,
         });
       }
     }

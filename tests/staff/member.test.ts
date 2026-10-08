@@ -132,6 +132,10 @@ const mockMember = {
     title: mockInvitation.title,
     ownerId: mockInvitation.ownerId,
   },
+  _count: {
+    buwuhans: 0,
+    gifts: 0,
+  },
 };
 
 beforeEach(() => {
@@ -286,17 +290,42 @@ describe("Member Service: Accept Invite Token", () => {
 });
 
 describe("Member Service: List, Detail, Update Role, Remove", () => {
-  it("OWNER dan ADMIN dapat melihat daftar petugas", async () => {
-    (MemberRepository.findManyByInvitationId as Mock).mockResolvedValue([mockMember]);
+  it("OWNER dan ADMIN dapat melihat daftar petugas beserta inputCount agregasi", async () => {
+    const memberWithInputs = {
+      ...mockMember,
+      _count: {
+        buwuhans: 5,
+        gifts: 3,
+      },
+    };
+    (MemberRepository.findManyByInvitationId as Mock).mockResolvedValue([memberWithInputs]);
 
     const resOwner = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/members`).set("Authorization", `Bearer ${ownerToken}`);
 
     expect(resOwner.status).toBe(200);
     expect(resOwner.body.data.length).toBe(1);
+    expect(resOwner.body.data[0].inputCount).toBe(8);
 
     const resAdmin = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/members`).set("Authorization", `Bearer ${adminMemberToken}`);
 
     expect(resAdmin.status).toBe(200);
+    expect(resAdmin.body.data[0].inputCount).toBe(8);
+  });
+
+  it("OWNER dapat melihat detail petugas beserta inputCount", async () => {
+    const memberWithInputs = {
+      ...mockMember,
+      _count: {
+        buwuhans: 2,
+        gifts: 1,
+      },
+    };
+    (MemberRepository.findById as Mock).mockResolvedValue(memberWithInputs);
+
+    const res = await request(app).get(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}`).set("Authorization", `Bearer ${ownerToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.inputCount).toBe(3);
   });
 
   it("Petugas USER (usher) ditolak (403) saat membaca daftar petugas", async () => {
@@ -410,13 +439,29 @@ describe("Member Service: List, Detail, Update Role, Remove", () => {
     expect(res.status).toBe(403);
   });
 
-  it("OWNER dapat menghapus petugas", async () => {
-    (MemberRepository.findById as Mock).mockResolvedValue(mockMember);
+  it("OWNER dapat menghapus petugas jika belum memiliki data input (inputCount: 0)", async () => {
+    (MemberRepository.findById as Mock).mockResolvedValue({
+      ...mockMember,
+      _count: { buwuhans: 0, gifts: 0 },
+    });
     (MemberRepository.delete as Mock).mockResolvedValue(mockMember);
 
     const res = await request(app).delete(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}`).set("Authorization", `Bearer ${ownerToken}`);
 
     expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Petugas berhasil dihapus");
+  });
+
+  it("OWNER ditolak (422) saat mencoba menghapus petugas yang sudah memiliki data input amplop/hadiah", async () => {
+    (MemberRepository.findById as Mock).mockResolvedValue({
+      ...mockMember,
+      _count: { buwuhans: 2, gifts: 0 },
+    });
+
+    const res = await request(app).delete(`/v1/api/invitations/${mockInvitation.id}/members/${mockMember.id}`).set("Authorization", `Bearer ${ownerToken}`);
+
+    expect(res.status).toBe(422);
+    expect(res.body.message).toBe("Petugas tidak dapat dihapus karena sudah memiliki data input.");
   });
 
   it("ADMIN ditolak (403) saat mencoba menghapus petugas", async () => {

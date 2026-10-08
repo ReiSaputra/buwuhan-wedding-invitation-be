@@ -39,6 +39,7 @@ export interface MemberItemData {
   revokedAt: Date | null;
   isAccepted: boolean;
   isRevoked: boolean;
+  inputCount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -136,7 +137,15 @@ export interface InstantAccessRes {
 
 // ── Helper formatters ────────────────────────────────────────────────
 
-export function toMemberItemData(member: InvitationMember): MemberItemData {
+export type MemberWithInputCount = InvitationMember & {
+  _count?: {
+    buwuhans?: number;
+    gifts?: number;
+  };
+};
+
+export function toMemberItemData(member: MemberWithInputCount): MemberItemData {
+  const inputCount = (member._count?.buwuhans ?? 0) + (member._count?.gifts ?? 0);
   return {
     id: member.id,
     invitationId: member.invitationId,
@@ -149,12 +158,13 @@ export function toMemberItemData(member: InvitationMember): MemberItemData {
     revokedAt: member.revokedAt,
     isAccepted: member.acceptedAt !== null,
     isRevoked: member.revokedAt !== null,
+    inputCount,
     createdAt: member.createdAt,
     updatedAt: member.updatedAt,
   };
 }
 
-export function inviteMemberResponse(member: InvitationMember): InviteMemberRes {
+export function inviteMemberResponse(member: MemberWithInputCount): InviteMemberRes {
   return {
     message: "Petugas berhasil diundang",
     status: 201,
@@ -162,7 +172,7 @@ export function inviteMemberResponse(member: InvitationMember): InviteMemberRes 
   };
 }
 
-export function listMemberResponse(members: InvitationMember[]): ListMemberRes {
+export function listMemberResponse(members: MemberWithInputCount[]): ListMemberRes {
   return {
     message: "Daftar petugas berhasil diambil",
     status: 200,
@@ -170,7 +180,7 @@ export function listMemberResponse(members: InvitationMember[]): ListMemberRes {
   };
 }
 
-export function getMemberResponse(member: InvitationMember): GetMemberRes {
+export function getMemberResponse(member: MemberWithInputCount): GetMemberRes {
   return {
     message: "Data petugas berhasil diambil",
     status: 200,
@@ -178,7 +188,7 @@ export function getMemberResponse(member: InvitationMember): GetMemberRes {
   };
 }
 
-export function updateMemberRoleResponse(member: InvitationMember): UpdateMemberRoleRes {
+export function updateMemberRoleResponse(member: MemberWithInputCount): UpdateMemberRoleRes {
   return {
     message: "Peran petugas berhasil diperbarui",
     status: 200,

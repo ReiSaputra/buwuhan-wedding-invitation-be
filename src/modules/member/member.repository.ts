@@ -63,6 +63,12 @@ export class MemberRepository {
             ownerId: true,
           },
         },
+        _count: {
+          select: {
+            buwuhans: true,
+            gifts: true,
+          },
+        },
       },
     });
   }
@@ -87,6 +93,14 @@ export class MemberRepository {
   static async findManyByInvitationId(invitationId: string) {
     return await prisma.invitationMember.findMany({
       where: { invitationId },
+      include: {
+        _count: {
+          select: {
+            buwuhans: true,
+            gifts: true,
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
   }
@@ -148,6 +162,14 @@ export class MemberRepository {
     return await prisma.invitationMember.update({
       where: { id },
       data,
+      include: {
+        _count: {
+          select: {
+            buwuhans: true,
+            gifts: true,
+          },
+        },
+      },
     });
   }
 

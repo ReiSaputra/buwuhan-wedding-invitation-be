@@ -235,6 +235,11 @@ export class MemberService {
       throw new NotFoundError("Petugas tidak ditemukan");
     }
 
+    const inputCount = (member._count?.buwuhans ?? 0) + (member._count?.gifts ?? 0);
+    if (inputCount > 0) {
+      throw new ValidationError("Petugas tidak dapat dihapus karena sudah memiliki data input.");
+    }
+
     await MemberRepository.delete(memberId);
     return deleteMemberResponse();
   }

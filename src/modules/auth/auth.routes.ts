@@ -1,9 +1,17 @@
 import { Router } from "express";
 
 import { AuthController } from "./auth.controller";
-import { facebookAuthSchema, googleAuthSchema, signInSchema, signUpSchema } from "./auth.schema";
+import {
+  facebookAuthSchema,
+  forgotPasswordSchema,
+  googleAuthSchema,
+  resetPasswordSchema,
+  signInSchema,
+  signUpSchema,
+} from "./auth.schema";
 import { validate } from "../../middlewares/validate.middleware";
 import {
+  forgotPasswordRateLimiter,
   loginRateLimiter,
   refreshTokenRateLimiter,
   registerRateLimiter,
@@ -17,6 +25,8 @@ authRouter.post("/auth/register", registerRateLimiter, validate(signUpSchema), A
 authRouter.post("/auth/login", loginRateLimiter, validate(signInSchema), AuthController.signIn);
 authRouter.post("/auth/google", loginRateLimiter, validate(googleAuthSchema), AuthController.googleAuth);
 authRouter.post("/auth/facebook", loginRateLimiter, validate(facebookAuthSchema), AuthController.facebookAuth);
+authRouter.post("/auth/forgot-password", forgotPasswordRateLimiter, validate(forgotPasswordSchema), AuthController.forgotPassword);
+authRouter.post("/auth/reset-password", loginRateLimiter, validate(resetPasswordSchema), AuthController.resetPassword);
 authRouter.post("/auth/refresh-token", refreshTokenRateLimiter, AuthController.refreshToken);
 authRouter.post("/auth/logout", AuthController.logout);
 

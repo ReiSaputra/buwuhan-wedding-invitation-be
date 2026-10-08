@@ -13,21 +13,9 @@ import { authRouter } from "../../src/modules/auth/auth.routes";
 import { AuthRepository, hashToken } from "../../src/modules/auth/auth.repository";
 import { errorHandler } from "../../src/middlewares/error.middleware";
 import { logger } from "../../src/utils/log";
+import { mailer } from "../../src/lib/mailer";
 
 // ── Spy setup ────────────────────────────────────────────────────────
-// Pakai vi.spyOn, BUKAN vi.mock(). vi.mock() mengganti modul di level
-// resolusi import, dan gampang meleset kalau ada perbedaan path (alias vs
-// relative, dsb) antara file test dan kode aplikasi -- gejalanya persis
-// seperti error yang kamu dapat ("X.mockResolvedValue is not a function"),
-// karena yang ter-import ternyata class ASLI, bukan hasil mock.
-// vi.spyOn() lebih aman: dia menimpa method langsung di objek class yang
-// SUDAH berhasil di-import di atas, jadi tidak peduli lagi soal resolusi
-// path -- selama importnya sukses (yang terbukti sukses dari error kamu),
-// spyOn pasti nempel.
-//
-// Rate limiter otomatis nonaktif saat NODE_ENV=test (lihat skipInTest di
-// rate-limit.middleware.ts), jadi tidak perlu khawatir jumlah request di
-// file ini numbrung kena limit register/login/refresh-token.
 beforeAll(() => {
   vi.spyOn(AuthRepository, "findUserByEmail");
   vi.spyOn(AuthRepository, "findUserById");
@@ -43,8 +31,14 @@ beforeAll(() => {
   vi.spyOn(AuthRepository, "linkAccount");
   vi.spyOn(AuthRepository, "createUserFromOAuth");
   vi.spyOn(AuthRepository, "updateUserAvatarIfNull");
+  vi.spyOn(AuthRepository, "createPasswordResetToken");
+  vi.spyOn(AuthRepository, "findPasswordResetToken");
+  vi.spyOn(AuthRepository, "deletePasswordResetToken");
+  vi.spyOn(AuthRepository, "updateUserPassword");
 
+  vi.spyOn(mailer, "sendMail");
   vi.spyOn(logger, "warn");
+  vi.spyOn(logger, "error");
   vi.spyOn(bcrypt, "hash");
   vi.spyOn(bcrypt, "compare");
   vi.spyOn(jwt, "sign");
@@ -757,6 +751,159 @@ describe("auth test: facebookAuth", () => {
     expect(res.body.message).toContain("Invalid OAuth access token");
 
     global.fetch = originalFetch;
+  });
+});
+
+// ── Password Reset Tests ──────────────────────────────────────────────
+
+describe("auth test: forgotPassword (POST /auth/forgot-password)", () => {
+  it("berhasil memproses permintaan reset dan mengirim email jika user terdaftar (200)", async () => {
+    (AuthRepository.findUserByEmail as Mock).mockResolvedValue(mockUserRecord);
+    (AuthRepository.createPasswordResetToken as Mock).mockResolvedValue({
+      id: "token-id-123",
+      userId: mockUserRecord.id,
+      tokenHash: "hashed-token",
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+    });
+    (mailer.sendMail as Mock).mockResolvedValue({ messageId: "msg-123" });
+
+    const res = await request(app).post("/v1/api/auth/forgot-password").send({
+      email: mockUserRecord.email,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Jika email terdaftar, tautan pemulihan kata sandi telah dikirim.");
+    expect(res.body.data.success).toBe(true);
+    expect(AuthRepository.createPasswordResetToken).toHaveBeenCalledTimes(1);
+    expect(mailer.sendMail).toHaveBeenCalledTimes(1);
+    expect(mailer.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: mockUserRecord.email,
+        subject: "Permintaan Reset Kata Sandi - Buwuhan",
+      })
+    );
+  });
+
+  it("mengembalikan 200 generic jika email tidak terdaftar tanpa mengirim email (200)", async () => {
+    (AuthRepository.findUserByEmail as Mock).mockResolvedValue(null);
+
+    const res = await request(app).post("/v1/api/auth/forgot-password").send({
+      email: "unknown@example.com",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Jika email terdaftar, tautan pemulihan kata sandi telah dikirim.");
+    expect(res.body.data.success).toBe(true);
+    expect(AuthRepository.createPasswordResetToken).not.toHaveBeenCalled();
+    expect(mailer.sendMail).not.toHaveBeenCalled();
+  });
+
+  it("tetap mengembalikan 200 jika mailer gagal mengirim email (graceful error handling) (200)", async () => {
+    (AuthRepository.findUserByEmail as Mock).mockResolvedValue(mockUserRecord);
+    (AuthRepository.createPasswordResetToken as Mock).mockResolvedValue({
+      id: "token-id-123",
+      userId: mockUserRecord.id,
+      tokenHash: "hashed-token",
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+    });
+    (mailer.sendMail as Mock).mockRejectedValue(new Error("SMTP connection failed"));
+
+    const res = await request(app).post("/v1/api/auth/forgot-password").send({
+      email: mockUserRecord.email,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Jika email terdaftar, tautan pemulihan kata sandi telah dikirim.");
+    expect(res.body.data.success).toBe(true);
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  it("gagal jika format email tidak valid (400)", async () => {
+    const res = await request(app).post("/v1/api/auth/forgot-password").send({
+      email: "invalid-email-format",
+    });
+
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("auth test: resetPassword (POST /auth/reset-password)", () => {
+  it("berhasil memperbarui kata sandi dengan token valid dan merevoke semua sesi aktif (200)", async () => {
+    const mockTokenRecord = {
+      id: "token-id-123",
+      userId: mockUserRecord.id,
+      tokenHash: "hashed-token",
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 menit ke depan (belum expired)
+      user: mockUserRecord,
+    };
+    (AuthRepository.findPasswordResetToken as Mock).mockResolvedValue(mockTokenRecord);
+    (AuthRepository.updateUserPassword as Mock).mockResolvedValue(mockUserRecord);
+    (AuthRepository.deletePasswordResetToken as Mock).mockResolvedValue(mockTokenRecord);
+    (AuthRepository.revokeAllSessionsByUserId as Mock).mockResolvedValue({ count: 2 });
+
+    const res = await request(app).post("/v1/api/auth/reset-password").send({
+      token: "plain-raw-token",
+      newPassword: "NewSecurePassword123",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Kata sandi berhasil diperbarui. Silakan login kembali.");
+    expect(res.body.data.success).toBe(true);
+    expect(bcrypt.hash).toHaveBeenCalledWith("NewSecurePassword123", 10);
+    expect(AuthRepository.updateUserPassword).toHaveBeenCalledWith(mockUserRecord.id, "hashed-password");
+    expect(AuthRepository.deletePasswordResetToken).toHaveBeenCalledWith(mockTokenRecord.id);
+    expect(AuthRepository.revokeAllSessionsByUserId).toHaveBeenCalledWith(mockUserRecord.id);
+  });
+
+  it("gagal jika token tidak ditemukan atau tidak valid (400)", async () => {
+    (AuthRepository.findPasswordResetToken as Mock).mockResolvedValue(null);
+
+    const res = await request(app).post("/v1/api/auth/reset-password").send({
+      token: "invalid-token",
+      newPassword: "NewSecurePassword123",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Token reset password tidak valid atau sudah kedaluwarsa");
+    expect(AuthRepository.updateUserPassword).not.toHaveBeenCalled();
+  });
+
+  it("gagal jika token sudah kedaluwarsa (400)", async () => {
+    const expiredTokenRecord = {
+      id: "token-id-123",
+      userId: mockUserRecord.id,
+      tokenHash: "hashed-token",
+      expiresAt: new Date(Date.now() - 5 * 60 * 1000), // 5 menit yang lalu (sudah expired)
+      user: mockUserRecord,
+    };
+    (AuthRepository.findPasswordResetToken as Mock).mockResolvedValue(expiredTokenRecord);
+
+    const res = await request(app).post("/v1/api/auth/reset-password").send({
+      token: "expired-token",
+      newPassword: "NewSecurePassword123",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Token reset password tidak valid atau sudah kedaluwarsa");
+    expect(AuthRepository.updateUserPassword).not.toHaveBeenCalled();
+  });
+
+  it("gagal jika newPassword kurang dari 8 karakter (400)", async () => {
+    const res = await request(app).post("/v1/api/auth/reset-password").send({
+      token: "valid-token",
+      newPassword: "short1",
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("gagal jika newPassword tidak mengandung huruf dan angka (400)", async () => {
+    const res = await request(app).post("/v1/api/auth/reset-password").send({
+      token: "valid-token",
+      newPassword: "passwordonly",
+    });
+
+    expect(res.status).toBe(400);
   });
 });
 

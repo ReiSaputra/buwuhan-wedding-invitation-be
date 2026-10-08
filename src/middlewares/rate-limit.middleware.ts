@@ -28,6 +28,16 @@ export const registerRateLimiter = rateLimit({
   message: { success: false, message: "Terlalu banyak percobaan registrasi, coba lagi nanti" },
 });
 
+// Forgot-Password: batasi permintaan reset password untuk cegah spam email.
+export const forgotPasswordRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTest,
+  message: { success: false, message: "Terlalu banyak permintaan reset password, coba lagi nanti" },
+});
+
 // Refresh-token: dipanggil otomatis oleh client (bukan diketik user), jadi
 // limit-nya lebih longgar, hanya untuk cegah penyalahgunaan.
 export const refreshTokenRateLimiter = rateLimit({

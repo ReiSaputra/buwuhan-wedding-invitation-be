@@ -16,14 +16,18 @@ import { OAuth2Client } from "google-auth-library";
 import { AuthRepository, hashToken } from "./auth.repository";
 import {
   deleteSessionResponse,
+  forgotPasswordResponse,
   listSessionsResponse,
   logoutAllResponse,
   logoutResponse,
   refreshTokenResponse,
+  resetPasswordResponse,
   signInResponse,
   signUpResponse,
   type DeleteSessionRes,
   type FacebookAuthReq,
+  type ForgotPasswordReq,
+  type ForgotPasswordRes,
   type GoogleAuthReq,
   type ListSessionsRes,
   type LogoutAllRes,
@@ -32,15 +36,60 @@ import {
   type RefreshTokenReq,
   type RefreshTokenRes,
   type RequestMeta,
+  type ResetPasswordReq,
+  type ResetPasswordRes,
   type SignInReq,
   type SignInRes,
   type SignUpReq,
   type SignUpRes,
 } from "./auth.types";
 
-import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from "../../errors/app.error";
+import { BadRequestError, ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from "../../errors/app.error";
 import { logger } from "../../utils/log";
+import { mailer } from "../../lib/mailer";
 import type { PlanTier, PlatformRole } from "../../generated/prisma/client";
+
+function renderResetPasswordEmail(params: { fullName: string; resetUrl: string }): string {
+  return `
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Kata Sandi</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9fafb; margin: 0; padding: 24px; color: #1f2937;">
+  <div style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <div style="background-color: #4f46e5; padding: 24px; text-align: center;">
+      <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 700;">Buwuhan Digital Invitation</h1>
+    </div>
+    <div style="padding: 32px 24px;">
+      <h2 style="font-size: 18px; font-weight: 600; margin-top: 0; margin-bottom: 16px; color: #111827;">Permintaan Reset Kata Sandi</h2>
+      <p style="font-size: 14px; line-height: 22px; color: #4b5563; margin-bottom: 24px;">
+        Halo <strong>${params.fullName}</strong>,<br>
+        Kami menerima permintaan untuk mengatur ulang kata sandi akun Buwuhan Anda. Klik tombol di bawah ini untuk melanjutkan:
+      </p>
+      <div style="text-align: center; margin-bottom: 24px;">
+        <a href="${params.resetUrl}" style="display: inline-block; background-color: #4f46e5; color: #ffffff; font-weight: 600; font-size: 14px; padding: 12px 28px; border-radius: 8px; text-decoration: none; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+          Reset Kata Sandi Saya
+        </a>
+      </div>
+      <p style="font-size: 13px; line-height: 20px; color: #6b7280; margin-bottom: 16px;">
+        Tautan ini hanya berlaku selama <strong>15 menit</strong>. Jika tombol di atas tidak berfungsi, Anda juga dapat menyalin tautan berikut ke browser Anda:
+      </p>
+      <p style="font-size: 12px; line-height: 18px; color: #4f46e5; word-break: break-all; background-color: #f3f4f6; padding: 10px 12px; border-radius: 6px; margin-bottom: 24px;">
+        ${params.resetUrl}
+      </p>
+      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+      <p style="font-size: 12px; line-height: 18px; color: #9ca3af; margin: 0;">
+        Jika Anda tidak merasa meminta reset kata sandi, abaikan email ini dengan aman. Kata sandi akun Anda tidak akan berubah.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+}
 
 function getGoogleClient(): OAuth2Client {
   return new OAuth2Client(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET, process.env.GOOGLE_REDIRECT_URI || "postmessage");
@@ -417,5 +466,59 @@ export class AuthService {
     await AuthRepository.revokeSessionByRefreshToken(request.refreshToken);
 
     return logoutResponse();
+  }
+
+  // ── Password Reset Flow ────────────────────────────────────────────
+
+  static async forgotPassword(request: ForgotPasswordReq): Promise<ForgotPasswordRes> {
+    const user = await AuthRepository.findUserByEmail(request.email);
+
+    if (user) {
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      const tokenHash = hashToken(rawToken);
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 menit
+
+      await AuthRepository.createPasswordResetToken({
+        userId: user.id,
+        tokenHash,
+        expiresAt,
+      });
+
+      const frontendBaseUrl = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(",")[0].trim() : "http://localhost:5173";
+      const resetUrl = `${frontendBaseUrl}/reset-password?token=${rawToken}`;
+
+      try {
+        await mailer.sendMail({
+          to: user.email,
+          subject: "Permintaan Reset Kata Sandi - Buwuhan",
+          html: renderResetPasswordEmail({ fullName: user.fullName, resetUrl }),
+          text: `Halo ${user.fullName}, buka tautan berikut untuk reset kata sandi Anda: ${resetUrl} (berlaku 15 menit).`,
+        });
+      } catch (error) {
+        logger.error("Gagal mengirim email reset password", { userId: user.id, error });
+      }
+    }
+
+    return forgotPasswordResponse();
+  }
+
+  static async resetPassword(request: ResetPasswordReq): Promise<ResetPasswordRes> {
+    const tokenHash = hashToken(request.token);
+    const tokenRecord = await AuthRepository.findPasswordResetToken(tokenHash);
+
+    if (!tokenRecord || tokenRecord.expiresAt < new Date()) {
+      throw new BadRequestError("Token reset password tidak valid atau sudah kedaluwarsa");
+    }
+
+    const newPasswordHash = await bcrypt.hash(request.newPassword, 10);
+    await AuthRepository.updateUserPassword(tokenRecord.userId, newPasswordHash);
+
+    // Hapus token yang telah digunakan
+    await AuthRepository.deletePasswordResetToken(tokenRecord.id);
+
+    // Revoke seluruh sesi aktif milik user
+    await AuthRepository.revokeAllSessionsByUserId(tokenRecord.userId);
+
+    return resetPasswordResponse();
   }
 }

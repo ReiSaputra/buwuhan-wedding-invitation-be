@@ -58,6 +58,30 @@
  *           format: password
  *           example: "Rahasia123"
  *
+ *     ForgotPasswordRequestBody:
+ *       type: object
+ *       required: [email]
+ *       properties:
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: "ayu@example.com"
+ *
+ *     ResetPasswordRequestBody:
+ *       type: object
+ *       required: [token, newPassword]
+ *       properties:
+ *         token:
+ *           type: string
+ *           description: Plain token dari query parameter URL reset password.
+ *           example: "3f8b89e6a0d4c1b9..."
+ *         newPassword:
+ *           type: string
+ *           format: password
+ *           minLength: 8
+ *           description: Minimal 8 karakter, wajib mengandung huruf dan angka.
+ *           example: "PasswordBaru123"
+ *
  *     LoginResponseData:
  *       type: object
  *       properties:
@@ -232,6 +256,97 @@
  *               $ref: '#/components/schemas/ErrorEnvelope'
  *       401:
  *         description: Email atau password salah (pesan generik, tidak membedakan field mana yang salah).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorEnvelope'
+ */
+
+/**
+ * @openapi
+ * /auth/forgot-password:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Permintaan tautan reset kata sandi
+ *     description: >
+ *       Mengirimkan email berisi tautan pemulihan kata sandi jika alamat email terdaftar di database.
+ *       Selalu mengembalikan response sukses generic 200 OK untuk mencegah user enumeration.
+ *       Masa berlaku tautan adalah 15 menit. Dibatasi rate limiter 5 request/15 menit.
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ForgotPasswordRequestBody'
+ *     responses:
+ *       200:
+ *         description: Permintaan diproses.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         success:
+ *                           type: boolean
+ *                           example: true
+ *             example:
+ *               message: "Jika email terdaftar, tautan pemulihan kata sandi telah dikirim."
+ *               status: 200
+ *               data:
+ *                 success: true
+ *       400:
+ *         description: Format email tidak valid.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorEnvelope'
+ */
+
+/**
+ * @openapi
+ * /auth/reset-password:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Eksekusi reset kata sandi dengan token
+ *     description: >
+ *       Memvalidasi token reset dan memperbarui kata sandi pengguna.
+ *       Setelah kata sandi diperbarui, seluruh sesi login aktif akan otomatis dicabut.
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ResetPasswordRequestBody'
+ *     responses:
+ *       200:
+ *         description: Kata sandi berhasil diperbarui.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         success:
+ *                           type: boolean
+ *                           example: true
+ *             example:
+ *               message: "Kata sandi berhasil diperbarui. Silakan login kembali."
+ *               status: 200
+ *               data:
+ *                 success: true
+ *       400:
+ *         description: Token tidak valid/kedaluwarsa atau kata sandi tidak memenuhi syarat keamanan.
  *         content:
  *           application/json:
  *             schema:

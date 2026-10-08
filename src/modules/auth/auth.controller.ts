@@ -1,6 +1,15 @@
-import type { NextFunction, Request, Response } from "express";
-
-import type { LogoutRes, RefreshTokenRes, SignInReq, SignInRes, SignUpReq, SignUpRes } from "./auth.types";
+import type {
+  ForgotPasswordReq,
+  ForgotPasswordRes,
+  LogoutRes,
+  RefreshTokenRes,
+  ResetPasswordReq,
+  ResetPasswordRes,
+  SignInReq,
+  SignInRes,
+  SignUpReq,
+  SignUpRes,
+} from "./auth.types";
 import { AuthService } from "./auth.service";
 import { clearRefreshTokenCookie, getRefreshTokenFromCookie, setRefreshTokenCookie } from "./auth.cookie";
 import { UnauthorizedError } from "../../errors/app.error";
@@ -18,6 +27,26 @@ export class AuthController {
       res.status(201).json(response);
     } catch (error) {
       // send error
+      next(error);
+    }
+  }
+
+  static async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const request: ForgotPasswordReq = req.body as ForgotPasswordReq;
+      const response: ForgotPasswordRes = await AuthService.forgotPassword(request);
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const request: ResetPasswordReq = req.body as ResetPasswordReq;
+      const response: ResetPasswordRes = await AuthService.resetPassword(request);
+      res.status(200).json(response);
+    } catch (error) {
       next(error);
     }
   }

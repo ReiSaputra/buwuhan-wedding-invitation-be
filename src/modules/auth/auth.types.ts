@@ -19,6 +19,15 @@ interface LogoutReq {
   refreshToken: string;
 }
 
+interface ForgotPasswordReq {
+  email: string;
+}
+
+interface ResetPasswordReq {
+  token: string;
+  newPassword: string;
+}
+
 interface GoogleAuthReq {
   idToken?: string;
   code?: string;
@@ -32,6 +41,22 @@ interface FacebookAuthReq {
 interface RequestMeta {
   userAgent?: string | undefined;
   ipAddress?: string | undefined;
+}
+
+interface ForgotPasswordRes {
+  message: string;
+  status: number;
+  data: {
+    success: boolean;
+  };
+}
+
+interface ResetPasswordRes {
+  message: string;
+  status: number;
+  data: {
+    success: boolean;
+  };
 }
 
 interface SignUpRes {
@@ -160,6 +185,26 @@ function deleteSessionResponse(): DeleteSessionRes {
   };
 }
 
+function forgotPasswordResponse(): ForgotPasswordRes {
+  return {
+    message: "Jika email terdaftar, tautan pemulihan kata sandi telah dikirim.",
+    status: 200,
+    data: {
+      success: true,
+    },
+  };
+}
+
+function resetPasswordResponse(): ResetPasswordRes {
+  return {
+    message: "Kata sandi berhasil diperbarui. Silakan login kembali.",
+    status: 200,
+    data: {
+      success: true,
+    },
+  };
+}
+
 export type {
   SignUpReq,
   SignInReq,
@@ -167,11 +212,15 @@ export type {
   FacebookAuthReq,
   RefreshTokenReq,
   LogoutReq,
+  ForgotPasswordReq,
+  ResetPasswordReq,
   RequestMeta,
   SignUpRes,
   SignInRes,
   RefreshTokenRes,
   LogoutRes,
+  ForgotPasswordRes,
+  ResetPasswordRes,
   SessionItem,
   ListSessionsRes,
   LogoutAllRes,
@@ -182,6 +231,8 @@ export {
   signInResponse,
   refreshTokenResponse,
   logoutResponse,
+  forgotPasswordResponse,
+  resetPasswordResponse,
   listSessionsResponse,
   logoutAllResponse,
   deleteSessionResponse,

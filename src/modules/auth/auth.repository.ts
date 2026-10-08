@@ -160,5 +160,42 @@ export class AuthRepository {
       data: { revokedAt: new Date() },
     });
   }
+
+  // ── Password Reset ─────────────────────────────────────────────────
+
+  static async createPasswordResetToken(params: { userId: string; tokenHash: string; expiresAt: Date }) {
+    // Bersihkan token reset lama milik user jika ada
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId: params.userId },
+    });
+
+    return await prisma.passwordResetToken.create({
+      data: {
+        userId: params.userId,
+        tokenHash: params.tokenHash,
+        expiresAt: params.expiresAt,
+      },
+    });
+  }
+
+  static async findPasswordResetToken(tokenHash: string) {
+    return await prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+      include: { user: true },
+    });
+  }
+
+  static async deletePasswordResetToken(id: string) {
+    return await prisma.passwordResetToken.delete({
+      where: { id },
+    });
+  }
+
+  static async updateUserPassword(userId: string, passwordHash: string) {
+    return await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+  }
 }
 

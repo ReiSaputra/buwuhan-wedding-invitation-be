@@ -35,7 +35,18 @@ export const facebookAuthSchema = z
     message: "accessToken atau code wajib disertakan",
   });
 
+export const forgotPasswordSchema = z.object({
+  email: z.email("Format email tidak valid").trim().toLowerCase(),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Token reset password wajib disertakan"),
+  newPassword: passwordSchema,
+});
+
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type SignInInput = z.infer<typeof signInSchema>;
 export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;
 export type FacebookAuthInput = z.infer<typeof facebookAuthSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

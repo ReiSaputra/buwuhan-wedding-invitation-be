@@ -56,12 +56,13 @@ model User {
   role         PlatformRole @default(USER)
   planTier     PlanTier     @default(FREE)
 
-  accounts          Account[]
-  invitations       Invitation[]
-  invitationMembers InvitationMember[]
-  sessions          Session[]
-  subscriptions     Subscription[]
-  buwuhans          Buwuhan[]
+  accounts            Account[]
+  invitations         Invitation[]
+  invitationMembers   InvitationMember[]
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+  subscriptions       Subscription[]
+  buwuhans            Buwuhan[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -308,6 +309,19 @@ model Session {
   updatedAt DateTime @updatedAt
 
   @@map("sessions")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
 
 model GalleryPhoto {

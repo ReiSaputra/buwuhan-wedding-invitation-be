@@ -1,25 +1,35 @@
+import bcrypt from "bcrypt";
 import { UserRepository, type UserFilterParams } from "./user.repository";
 import {
   adminUserDetailResponse,
   adminUserListResponse,
+  changePasswordResponse,
+  deleteSelfAccountResponse,
   deleteUserResponse,
   getUserProfileResponse,
   revokeUserSessionsResponse,
+  updateProfileResponse,
   updateUserRoleResponse,
   updateUserTierResponse,
   type AdminUserDetailRes,
   type AdminUserInvitationSummary,
   type AdminUserListItem,
   type AdminUserListRes,
+  type ChangePasswordReq,
+  type ChangePasswordRes,
+  type DeleteSelfAccountReq,
+  type DeleteSelfAccountRes,
   type DeleteUserRes,
   type GetUserProfileRes,
   type RevokeUserSessionsRes,
+  type UpdateProfileReq,
+  type UpdateProfileRes,
   type UpdateUserRoleReq,
   type UpdateUserRoleRes,
   type UpdateUserTierReq,
   type UpdateUserTierRes,
 } from "./user.types";
-import { ForbiddenError, NotFoundError } from "../../errors/app.error";
+import { BadRequestError, ForbiddenError, NotFoundError } from "../../errors/app.error";
 
 export class UserService {
   static async getProfile(userId: string): Promise<GetUserProfileRes> {
@@ -30,6 +40,65 @@ export class UserService {
     }
 
     return getUserProfileResponse(user);
+  }
+
+  static async updateProfile(userId: string, request: UpdateProfileReq): Promise<UpdateProfileRes> {
+    const existing = await UserRepository.findById(userId);
+
+    if (!existing) {
+      throw new NotFoundError("Pengguna tidak ditemukan");
+    }
+
+    const updated = await UserRepository.updateProfile(userId, {
+      ...(request.fullName !== undefined ? { fullName: request.fullName } : {}),
+      ...(request.avatarUrl !== undefined ? { avatarUrl: request.avatarUrl } : {}),
+    });
+
+    return updateProfileResponse(updated);
+  }
+
+  static async changePassword(userId: string, request: ChangePasswordReq): Promise<ChangePasswordRes> {
+    const existing = await UserRepository.findById(userId);
+
+    if (!existing) {
+      throw new NotFoundError("Pengguna tidak ditemukan");
+    }
+
+    // Jika user punya passwordHash (bukan murni OAuth), verifikasi currentPassword
+    if (existing.passwordHash) {
+      if (!request.currentPassword) {
+        throw new BadRequestError("Kata sandi saat ini wajib diisi");
+      }
+
+      const isMatch = await bcrypt.compare(request.currentPassword, existing.passwordHash);
+      if (!isMatch) {
+        throw new BadRequestError("Kata sandi saat ini salah");
+      }
+    }
+
+    const newPasswordHash = await bcrypt.hash(request.newPassword, 10);
+    await UserRepository.updatePassword(userId, newPasswordHash);
+
+    return changePasswordResponse();
+  }
+
+  static async deleteSelfAccount(userId: string, request?: DeleteSelfAccountReq): Promise<DeleteSelfAccountRes> {
+    const existing = await UserRepository.findById(userId);
+
+    if (!existing) {
+      throw new NotFoundError("Pengguna tidak ditemukan");
+    }
+
+    if (existing.passwordHash && request?.password) {
+      const isMatch = await bcrypt.compare(request.password, existing.passwordHash);
+      if (!isMatch) {
+        throw new BadRequestError("Kata sandi konfirmasi salah");
+      }
+    }
+
+    await UserRepository.deleteById(userId);
+
+    return deleteSelfAccountResponse();
   }
 
   // ── Admin User Management ───────────────────────────────────────────

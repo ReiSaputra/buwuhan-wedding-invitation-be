@@ -1,14 +1,23 @@
 import { Router } from "express";
 import { UserController } from "./user.controller";
-import { updateUserRoleSchema, updateUserTierSchema } from "./user.schema";
+import {
+  changePasswordSchema,
+  deleteSelfAccountSchema,
+  updateProfileSchema,
+  updateUserRoleSchema,
+  updateUserTierSchema,
+} from "./user.schema";
 import { denyInstantAccess, requireAuth } from "../../middlewares/auth.middleware";
 import { requireRole } from "../../middlewares/role.middleware";
 import { validate } from "../../middlewares/validate.middleware";
 
 export const userRouter = Router();
 
-// Protected -- Profile info pengguna login
+// Protected -- Profile info & pengelolaan akun pengguna login
 userRouter.get("/users/me", requireAuth, denyInstantAccess, UserController.getProfile);
+userRouter.patch("/users/me", requireAuth, denyInstantAccess, validate(updateProfileSchema), UserController.updateProfile);
+userRouter.patch("/users/me/password", requireAuth, denyInstantAccess, validate(changePasswordSchema), UserController.changePassword);
+userRouter.delete("/users/me", requireAuth, denyInstantAccess, validate(deleteSelfAccountSchema), UserController.deleteSelfAccount);
 
 
 

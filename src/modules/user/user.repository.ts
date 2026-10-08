@@ -93,6 +93,20 @@ export class UserRepository {
     return result.count;
   }
 
+  static async updateProfile(id: string, data: { fullName?: string | undefined; avatarUrl?: string | null | undefined }) {
+    return await prisma.user.update({
+      where: { id },
+      data,
+    });
+  }
+
+  static async updatePassword(id: string, passwordHash: string) {
+    return await prisma.user.update({
+      where: { id },
+      data: { passwordHash },
+    });
+  }
+
   static async deleteById(id: string) {
     return await prisma.user.delete({
       where: { id },

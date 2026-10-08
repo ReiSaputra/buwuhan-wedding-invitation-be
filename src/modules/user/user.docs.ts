@@ -15,6 +15,11 @@
  *           type: string
  *           format: email
  *           example: "fathur@example.com"
+ *         avatarUrl:
+ *           type: string
+ *           format: uri
+ *           nullable: true
+ *           example: "https://api.buwuh.com/uploads/images/avatar-123.jpg"
  *         role:
  *           type: string
  *           enum: [USER, ADMIN]
@@ -31,6 +36,43 @@
  *           type: string
  *           format: date-time
  *           example: "2026-08-27T10:00:00.000Z"
+ *
+ *     UpdateProfileRequestBody:
+ *       type: object
+ *       properties:
+ *         fullName:
+ *           type: string
+ *           minLength: 2
+ *           maxLength: 100
+ *           example: "Fathur Saputra"
+ *         avatarUrl:
+ *           type: string
+ *           format: uri
+ *           nullable: true
+ *           example: "https://api.buwuh.com/uploads/images/avatar-123.jpg"
+ *
+ *     ChangePasswordRequestBody:
+ *       type: object
+ *       required: [newPassword]
+ *       properties:
+ *         currentPassword:
+ *           type: string
+ *           format: password
+ *           example: "passwordLama123"
+ *         newPassword:
+ *           type: string
+ *           format: password
+ *           minLength: 8
+ *           description: Minimal 8 karakter, wajib mengandung huruf dan angka.
+ *           example: "passwordBaru456"
+ *
+ *     DeleteSelfAccountRequestBody:
+ *       type: object
+ *       properties:
+ *         password:
+ *           type: string
+ *           format: password
+ *           example: "passwordPengguna123"
  *
  *     AdminUserListItem:
  *       type: object
@@ -221,6 +263,122 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorEnvelope'
+ *
+ *   patch:
+ *     tags: [User]
+ *     summary: Perbarui profil pengguna yang sedang login
+ *     description: Memperbarui nama lengkap dan/atau foto profil (avatar) pengguna.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateProfileRequestBody'
+ *     responses:
+ *       200:
+ *         description: Profil berhasil diperbarui.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/UserProfileData'
+ *             example:
+ *               message: "Profil berhasil diperbarui"
+ *               status: 200
+ *               data:
+ *                 id: "cly3k8a1b0000v8og3f1a1111"
+ *                 fullName: "Fathur Saputra"
+ *                 email: "fathur@example.com"
+ *                 avatarUrl: "https://api.buwuh.com/uploads/images/avatar-123.jpg"
+ *                 role: "USER"
+ *                 planTier: "FREE"
+ *                 createdAt: "2026-08-27T10:00:00.000Z"
+ *                 updatedAt: "2026-10-08T12:00:00.000Z"
+ *       400:
+ *         description: Validasi input gagal.
+ *       401:
+ *         description: Unauthorized.
+ *       404:
+ *         description: Pengguna tidak ditemukan.
+ *
+ *   delete:
+ *     tags: [User]
+ *     summary: Hapus akun pengguna mandiri
+ *     description: Menghapus akun pengguna yang sedang login beserta seluruh data undangan, sesi, dan transaksi (cascade).
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DeleteSelfAccountRequestBody'
+ *     responses:
+ *       200:
+ *         description: Akun berhasil dihapus secara permanen.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessEnvelope'
+ *             example:
+ *               message: "Akun Anda berhasil dihapus secara permanen"
+ *               status: 200
+ *       400:
+ *         description: Kata sandi konfirmasi salah.
+ *       401:
+ *         description: Unauthorized.
+ *       404:
+ *         description: Pengguna tidak ditemukan.
+ */
+
+/**
+ * @openapi
+ * /users/me/password:
+ *   patch:
+ *     tags: [User]
+ *     summary: Ganti kata sandi mandiri
+ *     description: Mengubah kata sandi pengguna. Jika pengguna mendaftar dengan email & kata sandi, currentPassword wajib disertakan dan cocok.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ChangePasswordRequestBody'
+ *     responses:
+ *       200:
+ *         description: Kata sandi berhasil diperbarui.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         success:
+ *                           type: boolean
+ *                           example: true
+ *             example:
+ *               message: "Kata sandi berhasil diperbarui"
+ *               status: 200
+ *               data:
+ *                 success: true
+ *       400:
+ *         description: Kata sandi saat ini salah atau format kata sandi baru tidak memenuhi syarat.
+ *       401:
+ *         description: Unauthorized.
+ *       404:
+ *         description: Pengguna tidak ditemukan.
  */
 
 /**

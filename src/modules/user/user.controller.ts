@@ -1,12 +1,60 @@
 import type { NextFunction, Request, Response } from "express";
 import { UserService } from "./user.service";
 import { adminUserQuerySchema } from "./user.schema";
-import type { AdminUserDetailRes, AdminUserListRes, DeleteUserRes, GetUserProfileRes, RevokeUserSessionsRes, UpdateUserRoleReq, UpdateUserRoleRes, UpdateUserTierReq, UpdateUserTierRes } from "./user.types";
+import type {
+  AdminUserDetailRes,
+  AdminUserListRes,
+  ChangePasswordReq,
+  ChangePasswordRes,
+  DeleteSelfAccountReq,
+  DeleteSelfAccountRes,
+  DeleteUserRes,
+  GetUserProfileRes,
+  RevokeUserSessionsRes,
+  UpdateProfileReq,
+  UpdateProfileRes,
+  UpdateUserRoleReq,
+  UpdateUserRoleRes,
+  UpdateUserTierReq,
+  UpdateUserTierRes,
+} from "./user.types";
+import { clearRefreshTokenCookie } from "../auth/auth.cookie";
 
 export class UserController {
   static async getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const response: GetUserProfileRes = await UserService.getProfile(req.user!.id);
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const body = req.body as UpdateProfileReq;
+      const response: UpdateProfileRes = await UserService.updateProfile(req.user!.id, body);
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const body = req.body as ChangePasswordReq;
+      const response: ChangePasswordRes = await UserService.changePassword(req.user!.id, body);
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteSelfAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const body = req.body as DeleteSelfAccountReq;
+      const response: DeleteSelfAccountRes = await UserService.deleteSelfAccount(req.user!.id, body);
+      clearRefreshTokenCookie(res);
       res.status(200).json(response);
     } catch (error) {
       next(error);

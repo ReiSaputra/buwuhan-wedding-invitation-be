@@ -3,6 +3,9 @@ import request from "supertest";
 import express from "express";
 import jwt from "jsonwebtoken";
 
+import bcrypt from "bcrypt";
+import cookieParser from "cookie-parser";
+
 import { userRouter } from "../../src/modules/user/user.routes";
 import { UserRepository } from "../../src/modules/user/user.repository";
 import { errorHandler } from "../../src/middlewares/error.middleware";
@@ -15,13 +18,18 @@ beforeAll(() => {
   vi.spyOn(UserRepository, "findDetailWithInvitations");
   vi.spyOn(UserRepository, "updateTier");
   vi.spyOn(UserRepository, "updateRole");
+  vi.spyOn(UserRepository, "updateProfile");
+  vi.spyOn(UserRepository, "updatePassword");
   vi.spyOn(UserRepository, "revokeAllUserSessions");
   vi.spyOn(UserRepository, "deleteById");
+  vi.spyOn(bcrypt, "hash");
+  vi.spyOn(bcrypt, "compare");
 });
 
 function buildTestApp() {
   const app = express();
   app.use(express.json());
+  app.use(cookieParser());
   app.use("/v1/api", userRouter);
   app.use(errorHandler);
   return app;
@@ -33,7 +41,8 @@ const mockUser = {
   id: "user-123",
   fullName: "Fathur Saputra",
   email: "fathur@example.com",
-  passwordHash: "hash",
+  avatarUrl: "https://api.buwuh.com/uploads/images/avatar.jpg",
+  passwordHash: "$2b$10$hashedpassword",
   role: "USER" as const,
   planTier: "FREE" as const,
   createdAt: new Date("2026-08-01T00:00:00.000Z"),
@@ -44,7 +53,8 @@ const mockAdmin = {
   id: "admin-999",
   fullName: "Admin Buwuhan",
   email: "admin@buwuhan.com",
-  passwordHash: "hash",
+  avatarUrl: null,
+  passwordHash: "$2b$10$hashedpassword",
   role: "ADMIN" as const,
   planTier: "MAX" as const,
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -57,12 +67,14 @@ const adminAuthToken = jwt.sign({ id: mockAdmin.id, role: mockAdmin.role, planTi
 
 beforeEach(() => {
   vi.resetAllMocks();
+  (bcrypt.hash as Mock).mockResolvedValue("new-hashed-password");
+  (bcrypt.compare as Mock).mockResolvedValue(true);
 });
 
-// ── User Profil Pribadi ────────────────────────────────────────────────
+// ── User Profil Pribadi: GET /users/me ─────────────────────────────────
 
 describe("user test: GET /users/me", () => {
-  it("berhasil mengambil profil pengguna login (200)", async () => {
+  it("berhasil mengambil profil pengguna login beserta avatarUrl (200)", async () => {
     (UserRepository.findById as Mock).mockResolvedValue(mockUser);
 
     const res = await request(app).get("/v1/api/users/me").set("Authorization", `Bearer ${userAuthToken}`);
@@ -72,6 +84,7 @@ describe("user test: GET /users/me", () => {
     expect(res.body.data.id).toBe(mockUser.id);
     expect(res.body.data.fullName).toBe("Fathur Saputra");
     expect(res.body.data.email).toBe("fathur@example.com");
+    expect(res.body.data.avatarUrl).toBe("https://api.buwuh.com/uploads/images/avatar.jpg");
     expect(res.body.data.role).toBe("USER");
     expect(res.body.data.planTier).toBe("FREE");
     expect(res.body.data).not.toHaveProperty("passwordHash");
@@ -90,6 +103,238 @@ describe("user test: GET /users/me", () => {
 
     expect(res.status).toBe(404);
     expect(res.body.message).toBe("Pengguna tidak ditemukan");
+  });
+});
+
+// ── User Profil Pribadi: PATCH /users/me ────────────────────────────────
+
+describe("user test: PATCH /users/me", () => {
+  it("berhasil memperbarui nama lengkap dan avatar (200)", async () => {
+    (UserRepository.findById as Mock).mockResolvedValue(mockUser);
+    const updatedUser = {
+      ...mockUser,
+      fullName: "Fathur Saputra Updated",
+      avatarUrl: "https://api.buwuh.com/uploads/images/avatar-new.jpg",
+    };
+    (UserRepository.updateProfile as Mock).mockResolvedValue(updatedUser);
+
+    const res = await request(app)
+      .patch("/v1/api/users/me")
+      .set("Authorization", `Bearer ${userAuthToken}`)
+      .send({
+        fullName: "Fathur Saputra Updated",
+        avatarUrl: "https://api.buwuh.com/uploads/images/avatar-new.jpg",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Profil berhasil diperbarui");
+    expect(res.body.data.fullName).toBe("Fathur Saputra Updated");
+    expect(res.body.data.avatarUrl).toBe("https://api.buwuh.com/uploads/images/avatar-new.jpg");
+    expect(UserRepository.updateProfile).toHaveBeenCalledWith(mockUser.id, {
+      fullName: "Fathur Saputra Updated",
+      avatarUrl: "https://api.buwuh.com/uploads/images/avatar-new.jpg",
+    });
+  });
+
+  it("berhasil menghapus avatarUrl jika dikirim null (200)", async () => {
+    (UserRepository.findById as Mock).mockResolvedValue(mockUser);
+    const updatedUser = {
+      ...mockUser,
+      avatarUrl: null,
+    };
+    (UserRepository.updateProfile as Mock).mockResolvedValue(updatedUser);
+
+    const res = await request(app)
+      .patch("/v1/api/users/me")
+      .set("Authorization", `Bearer ${userAuthToken}`)
+      .send({
+        avatarUrl: null,
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.avatarUrl).toBeNull();
+  });
+
+  it("gagal jika request body kosong (400)", async () => {
+    const res = await request(app)
+      .patch("/v1/api/users/me")
+      .set("Authorization", `Bearer ${userAuthToken}`)
+      .send({});
+
+    expect(res.status).toBe(400);
+  });
+
+  it("gagal jika nama terlalu pendek (400)", async () => {
+    const res = await request(app)
+      .patch("/v1/api/users/me")
+      .set("Authorization", `Bearer ${userAuthToken}`)
+      .send({ fullName: "A" });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("gagal jika format URL avatar tidak valid (400)", async () => {
+    const res = await request(app)
+      .patch("/v1/api/users/me")
+      .set("Authorization", `Bearer ${userAuthToken}`)
+      .send({ avatarUrl: "invalid-url" });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("menolak akses tanpa token autentikasi (401)", async () => {
+    const res = await request(app).patch("/v1/api/users/me").send({ fullName: "New Name" });
+
+    expect(res.status).toBe(401);
+  });
+});
+
+// ── User Profil Pribadi: PATCH /users/me/password ───────────────────────
+
+describe("user test: PATCH /users/me/password", () => {
+  it("berhasil mengganti kata sandi dengan currentPassword yang cocok (200)", async () => {
+    (UserRepository.findById as Mock).mockResolvedValue(mockUser);
+    (bcrypt.compare as Mock).mockResolvedValue(true);
+    (UserRepository.updatePassword as Mock).mockResolvedValue(mockUser);
+
+    const res = await request(app)
+      .patch("/v1/api/users/me/password")
+      .set("Authorization", `Bearer ${userAuthToken}`)
+      .send({
+        currentPassword: "OldPassword123",
+        newPassword: "NewPassword456",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Kata sandi berhasil diperbarui");
+    expect(res.body.data.success).toBe(true);
+    expect(bcrypt.compare).toHaveBeenCalledWith("OldPassword123", mockUser.passwordHash);
+    expect(bcrypt.hash).toHaveBeenCalledWith("NewPassword456", 10);
+    expect(UserRepository.updatePassword).toHaveBeenCalledWith(mockUser.id, "new-hashed-password");
+  });
+
+  it("gagal jika currentPassword salah (400)", async () => {
+    (UserRepository.findById as Mock).mockResolvedValue(mockUser);
+    (bcrypt.compare as Mock).mockResolvedValue(false);
+
+    const res = await request(app)
+      .patch("/v1/api/users/me/password")
+      .set("Authorization", `Bearer ${userAuthToken}`)
+      .send({
+        currentPassword: "WrongPassword123",
+        newPassword: "NewPassword456",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Kata sandi saat ini salah");
+    expect(UserRepository.updatePassword).not.toHaveBeenCalled();
+  });
+
+  it("gagal jika user memiliki passwordHash tapi tidak mengirim currentPassword (400)", async () => {
+    (UserRepository.findById as Mock).mockResolvedValue(mockUser);
+
+    const res = await request(app)
+      .patch("/v1/api/users/me/password")
+      .set("Authorization", `Bearer ${userAuthToken}`)
+      .send({
+        newPassword: "NewPassword456",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Kata sandi saat ini wajib diisi");
+  });
+
+  it("berhasil menyetel kata sandi jika akun berasal dari OAuth tanpa passwordHash (200)", async () => {
+    const oauthUser = { ...mockUser, passwordHash: null };
+    (UserRepository.findById as Mock).mockResolvedValue(oauthUser);
+    (UserRepository.updatePassword as Mock).mockResolvedValue(oauthUser);
+
+    const res = await request(app)
+      .patch("/v1/api/users/me/password")
+      .set("Authorization", `Bearer ${userAuthToken}`)
+      .send({
+        newPassword: "NewPassword456",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Kata sandi berhasil diperbarui");
+    expect(bcrypt.compare).not.toHaveBeenCalled();
+    expect(UserRepository.updatePassword).toHaveBeenCalledWith(mockUser.id, "new-hashed-password");
+  });
+
+  it("gagal jika newPassword kurang dari 8 karakter (400)", async () => {
+    const res = await request(app)
+      .patch("/v1/api/users/me/password")
+      .set("Authorization", `Bearer ${userAuthToken}`)
+      .send({
+        currentPassword: "OldPassword123",
+        newPassword: "short1",
+      });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("gagal jika newPassword tidak mengandung huruf dan angka (400)", async () => {
+    const res = await request(app)
+      .patch("/v1/api/users/me/password")
+      .set("Authorization", `Bearer ${userAuthToken}`)
+      .send({
+        currentPassword: "OldPassword123",
+        newPassword: "passwordonly",
+      });
+
+    expect(res.status).toBe(400);
+  });
+});
+
+// ── User Profil Pribadi: DELETE /users/me ───────────────────────────────
+
+describe("user test: DELETE /users/me", () => {
+  it("berhasil menghapus akun sendiri dan membersihkan cookie (200)", async () => {
+    (UserRepository.findById as Mock).mockResolvedValue(mockUser);
+    (UserRepository.deleteById as Mock).mockResolvedValue(mockUser);
+
+    const res = await request(app).delete("/v1/api/users/me").set("Authorization", `Bearer ${userAuthToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Akun Anda berhasil dihapus secara permanen");
+    expect(UserRepository.deleteById).toHaveBeenCalledWith(mockUser.id);
+  });
+
+  it("berhasil menghapus akun dengan konfirmasi password yang cocok (200)", async () => {
+    (UserRepository.findById as Mock).mockResolvedValue(mockUser);
+    (bcrypt.compare as Mock).mockResolvedValue(true);
+    (UserRepository.deleteById as Mock).mockResolvedValue(mockUser);
+
+    const res = await request(app)
+      .delete("/v1/api/users/me")
+      .set("Authorization", `Bearer ${userAuthToken}`)
+      .send({ password: "ValidPassword123" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Akun Anda berhasil dihapus secara permanen");
+    expect(bcrypt.compare).toHaveBeenCalledWith("ValidPassword123", mockUser.passwordHash);
+    expect(UserRepository.deleteById).toHaveBeenCalledWith(mockUser.id);
+  });
+
+  it("gagal menghapus akun jika password konfirmasi salah (400)", async () => {
+    (UserRepository.findById as Mock).mockResolvedValue(mockUser);
+    (bcrypt.compare as Mock).mockResolvedValue(false);
+
+    const res = await request(app)
+      .delete("/v1/api/users/me")
+      .set("Authorization", `Bearer ${userAuthToken}`)
+      .send({ password: "WrongPassword123" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Kata sandi konfirmasi salah");
+    expect(UserRepository.deleteById).not.toHaveBeenCalled();
+  });
+
+  it("menolak akses tanpa token autentikasi (401)", async () => {
+    const res = await request(app).delete("/v1/api/users/me");
+
+    expect(res.status).toBe(401);
   });
 });
 

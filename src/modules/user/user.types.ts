@@ -4,6 +4,7 @@ export interface UserProfileData {
   id: string;
   fullName: string;
   email: string;
+  avatarUrl?: string | null;
   role: PlatformRole;
   planTier: PlanTier;
   createdAt: Date;
@@ -21,6 +22,7 @@ export function toUserProfileData(user: User): UserProfileData {
     id: user.id,
     fullName: user.fullName,
     email: user.email,
+    avatarUrl: user.avatarUrl ?? null,
     role: user.role,
     planTier: user.planTier,
     createdAt: user.createdAt,
@@ -33,6 +35,64 @@ export function getUserProfileResponse(user: User): GetUserProfileRes {
     message: "Profil pengguna berhasil diambil",
     status: 200,
     data: toUserProfileData(user),
+  };
+}
+
+export interface UpdateProfileReq {
+  fullName?: string | undefined;
+  avatarUrl?: string | null | undefined;
+}
+
+export interface UpdateProfileRes {
+  message: string;
+  status: number;
+  data: UserProfileData;
+}
+
+export function updateProfileResponse(user: User): UpdateProfileRes {
+  return {
+    message: "Profil berhasil diperbarui",
+    status: 200,
+    data: toUserProfileData(user),
+  };
+}
+
+export interface ChangePasswordReq {
+  currentPassword?: string | undefined;
+  newPassword: string;
+}
+
+export interface ChangePasswordRes {
+  message: string;
+  status: number;
+  data: {
+    success: boolean;
+  };
+}
+
+export function changePasswordResponse(): ChangePasswordRes {
+  return {
+    message: "Kata sandi berhasil diperbarui",
+    status: 200,
+    data: {
+      success: true,
+    },
+  };
+}
+
+export interface DeleteSelfAccountReq {
+  password?: string | undefined;
+}
+
+export interface DeleteSelfAccountRes {
+  message: string;
+  status: number;
+}
+
+export function deleteSelfAccountResponse(): DeleteSelfAccountRes {
+  return {
+    message: "Akun Anda berhasil dihapus secara permanen",
+    status: 200,
   };
 }
 
